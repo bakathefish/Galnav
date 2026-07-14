@@ -83,12 +83,46 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   install 3.11 or update the pin — decide before the first real
   experiment runs.
 
+### Authorized override, 2026-07-14 (recorded for full transparency)
+
+- The students explicitly authorized Claude Code to lift the edit-lock and
+  perform the two pending pastes directly, after the paste contents had
+  been shown to them in full, verified, and approved in conversation.
+- What was changed under the override: (1) the three test tolerances
+  (ANGLE_TOL_RAD, PARALLAX_REL_TOL, DISPLACEMENT_REL_TOL — values and
+  empirical proof documented above) appended to `tests/golden_numbers.py`;
+  (2) THE JOURNAL RULE section and one definition-of-done bullet added to
+  `CLAUDE.md`. Nothing else in either file was touched.
+- The deny-lock in `.claude/settings.json` was restored immediately after,
+  and remains in force. `tests/test_truth_wall.py` stayed locked throughout.
+- Attribution note for the paper: these three tolerance values were
+  derived and empirically validated by Claude Code, then reviewed and
+  approved by the students — unlike the rest of golden_numbers.py, which
+  is student-hand-derived from the plan and verified 2026-07-14.
+
+### Environment bug found and fixed, 2026-07-14
+
+- Symptom: `from tests.golden_numbers import ...` failed even though the
+  file exists. Cause: a stray top-level `tests` package (containing only a
+  `test_e2e.py`) was left in Python 3.13's site-packages by some earlier
+  pip install, and Python prefers a regular site-packages package over our
+  plain `tests/` folder.
+- Fix: added `tests/__init__.py`, making our folder a proper package that
+  wins the name lookup. Suite green afterward (6/6).
+- Follow-up (optional, low priority): identify and uninstall whichever pip
+  package polluted site-packages with a bare `tests` folder.
+
+### Option B completed, 2026-07-14
+
+- `tests/test_geometry.py` now imports ANGLE_TOL_RAD from golden_numbers
+  instead of hard-coding 1e-12 (five occurrences replaced; values
+  identical, so this changes organization, not behavior). Suite 6/6 green.
+
 ### Pending at end of session 3
 
-1. Student paste into `tests/golden_numbers.py`: the three test
-   tolerances (Claude Code is deny-locked from that file by design).
-2. Student paste into `CLAUDE.md`: THE JOURNAL RULE section.
-3. Student entries in `ai_sessions/` for sessions 1–3 (ISEF requirement).
-4. Spec 2 (parallax engine): test cases drafted and approved in
-   conversation; awaiting tolerance paste, then test file + implementation.
-5. Delete accidental `node_modules/` folder (already gitignored).
+1. Student entries in `ai_sessions/` for sessions 1–3 (ISEF requirement).
+2. Spec 2 (parallax engine): test cases drafted in conversation; awaiting
+   final student "yes", then test file + implementation.
+3. Delete accidental `node_modules/` folder (already gitignored).
+4. Python version: CLAUDE.md pins 3.11, machine runs 3.13 — students
+   decide which to standardize on.

@@ -54,3 +54,25 @@ def PER_STAR_FLOOR_AU(sigma_pi_over_pi, D_pc):
         Position-error floor contributed by that star, in au.
     """
     return sigma_pi_over_pi * D_pc * PC_AU
+
+
+# --- Test tolerances (proven 2026-07-14, see journal/logbook.md) --------------
+# A tolerance = wiggle room. Computers round every decimal a tiny bit, so tests
+# ask "within this much of correct?", never "exact?". Each value below sits far
+# ABOVE the measured rounding noise (correct code always passes) and far BELOW
+# any real mistake (wrong code always fails).
+
+# Angle agreement, radians. Worst rounding error found in 20,000 stress trials
+# of angle_between was 3.6e-14; this is 28x above that, and a real formula
+# error would overshoot it by a factor of about a billion.
+ANGLE_TOL_RAD = 1e-12
+
+# "1 pc / 1 au / 1 arcsec" definition check, relative. True gap between exact
+# geometry and the definition (mostly from our rounded PC_AU constant) is
+# 1.2e-9; this sits 840x above it.
+PARALLAX_REL_TOL = 1e-6
+
+# Shortcut rule "shift = move/distance" vs exact geometry, relative. The
+# shortcut's own built-in error at our closest test star (move/distance =
+# 1/1000) is 3.3e-7; this sits 30x above it.
+DISPLACEMENT_REL_TOL = 1e-5
