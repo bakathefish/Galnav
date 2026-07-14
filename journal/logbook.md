@@ -301,3 +301,46 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   only measured angles, catalog arrays, pair indices, and a guess.
 - Audits: truth-wall-auditor and spec-reviewer launched; verdicts
   recorded before commit.
+- Spec 5 committed: `ca7120d`.
+
+## 2026-07-14 — Session 3 (continued): Spec 6, covariance + CRLB
+
+- Golden gates measured BEFORE freezing (scratchpad prototype): full
+  500-trial Monte Carlo vs sigma^2 (J^T J)^-1 run in 20 independent
+  random universes; worst per-axis scatter disagreement 10.2% —
+  consistent with the 1/sqrt(2*500) ≈ 3.2% sampling law and safely under
+  the plan's 15% gate. Frozen under the recorded authorized-override
+  procedure: MC_TRIALS = 500, MC_CRLB_REL_TOL = 0.15. Theory error bars
+  at the test geometry (1 arcsec noise, 7 pairs of the 10 nearest
+  stars): 2.9 / 5.5 / 1.0 au per axis — same ballpark as the
+  Bailer-Jones 3 au / 20 stars anchor before E1 even runs. Encouraging.
+- Test written FIRST (`tests/test_covariance.py`): covariance symmetric
+  positive-definite; batched solver equals single-trial solver at the
+  proven recovery gate; 500-trial scatter matches theory within 15% per
+  axis (single vectorized solve call, fixed seed for reproducibility).
+  Confirmed RED, then implemented, then GREEN: 21/21 in 1.6 s.
+- Implementation, shaped by the vectorize-over-trials rule: measmodel
+  and truth observer generalized to broadcast over stacked observer
+  positions (last-axis forms; mechanical change, math identical — the 18
+  pre-existing tests pin single-trial behavior); solve_position now
+  advances all trials simultaneously per Gauss-Newton round (batched
+  einsum normal equations; the only remaining loop is over rounds,
+  sequential by nature); new position_covariance = sigma^2 (J^T J)^-1
+  (3 lines, derivation D4; equals the CRLB for Gaussian noise, D6).
+- Performance evidence banked for E1: 500 trials solve in well under a
+  second — the plan's 10 s/cell budget beaten by >10x.
+- The instrument is complete: simulate -> solve -> predict error ->
+  verify error. E1 (first research figure) is now this machinery swept
+  over a (star count x distance x noise) grid.
+- Audits complete. Truth wall: PASS (nav imports never reach truth, no
+  module-level state anywhere in nav, all randomness rng-routed, test
+  hands nav only plain arrays). Code rules: 7/8 PASS; one flagged
+  VIOLATION left as an open student decision:
+  tests/test_covariance.py:50 checks symmetry via np.allclose, whose
+  built-in default tolerances (rtol 1e-5, atol 1e-8) are not from
+  golden_numbers.py. Options when students decide: (a) add a
+  hand-derived symmetry tolerance to golden_numbers.py, or (b) make
+  position_covariance symmetrize its output exactly — cov = (A + A.T)/2
+  is bitwise symmetric in IEEE arithmetic — and tighten the test to
+  exact equality (tolerance-free). Recommendation on record: (b), one
+  line each side, kills the hidden tolerance entirely.

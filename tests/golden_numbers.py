@@ -112,3 +112,18 @@ SOLVER_STEP_TOL_AU = 1e-9
 # creep past 10 would mean the Jacobian and residual disagree (a bug), as
 # healthy Gauss-Newton doubles its correct digits every round.
 SOLVER_MAX_ITERS = 10
+
+# --- Monte Carlo / covariance gates (proven 2026-07-14, see logbook) -----------
+# Number of noisy trials per Monte Carlo check (project plan, D4 checkpoint
+# and E1 grid). Statistics 101: estimating a scatter from T samples is
+# itself fuzzy by about 1/sqrt(2T) -- at 500 trials, ~3.2% per axis.
+MC_TRIALS = 500
+
+# The 500-trial scatter must match the theory formula sigma^2 (J^T J)^-1
+# within 15% per axis (project plan, D4: "~10-15% at 500 trials"). This is
+# a STATISTICS gate, not a precision gate: measured worst per-axis
+# disagreement over 20 independent seeds was 10.2% -- pure sampling
+# fluctuation, since the same code at any single seed is deterministic. A
+# real formula error (wrong J, missing sigma^2, transposed matrix) throws
+# the ratio off by 2x or more, far past 15%.
+MC_CRLB_REL_TOL = 0.15

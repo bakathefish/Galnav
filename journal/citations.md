@@ -134,6 +134,26 @@ minimization.
 - Where in repo: `galnav/nav/estimator.py` (solve_position); derivation
   written out step by step in `journal/spec-5-estimator.md`.
 
+**[COV]** First-order noise propagation through least squares:
+Cov(p̂) = σ²(JᵀJ)⁻¹ (with weights, (JᵀWJ)⁻¹) — standard estimation
+theory (any textbook). The students' derivation D4 reproduces it.
+- Where in repo: `galnav/nav/estimator.py` (position_covariance);
+  verified by 500-trial Monte Carlo in `tests/test_covariance.py`;
+  explained in `journal/spec-6-covariance.md`.
+
+**[CRLB]** Cramér-Rao lower bound: no unbiased estimator's covariance
+can beat the inverse Fisher information; for Gaussian angle noise the
+Fisher information is JᵀJ/σ², so the bound equals [COV]'s formula —
+standard statistics (Cramér 1946; Rao 1945; any estimation textbook).
+The students' derivation D6 covers the 1/sqrt(N) scaling consequence.
+- Where in repo: `journal/spec-6-covariance.md`; the theory line of
+  experiment E1's signature figure.
+
+**[SAMPVAR]** Sampling fluctuation of an estimated standard deviation:
+relative std ≈ 1/sqrt(2T) for T samples — standard statistics.
+- Where in repo: MC_CRLB_REL_TOL and MC_TRIALS rationale in
+  `tests/golden_numbers.py` and `journal/spec-6-covariance.md`.
+
 **[CDIFF]** Central finite differences f'(x) ≈ (f(x+h) - f(x-h))/2h with
 truncation error O(h²) and rounding error O(eps/h) — standard numerical
 analysis (any textbook, e.g. Press et al., *Numerical Recipes*).

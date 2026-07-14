@@ -7,15 +7,18 @@ import numpy as np
 
 
 def _unit_directions(star_pos_au, obs_pos_au):
-    """Unit direction vectors from a hypothesized observer to each star.
+    """Unit direction vectors from hypothesized observer position(s) to each star.
 
     star_pos_au: (N, 3) catalog star positions, au.
-    obs_pos_au: (3,) hypothesized observer position, au.
-    Returns: (unit (N, 3) dimensionless, range (N,) in au).
+    obs_pos_au: (..., 3) hypothesized observer position(s), au — a single
+                (3,) position or a whole batch (T, 3) of Monte Carlo
+                trials at once (project rule: vectorize over trials).
+    Returns: (unit (..., N, 3) dimensionless, range (..., N) in au).
     """
-    towards = np.asarray(star_pos_au, dtype=float) - np.asarray(obs_pos_au, dtype=float)
-    ranges = np.linalg.norm(towards, axis=1)
-    return towards / ranges[:, None], ranges
+    obs = np.asarray(obs_pos_au, dtype=float)
+    towards = np.asarray(star_pos_au, dtype=float) - obs[..., None, :]
+    ranges = np.linalg.norm(towards, axis=-1)
+    return towards / ranges[..., None], ranges
 
 
 def _pair_sin_cos(unit, pairs):
@@ -26,23 +29,23 @@ def _pair_sin_cos(unit, pairs):
     collapse near 0 and pi (needed: the real sky contains close binary
     pairs with nearly-zero separation angles).
 
-    unit: (N, 3) unit direction vectors (dimensionless).
+    unit: (..., N, 3) unit direction vectors (dimensionless).
     pairs: (P, 2) integer star indices.
-    Returns: (sin (P,), cos (P,)), both dimensionless.
+    Returns: (sin (..., P), cos (..., P)), both dimensionless.
     """
-    u_i, u_j = unit[pairs[:, 0]], unit[pairs[:, 1]]
-    sin_t = np.linalg.norm(np.cross(u_i, u_j), axis=1)
-    cos_t = np.sum(u_i * u_j, axis=1)
+    u_i, u_j = unit[..., pairs[:, 0], :], unit[..., pairs[:, 1], :]
+    sin_t = np.linalg.norm(np.cross(u_i, u_j), axis=-1)
+    cos_t = np.sum(u_i * u_j, axis=-1)
     return sin_t, cos_t
 
 
 def predicted_pair_angles(star_pos_au, obs_pos_au, pairs):
-    """Angles the camera WOULD see between star pairs from a guessed position.
+    """Angles the camera WOULD see between star pairs from guessed position(s).
 
     star_pos_au: (N, 3) catalog star positions, au.
-    obs_pos_au: (3,) hypothesized observer position, au.
+    obs_pos_au: (..., 3) hypothesized observer position(s), au.
     pairs: (P, 2) integer star indices per measured pair.
-    Returns: (P,) predicted angles, radians.
+    Returns: (..., P) predicted angles, radians.
     """
     pairs = np.asarray(pairs)
     unit, _ = _unit_directions(star_pos_au, obs_pos_au)
@@ -59,16 +62,16 @@ def pair_angle_jacobian(star_pos_au, obs_pos_au, pairs):
     for any real star field.
 
     star_pos_au: (N, 3) catalog star positions, au.
-    obs_pos_au: (3,) hypothesized observer position, au.
+    obs_pos_au: (..., 3) hypothesized observer position(s), au.
     pairs: (P, 2) integer star indices per measured pair.
-    Returns: (P, 3) d(angle)/d(position), radians per au.
+    Returns: (..., P, 3) d(angle)/d(position), radians per au.
     """
     pairs = np.asarray(pairs)
     unit, ranges = _unit_directions(star_pos_au, obs_pos_au)
-    u_i, u_j = unit[pairs[:, 0]], unit[pairs[:, 1]]
-    r_i, r_j = ranges[pairs[:, 0]], ranges[pairs[:, 1]]
+    u_i, u_j = unit[..., pairs[:, 0], :], unit[..., pairs[:, 1], :]
+    r_i, r_j = ranges[..., pairs[:, 0]], ranges[..., pairs[:, 1]]
     sin_t, cos_t = _pair_sin_cos(unit, pairs)
-    dcos_dp = (cos_t[:, None] * u_i - u_j) / r_i[:, None] + (
-        cos_t[:, None] * u_j - u_i
-    ) / r_j[:, None]
-    return -dcos_dp / sin_t[:, None]
+    dcos_dp = (cos_t[..., None] * u_i - u_j) / r_i[..., None] + (
+        cos_t[..., None] * u_j - u_i
+    ) / r_j[..., None]
+    return -dcos_dp / sin_t[..., None]
