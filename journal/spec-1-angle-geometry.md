@@ -79,6 +79,30 @@ If the code passes all five of these obvious, hand-checked cases, we trust
 it enough to use later on real star data, which we can't check by hand as
 easily.
 
+## Why the tolerance is 1e-12 and not some other number
+
+The tests don't ask "is the answer exactly pi/2?" — computers store
+decimals with tiny rounding errors, so "exactly" is impossible. Instead
+they ask "is it within 1e-12 of pi/2?" (that's 0.000000000001).
+
+Why that exact value:
+
+- The computer stores numbers to about 16 decimal digits. Each arithmetic
+  step (multiply, add, square root, arccos) can be off by about 2 parts in
+  10^16. Our function does roughly ten such steps, so honest rounding
+  error lands around 1e-15 — a thousand times smaller than 1e-12.
+- So 1e-12 is loose enough that correct code always passes (never a
+  random failure from rounding), but tight enough that actually-wrong
+  math always fails: a real formula mistake is off by something like
+  0.001 or more, a billion times bigger than 1e-12.
+- One trap we guard against: rounding can push the "cosine" value to
+  something like 1.0000000000000002, and arccos of anything past 1.0 is
+  an error. The code clips the value back into [-1, 1] first. This never
+  changes a correct answer — it only removes a crash.
+
+Rule reminder: this number is supposed to live in tests/golden_numbers.py
+with every other tolerance, not be written directly inside the test file.
+
 ## Where this fits in the bigger picture
 
 This is brick #1 out of many. Every later piece of the project —
