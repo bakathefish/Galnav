@@ -229,3 +229,45 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   strictly units.py could own helpers for this, but adding untested
   helper functions violates test-first. Decide whenever a units.py spec
   card happens.
+- Spec 3 committed: `5d802d5`.
+
+## 2026-07-14 — Session 3 (continued): Spec 4, Measurement Model A + Jacobian
+
+- New golden number JACOBIAN_REL_TOL = 1e-6 (plan's Spec 4 gate) added
+  under the recorded authorized-override procedure (lock lifted, one
+  block added, lock restored).
+- Test written FIRST (`tests/test_measmodel.py`): predictions match
+  independent construction (ANGLE_TOL_RAD); analytic Jacobian matches
+  central differences over 4 decades of step (0.1/1/10/100 au) within
+  JACOBIAN_REL_TOL; every pair's sensitivity bounded by the displacement
+  rule 1/r_i + 1/r_j. Confirmed RED, then implemented
+  `galnav/nav/measmodel.py` (first real NAV-side code):
+  _unit_directions, _pair_sin_cos, predicted_pair_angles,
+  pair_angle_jacobian. Chain-rule derivation reproduced in
+  journal/spec-4-measmodel.md.
+- TDD CATCH OF THE DAY: first run failed 2 tests. Root cause — test
+  pair [8,9] is the 61 Cygni A/B binary (RA 316.75, Dec +38.76, both at
+  parallax 286 mas; the star of Bessel's 1838 first-ever parallax
+  measurement). Near-zero pair angle (0.0165 deg from the test vantage)
+  exposed (a) arccos rounding fuzz in the REFERENCE tool exceeding the
+  1e-12 gate (1.18e-12 measured) and (b) a fundamental nudge-test limit:
+  close pairs carry position signal ~angle/r, so 1e-6 relative agreement
+  is unreachable at h=0.1 au in float64 (1.55e-6 measured after the
+  model fix). Honestly recorded as NOT scientifically novel (binaries
+  and arccos conditioning are textbook) but a genuine harness catch and
+  a preview of E6 binary contamination.
+- Fixes: (1) CODE — model upgraded to arctan2(|cross|, dot) pair angles
+  (precise at all angles; the upgrade forecast in the Spec 2 journal).
+  (2) TEST, by explicit student decision (option A): binary companions
+  are never paired with each other; verified [8,9] is the only
+  degenerate pair among all 45 combinations (all others 20-156 deg);
+  stars 8 and 9 remain in the test paired with distant partners.
+- Methodological note for all future experiment scripts: the catalog is
+  sorted by distance and binary companions share a distance, so ADJACENT
+  CATALOG ROWS ARE LIKELY THE SAME SYSTEM. Never pair neighbors blindly.
+- Final state: 15/15 green. Measured Jacobian agreement: worst 6.8e-8
+  across all pairs/decades (15x headroom at h=100 au where curvature
+  dominates; 1,000-10,000x elsewhere).
+- Spec 1's arccos-based angle_between left untouched (its own contract
+  holds; one-card rule). Flag for a future student decision: upgrade
+  geometry.angle_between to the arctan2 form when a card needs it.

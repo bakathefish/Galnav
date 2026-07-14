@@ -83,3 +83,13 @@ DISPLACEMENT_REL_TOL = 1e-5
 # only allowed disagreement is rounding dust -- 1 mas is a generous but
 # meaningful ceiling for "we did the same math."
 SKYCOORD_AGREE_MAS = 1.0
+
+# The hand-derived Jacobian (sensitivity of each predicted angle to the
+# position guess) must agree with brute-force numerical nudging to one
+# part in a million, across FOUR decades of nudge size (project plan gate,
+# Spec 4). Nudging has two error sources -- too big a nudge feels the
+# curvature, too small drowns in rounding -- and at our geometry both stay
+# below ~1e-7 across the whole 0.1..100 au nudge range, so 1e-6 passes
+# honest code with margin while any formula error (wrong sign, wrong term,
+# missing 1/distance) misses by many orders of magnitude.
+JACOBIAN_REL_TOL = 1e-6

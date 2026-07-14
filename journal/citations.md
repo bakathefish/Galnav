@@ -82,6 +82,17 @@ Astrophysics*, 674, A1.
   Spec 3 (simulator) and Spec 7 (catalog covariance) onward.
 - Data source: ESA Gaia Archive TAP service, gaiadr3.gaia_source table.
 
+## Historical
+
+**[Bessel1838]** Bessel, F. W. (1838). "Bestimmung der Entfernung des
+61sten Sterns des Schwans." *Astronomische Nachrichten*, 16, 65–96.
+The first stellar parallax measurement in history — of 61 Cygni.
+- Used for: historical context; 61 Cygni A/B is the close binary pair in
+  our nearest-ten list whose near-zero separation angle exposed the
+  arccos precision limit and the close-pair degeneracy (Spec 4).
+- Where in repo: `tests/test_measmodel.py` (pair-selection comment),
+  `journal/spec-4-measmodel.md`, logbook 2026-07-14.
+
 ## Standard mathematics (textbook results, not original to any paper)
 
 **[DOT]** The identity a·b = |a| |b| cos(angle) for vectors — standard
@@ -96,6 +107,26 @@ y = cos(dec)sin(ra), z = sin(dec) — standard trigonometry (any textbook).
 - Where in repo: `galnav/units.py` (radec_to_unit), cross-checked against
   astropy in `tests/test_sky.py`; explained in
   `journal/spec-3-truth-sky.md`.
+
+**[CROSS]** |a x b| = |a| |b| sin(angle), and the robust two-argument
+angle recipe arctan2(|u_i x u_j|, u_i·u_j) — standard vector algebra /
+numerical practice (precise at all angles, unlike arccos near 0/pi).
+- Where in repo: `galnav/nav/measmodel.py` (_pair_sin_cos,
+  predicted_pair_angles); rationale in `journal/spec-4-measmodel.md`.
+
+**[CHAIN]** Jacobian of the pair angle by the chain rule:
+d(angle)/dp = -[(cos·u_i - u_j)/r_i + (cos·u_j - u_i)/r_j]/sin, using
+du/dp = (u uᵀ - I)/r — standard vector calculus, full derivation
+reproduced step by step in `journal/spec-4-measmodel.md`.
+- Where in repo: `galnav/nav/measmodel.py` (pair_angle_jacobian).
+
+**[CDIFF]** Central finite differences f'(x) ≈ (f(x+h) - f(x-h))/2h with
+truncation error O(h²) and rounding error O(eps/h) — standard numerical
+analysis (any textbook, e.g. Press et al., *Numerical Recipes*).
+- Where in repo: `tests/test_measmodel.py` (4-decade Jacobian
+  verification); step-size trade-off explained in
+  `journal/spec-4-measmodel.md` and the JACOBIAN_REL_TOL comment in
+  `tests/golden_numbers.py`.
 
 **[SMALL]** Small-angle approximation arctan(x) ≈ x with relative error
 x²/3 — standard calculus (Taylor series). Right-triangle definition
