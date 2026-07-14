@@ -84,6 +84,12 @@ Astrophysics*, 674, A1.
 
 ## Historical
 
+**[Gauss1809]** Gauss, C. F. (1809). *Theoria Motus Corporum Coelestium*.
+Least squares, invented for recovering the orbit of the asteroid Ceres
+from noisy telescope bearings — the historical root of our solver.
+- Used for: historical context for the Gauss-Newton estimator.
+- Where in repo: `journal/spec-5-estimator.md`.
+
 **[Bessel1838]** Bessel, F. W. (1838). "Bestimmung der Entfernung des
 61sten Sterns des Schwans." *Astronomische Nachrichten*, 16, 65–96.
 The first stellar parallax measurement in history — of 61 Cygni.
@@ -119,6 +125,14 @@ d(angle)/dp = -[(cos·u_i - u_j)/r_i + (cos·u_j - u_i)/r_j]/sin, using
 du/dp = (u uᵀ - I)/r — standard vector calculus, full derivation
 reproduced step by step in `journal/spec-4-measmodel.md`.
 - Where in repo: `galnav/nav/measmodel.py` (pair_angle_jacobian).
+
+**[GN]** Gauss-Newton iteration for nonlinear least squares: linearize
+the model, solve the normal equations (JᵀJ)δ = Jᵀr, apply, repeat —
+standard optimization (any textbook, e.g. Nocedal & Wright, *Numerical
+Optimization*). The students' derivation D3 reproduces it from χ²
+minimization.
+- Where in repo: `galnav/nav/estimator.py` (solve_position); derivation
+  written out step by step in `journal/spec-5-estimator.md`.
 
 **[CDIFF]** Central finite differences f'(x) ≈ (f(x+h) - f(x-h))/2h with
 truncation error O(h²) and rounding error O(eps/h) — standard numerical

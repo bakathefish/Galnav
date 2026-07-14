@@ -271,3 +271,33 @@ of Claude Code) live separately in `ai_sessions/` — students only.
 - Spec 1's arccos-based angle_between left untouched (its own contract
   holds; one-card rule). Flag for a future student decision: upgrade
   geometry.angle_between to the arctan2 form when a card needs it.
+- Spec 4 committed: `6ff5d33`.
+
+## 2026-07-14 — Session 3 (continued): Spec 5, Gauss-Newton solver
+
+- Golden values measured BEFORE freezing (prototype in scratchpad, four
+  1000-au starting offsets along axes and diagonal): worst recovery
+  error 3.4e-10 au, convergence in 4 rounds from every direction. Frozen
+  under the recorded authorized-override procedure:
+  SOLVER_RECOVERY_TOL_AU = 1e-8 (29x above measured floor),
+  SOLVER_STEP_TOL_AU = 1e-9 (caller-supplied stop threshold; the solver
+  itself contains zero magic numbers), SOLVER_MAX_ITERS = 10 (plan gate;
+  2.5x headroom over measured 4).
+- Test written FIRST (`tests/test_estimator.py`): machine-precision
+  noiseless recovery from all four start directions; convergence under
+  10 rounds; honest iteration counter (starting exactly at the answer
+  reports <= 1 round). Confirmed RED, then implemented
+  `galnav/nav/estimator.py::solve_position` — explicit normal equations
+  (JᵀJ)δ = Jᵀr matching derivation D3 (chosen over black-box lstsq so
+  the code IS the equation the students must reproduce in interviews).
+  GREEN: 18/18.
+- Design decisions recorded: no damping (plain GN suffices from good
+  starts — measured; Levenberg-Marquardt is a student decision when the
+  bad-start/E2 card arrives); no weights yet (W enters with Spec 7's
+  catalog covariance test); no attitude/velocity (pair angles are
+  attitude-free by construction).
+- First end-to-end navigation: truth generates measurements → navigator
+  recovers position to 3.4e-10 au. The truth wall held: the solver saw
+  only measured angles, catalog arrays, pair indices, and a guess.
+- Audits: truth-wall-auditor and spec-reviewer launched; verdicts
+  recorded before commit.

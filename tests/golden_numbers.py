@@ -93,3 +93,22 @@ SKYCOORD_AGREE_MAS = 1.0
 # honest code with margin while any formula error (wrong sign, wrong term,
 # missing 1/distance) misses by many orders of magnitude.
 JACOBIAN_REL_TOL = 1e-6
+
+# --- Solver gates (proven 2026-07-14, see journal/logbook.md) -----------------
+# With a PERFECT camera (zero noise) the solver has no excuse: it must land
+# on the exact true position, limited only by rounding dust. Measured floor
+# from four different 1000-au starting offsets: worst 3.4e-10 au. This gate
+# sits 29x above that floor -- and 1e-8 au is about a golf ball's width
+# measured across five light-years, so "machine precision" is honest.
+SOLVER_RECOVERY_TOL_AU = 1e-8
+
+# The solver stops iterating once its correction step shrinks below this
+# (in au). 1e-9 au sits above the rounding floor but far below anything
+# physical; measured: reaching it takes 4 rounds from a 1000-au offset.
+SOLVER_STEP_TOL_AU = 1e-9
+
+# Project-plan gate: convergence in fewer than 10 rounds from a good start.
+# Measured: 4 rounds from every direction tried -- 2.5x headroom. Slow
+# creep past 10 would mean the Jacobian and residual disagree (a bug), as
+# healthy Gauss-Newton doubles its correct digits every round.
+SOLVER_MAX_ITERS = 10
