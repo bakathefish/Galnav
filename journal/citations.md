@@ -74,11 +74,13 @@ Astronomical Journal*, 129, 1993. https://www.atnf.csiro.au/research/pulsar/psrc
 **[GaiaDR3]** Gaia Collaboration, Vallenari, A., et al. (2023). "Gaia Data
 Release 3: Summary of the content and survey properties." *Astronomy &
 Astrophysics*, 674, A1.
-- Used for: (upcoming, Spec 3+) real star positions, parallaxes, proper
-  motions, and their uncertainties; typical fractional parallax error
-  ~0.2% used in the per-star floor check.
-- Where in repo: not yet — enters with Spec 3 (simulator) and Spec 7
-  (catalog covariance).
+- Used for: real star positions, parallaxes, proper motions, radial
+  velocities, and full covariance information for all stars within 20 pc;
+  typical fractional parallax error ~0.2% used in the per-star floor check.
+- Where in repo: `data/gaia_dr3_nav_subset.csv` (1,941 stars, retrieved
+  2026-07-14; exact reproducible query in `data/README.md`); consumed by
+  Spec 3 (simulator) and Spec 7 (catalog covariance) onward.
+- Data source: ESA Gaia Archive TAP service, gaiadr3.gaia_source table.
 
 ## Standard mathematics (textbook results, not original to any paper)
 

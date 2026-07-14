@@ -162,3 +162,22 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   arcsec with the frozen RAD_ARCSEC constant instead of a galnav/units.py
   function, because units.py has no acceptance test yet. Students choose:
   accept the constant in tests, or write a units.py spec card.
+- Spec 2 committed: `03cafc4`.
+
+## 2026-07-14 — Session 3 (continued): Gaia DR3 nav subset cached
+
+- Downloaded the navigation star subset from the official ESA Gaia
+  archive (TAP sync endpoint, stdlib urllib — no new dependencies).
+  Query: all gaiadr3.gaia_source stars with parallax > 50 mas (within
+  20 pc, matching the E1 grid), parallax_over_error > 10, ruwe < 1.4;
+  full astrometry + errors + all ten correlation coefficients + RV + G
+  magnitude. Exact reproducible ADQL recorded in `data/README.md`.
+- Result: `data/gaia_dr3_nav_subset.csv`, 1,941 stars, 613 KB, committed
+  for reproducibility (DR3 is a static release).
+- Sanity checks passed: nearest star is Proxima Centauri at parallax
+  768.07 mas (1.30 pc) — matches the published value; distance range
+  1.30–19.99 pc; 554 stars lack radial velocity (the future "missing RV"
+  population for experiment E6).
+- Known limitation recorded: very bright neighbors (Alpha Cen A/B,
+  Sirius) may be absent due to Gaia bright-star handling and the RUWE
+  cut. Acceptable for simulation work.
