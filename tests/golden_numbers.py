@@ -76,3 +76,10 @@ PARALLAX_REL_TOL = 1e-6
 # shortcut's own built-in error at our closest test star (move/distance =
 # 1/1000) is 3.3e-7; this sits 30x above it.
 DISPLACEMENT_REL_TOL = 1e-5
+
+# Our sky-coords -> 3D direction math must agree with astropy's
+# professional implementation to better than one milliarcsecond (project
+# plan gate, week 2). Both compute the same textbook trigonometry, so the
+# only allowed disagreement is rounding dust -- 1 mas is a generous but
+# meaningful ceiling for "we did the same math."
+SKYCOORD_AGREE_MAS = 1.0

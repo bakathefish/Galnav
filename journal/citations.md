@@ -88,7 +88,14 @@ Astrophysics*, 674, A1.
 linear algebra (any textbook, e.g. Strang, *Introduction to Linear
 Algebra*).
 - Where in repo: `galnav/geometry.py` (angle_between), derived and
-  explained in `journal/spec-1-angle-geometry.md`.
+  explained in `journal/spec-1-angle-geometry.md`;
+  `galnav/truth/observer.py` (vectorized over star pairs).
+
+**[SPH]** Spherical-to-Cartesian conversion x = cos(dec)cos(ra),
+y = cos(dec)sin(ra), z = sin(dec) — standard trigonometry (any textbook).
+- Where in repo: `galnav/units.py` (radec_to_unit), cross-checked against
+  astropy in `tests/test_sky.py`; explained in
+  `journal/spec-3-truth-sky.md`.
 
 **[SMALL]** Small-angle approximation arctan(x) ≈ x with relative error
 x²/3 — standard calculus (Taylor series). Right-triangle definition
@@ -101,6 +108,13 @@ tan(angle) = opposite/adjacent — standard trigonometry.
 
 **[NumPy]** Harris, C. R., et al. (2020). "Array programming with NumPy."
 *Nature*, 585, 357–362.
+**[Astropy]** Astropy Collaboration (2022). "The Astropy Project:
+Sustaining and Growing a Community-oriented Open-source Project and the
+Latest Major Release (v5.0) of the Core Package." *The Astrophysical
+Journal*, 935, 167.
+- Used for: independent cross-check of our sky-coordinate conversions
+  (`tests/test_sky.py`, SkyCoord agreement gate); later specs use it for
+  frame/epoch checks.
 **[Python]** Python Software Foundation. Python Language Reference.
 **[pytest]** Krekel, H., et al. pytest. https://pytest.org
 

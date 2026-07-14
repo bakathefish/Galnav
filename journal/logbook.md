@@ -181,3 +181,51 @@ of Claude Code) live separately in `ai_sessions/` — students only.
 - Known limitation recorded: very bright neighbors (Alpha Cen A/B,
   Sirius) may be absent due to Gaia bright-star handling and the RUWE
   cut. Acceptable for simulation work.
+- Gaia cache committed: `9d291b4`.
+
+## 2026-07-14 — Session 3 (continued): Spec 3, truth simulator
+
+- Students questioned the catalog size (1,941 vs Gaia's 1.8 billion) —
+  resolved: navigation needs nearby stars only (shift = move/distance
+  makes distant stars useless as position references); the 20 pc cut
+  matches the E1 experiment grid; count is consistent with the known
+  solar-neighborhood census. Students then authorized proceeding.
+- New golden number added under the same authorized-override procedure
+  as before (lock lifted, one value added, lock restored immediately):
+  SKYCOORD_AGREE_MAS = 1.0, the plan's week-2 astropy-agreement gate.
+- Test written FIRST (`tests/test_sky.py`, three cases approved in
+  conversation): zero-noise pair angles equal analytic values to
+  ANGLE_TOL_RAD; radec_to_unit agrees with astropy SkyCoord within 1 mas;
+  same-seed reproducibility and different-seed variation. Suite confirmed
+  RED, then implementation, then GREEN: 12/12.
+- Implemented: `galnav/units.py` (radec_to_unit spherical-to-Cartesian;
+  parallax_mas_to_dist_au; AU_PER_PC derived as 648000/pi, never typed as
+  a decimal), `galnav/truth/sky.py` (load_catalog, star_positions_au),
+  `galnav/truth/observer.py` (observed_pair_angles, vectorized over
+  pairs, noise only via the rng argument). First real code behind the
+  truth wall.
+- Design note: the astropy cross-check compares unit vectors by
+  difference-norm (chord), not by angle_between — the Spec 2 finding in
+  practice (arccos shows ~3 mas of false fuzz at zero angle, which would
+  spuriously fail the 1 mas gate; the chord is precise there).
+- Deferred, needs a student-authored test before code exists: drawing the
+  TRUE sky from each star's full Gaia covariance (catalog values +
+  correlated random draw) — currently truth equals catalog exactly.
+  The ten correlation columns are already in the cache for this purpose.
+- Audits complete. Truth wall: PASS, no violations — nav/ still
+  zero-import stubs, units.py imports only numpy, no side channels, no
+  truth constants anywhere, and the Gaia CSV confirmed as genuinely
+  public catalog data (both sides may read it; when the nav-side loader
+  is written it must parse independently, never import truth/sky.py).
+  Spec review: one violation found and FIXED before commit — sky.py was
+  converting degrees to radians itself; the conversion moved to
+  galnav/units.py (deg_to_rad) where the rulebook says all conversions
+  live. Suite re-verified green after the fix (12/12).
+- Reviewer also asked to confirm SKYCOORD_AGREE_MAS provenance: added
+  under the students' explicit authorized-override instruction, recorded
+  earlier in this logbook — confirmed.
+- Flagged for students (mild, no action forced): the test file converts
+  mas/arcsec to radians inline using the frozen RAD_ARCSEC constant;
+  strictly units.py could own helpers for this, but adding untested
+  helper functions violates test-first. Decide whenever a units.py spec
+  card happens.
