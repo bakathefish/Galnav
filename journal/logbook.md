@@ -126,3 +126,39 @@ of Claude Code) live separately in `ai_sessions/` — students only.
 3. Delete accidental `node_modules/` folder (already gitignored).
 4. Python version: CLAUDE.md pins 3.11, machine runs 3.13 — students
    decide which to standardize on.
+
+## 2026-07-14 — Session 3 (continued): Spec 2, parallax engine
+
+- Students gave the go-ahead via /spec. Test written FIRST
+  (`tests/test_parallax.py`, three cases approved in conversation):
+  (1) parsec definition — 1 au baseline at 1 pc gives exactly 1 arcsec
+  within PARALLAX_REL_TOL; (2) shortcut rule shift ≈ D/d vs exact over
+  d = 1e3..1e9 au within DISPLACEMENT_REL_TOL, plus a vectorization shape
+  assert; (3) cross-check against Spec 1's angle_between via an explicit
+  3D construction at a wide angle, within ANGLE_TOL_RAD.
+- Suite confirmed RED (module missing), then implemented
+  `galnav/parallax.py::parallax_angle` — one line of math:
+  arctan(baseline/distance), exact for perpendicular displacement, numpy
+  arrays in/out. Suite GREEN: 9/9.
+- Numerical finding worth remembering: the arccos-based angle_between
+  from Spec 1 has ~5e-11 rad rounding fuzz at 1-arcsec scale (fine for
+  its own spec, too fuzzy for tiny-angle cross-checks). Documented in
+  journal/spec-2-parallax.md; future specs needing tiny-angle precision
+  should consider the arctan2(|cross|, dot) formulation — only when a
+  spec card calls for it, per the one-card-at-a-time rule.
+- Cross-check test therefore uses a wide angle (~5.7 deg) where both
+  methods are fully precise; the tiny-angle regime is already covered by
+  the six-orders-of-magnitude test against the analytic shortcut.
+- Journal entry: `journal/spec-2-parallax.md` (thumb-parallax explainer,
+  formula symbol by symbol, tolerances with measured headroom, what each
+  test would catch). Citations: [IAU15]/[SMALL] where-used updated — no
+  new outside sources this card.
+- Audits, both PASS. Truth wall: parallax.py imports only numpy, no
+  constants copied from truth, nav/ and truth/ still zero-import stubs;
+  standing note re-confirmed that top-level shared modules
+  (geometry.py, parallax.py) sit outside the AST test's scan, so manual
+  audit remains the compensating control there. Code review: all rules
+  pass; one student decision flagged — the test converts radians to
+  arcsec with the frozen RAD_ARCSEC constant instead of a galnav/units.py
+  function, because units.py has no acceptance test yet. Students choose:
+  accept the constant in tests, or write a units.py spec card.

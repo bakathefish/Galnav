@@ -55,8 +55,9 @@ https://www.nasa.gov/solar-system/nasas-new-horizons-conducts-the-first-interste
 **[IAU15]** IAU 2015 Resolution B2: the parsec is exactly 648000/pi au
 (follows from 1 arcsec = pi/648000 rad). Gives 206,264.806... au/pc, the
 same number as arcseconds per radian.
-- Where in repo: `tests/golden_numbers.py` (PC_AU, RAD_ARCSEC); Spec 2's
-  "1 pc = 1 arcsec over 1 au" acceptance test.
+- Where in repo: `tests/golden_numbers.py` (PC_AU, RAD_ARCSEC);
+  `tests/test_parallax.py` (parsec-definition test);
+  `journal/spec-2-parallax.md`.
 
 ## Data catalogs
 
@@ -88,9 +89,11 @@ Algebra*).
   explained in `journal/spec-1-angle-geometry.md`.
 
 **[SMALL]** Small-angle approximation arctan(x) ≈ x with relative error
-x²/3 — standard calculus (Taylor series).
-- Where in repo: Spec 2's displacement rule shift ≈ D/d and the
-  DISPLACEMENT_REL_TOL headroom argument.
+x²/3 — standard calculus (Taylor series). Right-triangle definition
+tan(angle) = opposite/adjacent — standard trigonometry.
+- Where in repo: `galnav/parallax.py` (exact arctan(D/d) formula);
+  `tests/test_parallax.py` (shortcut-vs-exact test and its
+  DISPLACEMENT_REL_TOL headroom argument); `journal/spec-2-parallax.md`.
 
 ## Software (cite in the paper's methods section)
 
