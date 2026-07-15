@@ -1317,4 +1317,129 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   metadata, per the project's standing git policy. Commit message: "Spec
   10: deterministic catalog-aging propagator on both sides of the wall
   (independent impls, agree to 1e-12); radial drift 6.3285 au/yr matches the
-  6.33 oracle". Commit hash recorded at next logbook touch.
+  6.33 oracle". Commit `16744a8` (author + committer bakathefish,
+  AI-attribution-free at the git-object level; git status clean, settings.json
+  unchanged after). The build agent's own cross-check audit copies did not
+  return verdicts before this logbook touch; the commit gate was the team
+  lead's two PASS verdicts, so nothing is outstanding.
+
+## 2026-07-16 — Session 8: E6a — truth-side sampled sky (galnav/truth/sampling.py)
+
+- PROCESS DEVIATION, recorded honestly (same standing exception as the prior
+  AI-authored cards): this card's text AND its five acceptance tests were
+  AI-AUTHORED under the recorded ratification-pending exception; the
+  students-write-tests rule is set aside for THIS CARD ONLY. Student review
+  and ratification pending — new checklist item (w). Design-review verdict on
+  the card was APPROVE WITH AMENDMENTS; all three amendments applied (below).
+
+- WHAT WAS BUILT (TDD: tests written FIRST, RED confirmed at
+  ModuleNotFoundError, then minimum code, pytest after every change).
+  Prerequisite for the E6 headline: make the TRUE sky differ from the public
+  catalog by the cataloged uncertainties.
+  - galnav/truth/sky.py: load_catalog extended to ALSO return the RAW
+    uncertainties (parallax_mas, parallax_error_mas, pmra_error_mas_yr,
+    pmdec_error_mas_yr, rv_error_kms) — kept raw in PARALLAX space (errors are
+    Gaussian in parallax, not distance; citation [BJ15]). star_velocities_kms
+    generalized to leading batch dims (ONLY change [:, None] -> [..., None]).
+  - NEW galnav/truth/sampling.py: sample_true_skies(catalog, n_trials, rng,
+    missing_rv_scale_kms) -> (positions (T,N,3), velocities (T,N,3)) at epoch.
+    Parallax + sigma*z -> distance; pmra/pmdec + sigma*z each independent;
+    finite-RV rows rv + sigma_rv*z, missing-RV rows missing_rv_scale*z
+    (zero-mean). z drawn in FIXED order (parallax, pmra, pmdec, rv), each
+    (T,N), for reproducibility and the exact-reconstruction oracle. All
+    randomness via the passed rng; vectorized over trials, no loops.
+  - AMENDMENT 1: guard raises ValueError on any sampled parallax <= 0; the
+    subset has parallax_over_error > 10 (measured min ~16) so it never fires —
+    stated in the docstring.
+  - AMENDMENT 3: proved the unbatched (N,) star_velocities_kms path bitwise
+    unchanged — captured HEAD's output before the edit, compared after:
+    array_equal True, max|diff| = 0.0; test T5 re-proves it in-suite against
+    an inline copy of HEAD's [:, None] body.
+
+- AMENDMENT 2 — MEASURED negligible-magnitudes (computed, not quoted; over the
+  20 nearest stars from the real catalog):
+  - ra/dec angle-error transverse position term: 4.5e-5 – 2.9e-4 au (median
+    9.1e-5) — ra/dec is therefore NOT resampled.
+  - PM-error aging over 100 yr: 7.2e-3 – 4.6e-2 au (median 1.4e-2).
+  - missing-RV drift over 100 yr @ 30 km/s: 632.8 au.
+  - ratio missing-RV / PM-error-aging (median): 4.4e4 — ~4-5 orders; this is
+    WHY the missing RVs, not the sampled errors, dominate aging.
+  - parallax Jensen/Lutz-Kelker distance skew (sigma_plx/plx)^2: whole-catalog
+    median 1.6e-7, worst 3.9e-3 (the single star at parallax_over_error ~16).
+  - Correlation note recorded: the 0.63 pmra/pmdec correlation is ignored
+    because the cross-term rides orthogonal tangent vectors (e_east·e_north=0,
+    reviewer-verified) AND PM aging is ~4-5 orders below missing-RV — so
+    independent Gaussians are honest at this card's precision.
+
+- GOLDEN NUMBERS: NONE. All five tests are bit-exact identities (x + 0*z == x;
+  a fixed rng stream reconstructed in the documented order; array_equal vs
+  HEAD's own formula) — designed to need no tolerance. tests/golden_numbers.py
+  NOT touched; no override.
+
+- EVIDENCE: BEFORE pytest 43 passed (HEAD 16744a8); new test file RED
+  (ModuleNotFoundError). AFTER full suite 48 passed, 0 skipped (43 + 5).
+  Scratch verification: generalized (N,) velocities == captured HEAD array
+  (max|diff| 0.0); sampler on the real catalog gives finite (5,1941,3)
+  positions/velocities, guard never fires, and the 554 missing-RV rows carry
+  ~29.4 km/s radial scatter (≈ the 30 km/s scale).
+
+- CITATIONS: added [BJ15] (Bailer-Jones 2015, Estimating Distances from
+  Parallaxes) — the parallax-space-sampling / distance-skew basis. No other
+  new outside fact (Gaia catalog + pmra* convention already cited).
+
+- DEFERRED (prominent flags): binary-companion contamination NOT modeled (plan
+  gives amplitude but NO contaminated fraction — students must source it
+  before any binary panel); correlations and ra/dec sampling simplified to
+  independent Gaussians / fixed direction.
+
+- JOURNAL: journal/spec-e6a-sampled-sky.md written (every sampled symbol; the
+  measured negligible-magnitudes table; the correlation justification; the
+  Jensen skew; amendment proofs; what each test catches).
+
+- NEW RATIFICATION CHECKLIST ITEM: (w) RATIFY E6a — read
+  journal/spec-e6a-sampled-sky.md aloud; ratify (i) sampling in parallax space
+  and the measured distance-skew size; (ii) the independent-Gaussian
+  simplification (correlations ignored) given the orthogonality + 4-5-orders
+  argument; (iii) NOT resampling ra/dec; (iv) the zero-mean missing-RV policy
+  and the 30 km/s scale being a caller choice; (v) the DEFERRED binary
+  contaminated-fraction — the students must source a cited fraction before any
+  binary-sensitivity panel; and (vi) the spec-reviewer niceties — add unit
+  docstrings to the _head_star_velocities test helper's args, consciously
+  ratify "scattering happens in parallax space at the input edge" ([BJ15]),
+  and note the parallax-positivity guard is untested-by-design.
+
+- END-OF-CARD AUDITS (team lead's two independent audits are the gate; the
+  build agent also launched its own cross-check copies, still running):
+  - truth-wall-auditor VERDICT PASS. Sampler genuinely truth-side, imports
+    clean (sampling.py pulls only galnav.truth.sky + galnav.units), rng
+    discipline clean, no side channels, the nav twin untouched and still
+    independent. Advisories recorded: (A2) both sides read the same public
+    CSV including the error columns — shared public catalog DATA, allowed by
+    the wall; the *_corr columns are present but unused per the documented
+    independent-Gaussian simplification. (A3) FORWARD ADVISORY FOR E6B: when
+    the sampled true sky is wired into the experiment, the truth arrays and
+    the sampled_catalog dict must NEVER be passed to nav functions — only
+    measurement vectors + public catalog values cross the wall (the E6b card
+    already enforces this; flagged here so it is not forgotten). Its A1
+    finding (phantom nav/measmodel + CSV edits + stale litter) was verified
+    FALSE against the live tree — an artifact of the auditor reading an
+    inherited stale git snapshot, same stale-read pattern as the Spec 10
+    spec-reviewer; no action.
+  - spec-reviewer VERDICT PASS on all 8 rules. Niceties (folded into item
+    (w)(vi)): _head_star_velocities test helper omits arg unit docstrings;
+    the mas-space scattering in sampling.py is compliant as an input-edge
+    operation (errors Gaussian in parallax, [BJ15]) but the parallax-space
+    choice deserves conscious student ratification (item w-i); the
+    parallax-positivity guard is untested by design.
+
+- STATUS: both of the team lead's independent audits PASS; build agent
+  cleared to commit. Final pre-commit `pytest -q`: 48 passed, 0 skipped
+  (Python 3.13.3). COMMITTED this card's six files in one commit, staged by
+  explicit path — galnav/truth/sky.py, galnav/truth/sampling.py,
+  tests/test_e6_sampling.py, journal/spec-e6a-sampled-sky.md,
+  journal/citations.md, journal/logbook.md. No golden_numbers.py, no
+  settings.json, nav/catalog.py untouched. No AI attribution in message or
+  metadata, per the project's standing git policy. Commit message: "E6a:
+  truth-side sampled sky - scatter catalog by its errors + real RVs for the
+  554 missing-RV stars (missing-RV term ~4.4e4x the PM-error aging)". Commit
+  hash recorded at next logbook touch.

@@ -120,6 +120,21 @@ for Microarcsecond Astrometry in Space." *The Astronomical Journal*,
   implementations; students should sight the Klioner original before
   the paper's reference list is finalized.
 
+**[BJ15]** Bailer-Jones, C. A. L. (2015). "Estimating Distances from
+Parallaxes." *Publications of the Astronomical Society of the Pacific*, 127,
+994. arXiv:1507.02105.
+- Used for: the fact that a catalog's astrometric error is Gaussian in
+  PARALLAX (the fitted quantity), so E6a samples the true sky in parallax
+  space; the derived distance d = 1/parallax is then a non-Gaussian,
+  slightly biased estimator (mean inflated ~ (sigma_plx/plx)^2). Measured in
+  our subset: relative distance-skew median 1.6e-7, worst 3.9e-3.
+- Where in repo: `galnav/truth/sampling.py` (sample_true_skies samples
+  parallax, not distance); `journal/spec-e6a-sampled-sky.md` (the measured
+  Jensen/Lutz-Kelker magnitudes).
+- Verified: standard Gaia-era distance-estimation reference; students should
+  sight the original before the paper's methods section is finalized
+  (WebFetch unavailable in the build session, 2026-07-16).
+
 **[NASA20]** NASA (2020). "NASA's New Horizons Conducts the First
 Interstellar Parallax Experiment." Press release, June 2020.
 https://www.nasa.gov/solar-system/nasas-new-horizons-conducts-the-first-interstellar-parallax-experiment/

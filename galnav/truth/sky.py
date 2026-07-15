@@ -25,7 +25,13 @@ def load_catalog(csv_path):
             the cos(dec) factor already included),
         pmdec_mas_yr (mas/yr),
         rv_kms (radial velocity, km/s; NaN where Gaia has none — 554 of
-            1941 rows — to be filled explicitly by the caller).
+            1941 rows — to be filled explicitly by the caller),
+        and the RAW catalog uncertainties E6a samples the true sky from
+        (kept raw, in parallax space, NOT converted to a distance sigma —
+        the errors are Gaussian in parallax, not in distance):
+        parallax_mas, parallax_error_mas (mas),
+        pmra_error_mas_yr, pmdec_error_mas_yr (mas/yr),
+        rv_error_kms (km/s; NaN wherever rv_kms is NaN).
     Raises ValueError if any pmra/pmdec is non-finite: the propagator's
     "no NaN out" guarantee (given an explicit RV fill) relies on every
     star having finite proper motion.
@@ -42,6 +48,11 @@ def load_catalog(csv_path):
         "pmra_mas_yr": pmra,
         "pmdec_mas_yr": pmdec,
         "rv_kms": np.asarray(data["radial_velocity"], dtype=float),
+        "parallax_mas": np.asarray(data["parallax"], dtype=float),
+        "parallax_error_mas": np.asarray(data["parallax_error"], dtype=float),
+        "pmra_error_mas_yr": np.asarray(data["pmra_error"], dtype=float),
+        "pmdec_error_mas_yr": np.asarray(data["pmdec_error"], dtype=float),
+        "rv_error_kms": np.asarray(data["radial_velocity_error"], dtype=float),
     }
 
 
@@ -74,12 +85,19 @@ def star_velocities_kms(catalog, rv_fill_kms):
                vector. Both are consistent with radec_to_unit and
                orthonormal to u_hat.
 
-    catalog: dict from load_catalog (ra_rad, dec_rad radians; dist_au au;
-             pmra_mas_yr, pmdec_mas_yr mas/yr; rv_kms km/s, may be NaN).
+    catalog: dict from load_catalog (ra_rad, dec_rad radians, shape (N,);
+             dist_au au; pmra_mas_yr, pmdec_mas_yr mas/yr; rv_kms km/s, may
+             be NaN). The kinematic arrays (dist_au, pmra_mas_yr,
+             pmdec_mas_yr, rv_kms) may carry LEADING BATCH DIMENSIONS
+             (e.g. (T, N) sampled skies from E6a); ra_rad/dec_rad stay (N,)
+             and broadcast. With plain (N,) inputs the result is bitwise
+             identical to the un-batched Spec 10 version (the only change is
+             [:, None] -> [..., None], a no-op for 1-D arrays).
     rv_fill_kms: REQUIRED fill value (km/s) for stars whose catalog RV is
              NaN — no default, so every caller states the policy (E6 will
              pass sampled/true RVs here, not a constant fill).
-    Returns: (N, 3) velocity vectors, km/s (BCRS/ICRS), containing no NaNs.
+    Returns: (..., N, 3) velocity vectors, km/s (BCRS/ICRS), no NaNs — shape
+             (N, 3) for (N,) input, (T, N, 3) for (T, N) kinematics.
     """
     ra, dec = catalog["ra_rad"], catalog["dec_rad"]
     u_hat = radec_to_unit(ra, dec)
@@ -89,11 +107,11 @@ def star_velocities_kms(catalog, rv_fill_kms):
     e_north = np.stack([-sin_d * cos_a, -sin_d * sin_a, cos_d], axis=-1)
     pm_east = mas_to_rad(catalog["pmra_mas_yr"])  # rad/yr, cos(dec) included
     pm_north = mas_to_rad(catalog["pmdec_mas_yr"])  # rad/yr
-    dist = catalog["dist_au"][:, None]
-    v_t = dist * (pm_east[:, None] * e_east + pm_north[:, None] * e_north)  # au/yr
+    dist = catalog["dist_au"][..., None]
+    v_t = dist * (pm_east[..., None] * e_east + pm_north[..., None] * e_north)  # au/yr
     v_t = v_t * KMS_PER_AU_YR  # km/s
     rv = np.where(np.isfinite(catalog["rv_kms"]), catalog["rv_kms"], rv_fill_kms)
-    return rv[:, None] * u_hat + v_t
+    return rv[..., None] * u_hat + v_t
 
 
 def propagate_positions_au(positions_au, velocities_kms, age_yr):
