@@ -13,6 +13,25 @@ import numpy as np
 # 1 arcsec, hence exactly 648000/pi au.
 AU_PER_PC = 648000.0 / np.pi
 
+# SI/IAU definition: the speed of light is exactly this many km/s.
+C_KM_S = 299792.458
+
+# IAU 2012 Resolution B2: the astronomical unit is exactly this many km.
+AU_KM = 149597870.7
+
+# One light year in au, derived (not typed in): c times one Julian year
+# (exactly 365.25 days of 86400 SI seconds — citation [JY]) over the au.
+AU_PER_LY = C_KM_S * 365.25 * 86400.0 / AU_KM
+
+
+def kms_to_beta(v_kms):
+    """Velocity to fraction of light speed (dimensionless).
+
+    v_kms: velocity in km/s (scalar or array, any shape).
+    Returns: v / c, dimensionless, same shape.
+    """
+    return np.asarray(v_kms, dtype=float) / C_KM_S
+
 
 def deg_to_rad(deg):
     """Degrees to radians (catalog I/O edge).

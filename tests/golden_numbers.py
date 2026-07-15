@@ -22,11 +22,29 @@ COMB_KM = {
 }
 
 # --- Anchor: Bailer-Jones-style star-fix accuracy ------------------------------
+# vel_err_kms and n_runs added 2026-07-15 under the authorized-override
+# procedure, provenance [BJ21] full text: "the position and velocity of
+# the spacecraft can be determined to within 3 au and 2 km/s" (Abstract,
+# Sec. 5), every reported statistic being a MEDIAN of the 3D error
+# magnitude over 100 runs with randomly drawn truths (Secs. 3.2, 4.1-4.2).
+# Scenario provenance, made precise 2026-07-15 (verification fleet): the
+# oft-quoted measured 2.8 au (1.3-5.8) is his Fig. 8, the scenario WITH
+# 10 km/s radial velocities; the ANGLES-ONLY scenario these tests mirror
+# is his Figs. 9/13, ~10% looser in position (~3.1 au) and identical in
+# velocity — the 3.0/2.0 gate values below are the Abstract/Sec-5
+# angles-only numbers and are correct as frozen. The 100-run median's own
+# sampling fuzz (~10%, confirmed by a 200-seed ensemble: 2.87 +/- 0.27 au)
+# is what makes tol_factor 2.0 meaningful. NOTE for the students: plan
+# section 7 says "anchor within 30%" while this frozen dict says factor
+# 2.0 — the discrepancy is recorded in the logbook (2026-07-15) for your
+# ruling; the test uses THIS file, as always.
 BAILER_JONES_ANCHOR = dict(
-    n_stars=20,  # stars used in the fix
-    sigma_theta_arcsec=1.0,  # per-star angular noise, arcsec
-    pos_err_au=3.0,  # expected position error, au
-    tol_factor=2.0,  # a test passes within this factor
+    n_stars=20,  # stars used in the fix (the Sun + the 19 nearest)
+    sigma_theta_arcsec=1.0,  # per-angle noise, arcsec
+    pos_err_au=3.0,  # expected median 3D position error, au
+    vel_err_kms=2.0,  # expected median 3D velocity error, km/s
+    n_runs=100,  # runs behind the median, per [BJ21]
+    tol_factor=2.0,  # a test passes within this factor (two-sided)
 )
 
 # --- Anchor: New Horizons parallax observations --------------------------------
@@ -52,6 +70,34 @@ J0437_CURV_CORR_AU_AT_1PC = 656.0
 # 1 m/s = 2.70 d.)
 COAST_DAYS_467KM_1CM_S = 270.0
 COAST_DAYS_467KM_1M_S = 2.7
+
+
+def SR_ABER_PHI_RAD(beta, theta_rad):
+    """Special-relativistic aberration oracle (added 2026-07-15, override).
+
+    The apparent angle from the velocity apex, for a star at true angle
+    theta from the apex, seen by an observer moving at beta = v/c:
+        phi = atan2(sin(theta), gamma (beta + cos(theta))),
+        gamma = 1/sqrt(1 - beta^2).
+    Source: [SR-ABER] (Rindler 2006, ch. 4) — the EXACT form, with the
+    Lorentz factor ([Lauer25]'s Eq. 1 is the v << c version; see the
+    2026-07-15 citations correction). This is the trusted outside answer
+    the aberration acceptance test compares the code against — WITHOUT
+    it, a consistently Galilean implementation on both sides of the
+    truth wall cancels its own error and passes every internal test
+    (measured 2026-07-15: it even lands inside the anchor gate).
+
+    Args:
+        beta: v/c, dimensionless.
+        theta_rad: true angle from the velocity apex, radians.
+
+    Returns:
+        Apparent (aberrated) angle from the apex, radians.
+    """
+    import numpy as np
+
+    gamma = 1.0 / np.sqrt(1.0 - beta**2)
+    return np.arctan2(np.sin(theta_rad), gamma * (beta + np.cos(theta_rad)))
 
 
 def PER_STAR_FLOOR_AU(sigma_pi_over_pi, D_pc):
@@ -138,10 +184,27 @@ SOLVER_RECOVERY_TOL_AU = 1e-8
 # physical; measured: reaching it takes 4 rounds from a 1000-au offset.
 SOLVER_STEP_TOL_AU = 1e-9
 
+# Velocity twins of the two gates above, for the 6-state (position +
+# velocity) solver — added 2026-07-15 under the authorized-override
+# procedure, same "honestly above the measured floor" pattern:
+# noiseless velocity-recovery floors measured across three independent
+# prototype geometries (10% starts, speeds 0 to 0.5c) were
+# 8.6e-11..6.2e-10 km/s, so 1e-8 km/s sits >= 16x above the floor —
+# while omitting the Lorentz gamma at 0.3c misses by ~12 orders more.
+# Post-convergence step rattle measured <= 1.7e-10 km/s; 1e-9 km/s is
+# reached in <= 7 rounds from a 10% start, inside SOLVER_MAX_ITERS.
+SOLVER_RECOVERY_TOL_KMS = 1e-8
+SOLVER_STEP_TOL_KMS = 1e-9
+
 # Project-plan gate: convergence in fewer than 10 rounds from a good start.
 # Measured: 4 rounds from every direction tried -- 2.5x headroom. Slow
 # creep past 10 would mean the Jacobian and residual disagree (a bug), as
 # healthy Gauss-Newton doubles its correct digits every round.
+# 6-state note (2026-07-15): the velocity+aberration anchor batch (100
+# heterogeneous runs to 0.5c) meets the dual step tolerance at exactly
+# round 10 at the committed seed -- zero headroom there; the anchor test
+# gates the medians, not the round count, and the damped solver returns
+# its best-so-far at the cap, so this is recorded rather than relaxed.
 SOLVER_MAX_ITERS = 10
 
 # --- Monte Carlo / covariance gates (proven 2026-07-14, see logbook) -----------

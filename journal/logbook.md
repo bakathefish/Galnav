@@ -597,6 +597,98 @@ of Claude Code) live separately in `ai_sessions/` — students only.
 - Commit hashes for this entry recorded at next logbook touch, per
   convention.
 
+## 2026-07-15 — Session 4 (continued): VELOCITY + ABERRATION — anchor card
+
+- Spec 7 commits recorded: card `85fd51b`, science-audit fixes `352d884`.
+- THE RESULT: **the Bailer-Jones anchor is REPRODUCED** — median 3D
+  errors 3.019 au / 2.028 km/s vs his published ~3 au / ~2 km/s, our
+  16th–84th band 1.32–6.23 au vs his 1.3–5.8 (Fig. 8). The plan's
+  week-5 HARD GATE (Aug 15) is passed on July 15. Full write-up:
+  journal/spec-velocity-aberration.md.
+- Process (same recorded exception as Spec 7, ratification pending):
+  BJ21's protocol extracted from the FULL TEXT by a dedicated agent
+  (state vector, Sun-hub N−1 angles — he declines all-pairs, 100-run
+  median-of-magnitude metric, 0.9–1.1x init, angles-only headline,
+  Klioner Eq.-10 aberration); three isolated designers + a judge;
+  the session's own derivation as an independent check; implementation
+  test-first (RED confirmed, then minimum code); then a SEVEN-angle
+  verification fleet + both project audits before commit.
+- Built: galnav/units.py (C_KM_S, AU_KM, AU_PER_LY, kms_to_beta);
+  truth observed_pair_angles_moving + private _aberrate (Klioner
+  arrangement); nav _aberrate_nav (k-form — deliberately independent
+  implementations, cross-checked by inversion), predicted_pair_angles_
+  moving, pair_angle_state_jacobian (...,P,6); solve_state (damped GN,
+  see below). Six acceptance tests incl. tests/test_bj_anchor.py.
+  Suite 28 -> 34, green after every edit.
+- AUTHORIZED OVERRIDES #4/#5 (golden file): added SR_ABER_PHI_RAD (the
+  external SR oracle — without it a consistently-Galilean implementation
+  cancels its own error across the wall and passes EVERYTHING, measured,
+  including the anchor), SOLVER_RECOVERY_TOL_KMS = 1e-8 and
+  SOLVER_STEP_TOL_KMS = 1e-9 (measured floors 3.3e-10..7e-10), and
+  BAILER_JONES_ANCHOR keys vel_err_kms = 2.0, n_runs = 100; plus
+  provenance-precision comment fixes. AST value-check vs HEAD: NO
+  changed values; only the named additions (anchor-dict keys visible in
+  the git diff).
+- GOLDEN DISCREPANCY RECORDED FOR STUDENT RULING (the frozen file's
+  comment points here): plan §7's E1 line says "anchor within 30%",
+  the frozen BAILER_JONES_ANCHOR says tol_factor = 2.0 (two-sided).
+  Today's measured 3.019 au vs the 3.0 au golden is 0.6% off — passes
+  BOTH readings — but the gate definition is yours to rule on.
+- VERIFICATION FLEET (7 isolated agents): aberration-physics PASS
+  (coefficient-identity proofs, 1-ulp agreement with a 50-digit
+  reference, 10,008 directions, no cancellation at beta down to 1e-9);
+  jacobian-independent PASS (off-grid FD >= 67x inside the gate;
+  informational: v=0 position block equals the static Jacobian to
+  4.3e-13, not bitwise — different float paths, both correct);
+  anchor-fidelity PASS (protocol faithful; sharpened provenance: the
+  oft-quoted 2.8 au is his WITH-RVs Fig. 8, angles-only is ~3.1 au —
+  comments fixed; two more honest differences now disclosed: star-list
+  membership under our RUWE cut, MCMC-median vs GN point estimate);
+  regression PASS (untouched paths byte-identical to HEAD incl. the E1
+  archive regeneration); units-and-rules FAIL -> fixed (this very
+  logbook record; AU_PER_LY moved into units.py after the spec review);
+  wrong-physics-kill PASS (all four sabotaged variants measurably die:
+  Galilean 102.88 arcsec at the oracle, wrong-k 2.68 arcsec at 150 deg,
+  aberrate-the-angle 0.08 rad at config B, sign-flip caught by the
+  toward-apex inequality — comment magnitudes corrected to measured);
+  anchor-statistics FAIL -> THE REAL BUG, fixed below.
+- THE BUG THE FLEET CAUGHT (and the fix, a recorded deviation from the
+  design panel's "no damping" ruling — falsified by measurement): a
+  200-seed stress ensemble showed margins of 5–12 sigma against the
+  anchor gates BUT 2 of 200 seeds produced NaN medians: on ~1 in 10^4
+  trials (craft very close AND very fast, e.g. 0.18 ly at 0.496c) the
+  raw Gauss-Newton velocity step overshoots PAST THE SPEED OF LIGHT
+  (no Lorentz factor -> NaN), and forensics showed the position then
+  runs away geometrically. Fix: per-trial step-halving damping (never
+  accepts an uphill step; NaN counts as uphill; 8 halvings then
+  reject) + a light-cone guard (0.99c re-entry, a domain guard like
+  the arccos clip). Verified: both failing seeds now converge; the
+  pinned worst trial converges in 6 rounds to 1.85 au / 1.95 km/s;
+  committed-seed anchor medians unchanged to all displayed digits; the
+  exact failing inputs are frozen forever as
+  test_solver_survives_superluminal_overshoot. SOLVER_MAX_ITERS
+  zero-headroom note added to the golden comment (recorded, not
+  relaxed).
+- END-OF-CARD AUDITS: truth-wall-auditor VERDICT PASS (all vectors;
+  the 0.9–1.1x initialization ruled documented-and-acceptable — it is
+  BJ's own assumption and sits 12 orders of magnitude from the recovery
+  gates; advisory: name plan-state variables explicitly next time).
+  spec-reviewer VERDICT: PASS on 7/8, FAIL on rule 4 only (the
+  light-year constant living in the test) -> fixed the way the rule
+  demands (AU_PER_LY in units.py); alternative golden home left as a
+  student option.
+- RATIFICATION CHECKLIST ADDITIONS (join Spec 7's list): (j) ratify
+  this card — read the journal aloud, re-derive the aberration map and
+  why velocity is observable from one snapshot; (k) rule on the
+  plan-30%-vs-factor-2.0 anchor gate; (l) truth's _aberrate works in
+  v-and-c form rather than via kms_to_beta — kept deliberately for
+  implementation independence; your call whether consistency beats
+  independence; (m) AU_PER_LY's home (units.py chosen; golden file the
+  alternative); (n) the SOLVER_MAX_ITERS zero-headroom note; (o) the
+  damping design itself (step-halving + light-cone guard) — the one
+  place this card OVERRODE its own design panel, on measured evidence.
+- pytest 34/34 green. Commit hash recorded at next logbook touch.
+
 ## 2026-07-15 — Session 4 (continued): decisions, prior-art sweep, evidence map
 
 - Hardening commit: `f9ed3e4`.

@@ -30,10 +30,30 @@ arXiv:2103.10389. https://arxiv.org/abs/2103.10389
   cell at 1 pc — 7x tighter, consistent with the much easier problem,
   NOT an anchor reproduction. Honest comparison deferred to the
   velocity+aberration card (plan week-5 gate).
-- Where in repo: `tests/golden_numbers.py` (BAILER_JONES_ANCHOR, still
-  awaiting its apples-to-apples test); `journal/e1-crlb-grid.md`.
+- ANCHOR PROTOCOL (extracted from the full text 2026-07-15, now
+  load-bearing in the velocity+aberration card): measurements are N-1
+  hub angles between one reference star (the Sun) and each other star —
+  he explicitly declines all N(N-1)/2 pairs; every reported accuracy is
+  the MEDIAN over 100 runs of the 3D error MAGNITUDE (Fig. 8 caption
+  warns per-axis is sqrt(3) smaller); truths drawn isotropically at
+  0.1-10 ly with velocity PARALLEL to position, uniform 0-0.5c; solver
+  initialized uniform 0.9-1.1x truth per parameter (his footnote 4);
+  his measured 20-star values: 2.8 au median with 1.3-5.8 au 16th-84th
+  band in Fig. 8 (the WITH-10-km/s-RVs scenario), ~3.1 au angles-only
+  (Figs. 9/13 — RVs at 10 km/s improve position only ~10%; the
+  Abstract/Sec-5 "3 au / 2 km/s" are the angles-only round numbers);
+  aberration via Klioner (2003) Eq. 10
+  ([Klioner03]); his Sec. 4.1 control shows fixing the epoch leaves
+  position/velocity accuracy unchanged (why our static-catalog 6-state
+  solve is an honest mirror of his 7-state one).
+- Where in repo: `tests/golden_numbers.py` (BAILER_JONES_ANCHOR — its
+  apples-to-apples test now EXISTS: `tests/test_bj_anchor.py`);
+  `tests/test_state_estimator.py`; `journal/e1-crlb-grid.md`;
+  `journal/spec-velocity-aberration.md`.
 - Verified: abstract re-checked 2026-07-14; full text fetched and the
-  seven-parameter and 19-pair statements verified verbatim 2026-07-15.
+  seven-parameter and 19-pair statements verified verbatim 2026-07-15;
+  protocol details above quoted from Secs. 2.1-2.2.7, 3.1-3.2, 4.1-4.3,
+  5 and Figs. 8/9/13 the same day.
 
 **[Lauer25]** Lauer, T. R., et al. (2025). "A Demonstration of Interstellar
 Navigation Using New Horizons." arXiv:2506.21666.
@@ -85,6 +105,21 @@ arXiv:2606.30691. https://arxiv.org/abs/2606.30691
   entry); future paper related-work section.
 - Verified: abstract read on arXiv, 2026-07-15.
 
+**[Klioner03]** Klioner, S. A. (2003). "A Practical Relativistic Model
+for Microarcsecond Astrometry in Space." *The Astronomical Journal*,
+125, 1580–1597.
+- Used for: the vector form of exact special-relativistic aberration of
+  a unit direction (his Eq. 10) — the formula truth's `_aberrate`
+  implements (rearranged to stay finite at v = 0), and the same
+  equation [BJ21] states his Eq. 7 is ("This is equation 10 of Klioner
+  (2003)"). The scalar apex-angle form is [SR-ABER].
+- Where in repo: `galnav/truth/observer.py` (docstring);
+  `journal/spec-velocity-aberration.md`.
+- Verified: via [BJ21]'s verbatim attribution in the fetched full text,
+  2026-07-15, and by numerical equivalence of the two independent
+  implementations; students should sight the Klioner original before
+  the paper's reference list is finalized.
+
 **[NASA20]** NASA (2020). "NASA's New Horizons Conducts the First
 Interstellar Parallax Experiment." Press release, June 2020.
 https://www.nasa.gov/solar-system/nasas-new-horizons-conducts-the-first-interstellar-parallax-experiment/
@@ -101,6 +136,16 @@ https://www.nasa.gov/solar-system/nasas-new-horizons-conducts-the-first-interste
 299,792,458 m/s (the metre is defined from it).
 - Where in repo: `tests/golden_numbers.py` (C_KM_S); all pulsar comb
   spacings are c times spin period.
+
+**[JY]** IAU recommendation: the Julian year is exactly 365.25 days of
+86400 SI seconds (31,557,600 s); one light year = c x one Julian year.
+- Used for: the light-year-to-au conversion behind the anchor test's
+  spacecraft-distance range (Bailer-Jones draws distances in ly).
+- Where in repo: `galnav/units.py` (AU_PER_LY, moved there 2026-07-15
+  after the spec review — conversions live in units.py, nowhere else);
+  used by `tests/test_bj_anchor.py`.
+- Verified: definitional; cross-checked AU_PER_LY = 63,241.077 au
+  against the standard value, 2026-07-15.
 
 **[IAU15]** IAU 2015 Resolution B2: the parsec is exactly 648000/pi au
 (follows from 1 arcsec = pi/648000 rad). Gives 206,264.806... au/pc, the
