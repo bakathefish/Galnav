@@ -37,10 +37,21 @@ NH_DIST_AU = 47.12  # New Horizons distance at observation, au
 # --- Hand-derived scale checks --------------------------------------------------
 RV_DRIFT_AU_PER_YR_AT_30KMS = 6.33  # au/yr position drift at 30 km/s
 BINARY_WOBBLE_MAS_1AU_5PC = 200.0  # mas wobble: 1 au orbit seen from 5 pc
-ABERRATION_MAX_DEG_AT_0P1C = 5.74  # arcsin(0.1)
-J0437_CURV_CORR_AU_AT_1PC = 656.0  # r_perp^2 / 2D at D = 157 pc
-COAST_DAYS_467KM_1CM_S = 270.0  # days to cross the 467 km comb at 1 cm/s
-COAST_DAYS_467KM_1M_S = 2.7  # days to cross the 467 km comb at 1 m/s
+# arcsin(0.1) -- the v << c (Galilean) formula's maximum deflection. The
+# exact special-relativistic maximum at 0.1c is 5.7464 deg (26 arcsec
+# more); students re-derive this value at the E7 card ([Lauer25] Eq. 1 is
+# explicitly the non-relativistic form -- see citations.md, 2026-07-15).
+ABERRATION_MAX_DEG_AT_0P1C = 5.74
+# r_perp^2 / 2D at D = 157 pc; exact arithmetic gives 656.9 au (0.14% gap,
+# already on the logbook's books) -- students re-derive at its spec card.
+J0437_CURV_CORR_AU_AT_1PC = 656.0
+# Days to drift HALF the 467 km comb spacing (the +/- c*P/2 lock-loss
+# window, packing-radius criterion) -- NOT the full comb, which takes 2x
+# longer. (Labels corrected 2026-07-15; both values were and are right
+# for the half-comb definition: 233.5 km at 1 cm/s = 270.25 d, at
+# 1 m/s = 2.70 d.)
+COAST_DAYS_467KM_1CM_S = 270.0
+COAST_DAYS_467KM_1M_S = 2.7
 
 
 def PER_STAR_FLOOR_AU(sigma_pi_over_pi, D_pc):
@@ -48,10 +59,18 @@ def PER_STAR_FLOOR_AU(sigma_pi_over_pi, D_pc):
 
     Args:
         sigma_pi_over_pi: fractional parallax error (dimensionless).
-        D_pc: distance to the star, in parsecs.
+        D_pc: the SPACECRAFT's distance from the barycenter, in parsecs.
+            NOT the star's distance -- the star's own distance cancels
+            (its misplacement grows with d while the visible transverse
+            fraction shrinks as 1/d; derivation D7, spec-7 journal).
+            Passing the star's distance overstates the floor ~20x at the
+            Spec 7 test geometry. (Docstring corrected 2026-07-15 under
+            the authorized-override procedure; formula and value
+            untouched.)
 
     Returns:
-        Position-error floor contributed by that star, in au.
+        Position-error floor contributed by that star, in au (valid for
+        far stars, d >> D, at 90-degree Sun-craft-star geometry).
     """
     return sigma_pi_over_pi * D_pc * PC_AU
 
@@ -62,14 +81,24 @@ def PER_STAR_FLOOR_AU(sigma_pi_over_pi, D_pc):
 # ABOVE the measured rounding noise (correct code always passes) and far BELOW
 # any real mistake (wrong code always fails).
 
-# Angle agreement, radians. Worst rounding error found in 20,000 stress trials
-# of angle_between was 3.6e-14; this is 28x above that, and a real formula
-# error would overshoot it by a factor of about a billion.
+# Angle agreement, radians. (Evidence re-measured 2026-07-15, science
+# audit.) Against a 50-digit reference, angle_between's true rounding
+# error on 20,000 random pairs is up to ~1.1e-13 (the original 3.6e-14
+# came from scale-invariance trials, which understate it); at the
+# suite's closest pair (61 Cygni A/B, ~60 arcsec from the test observer)
+# arccos amplifies rounding by 1/sin(angle) to ~8e-13 -- inside this
+# gate, but with thin margin. A real formula error overshoots by ~1e9x.
+# The 61 Cyg pair's gating is an OPEN STUDENT DECISION (see logbook
+# 2026-07-15); the value here is unchanged.
 ANGLE_TOL_RAD = 1e-12
 
-# "1 pc / 1 au / 1 arcsec" definition check, relative. True gap between exact
-# geometry and the definition (mostly from our rounded PC_AU constant) is
-# 1.2e-9; this sits 840x above it.
+# "1 pc / 1 au / 1 arcsec" definition check, relative. (Evidence corrected
+# 2026-07-15, science audit.) The test computes arctan(1/PC_AU)*RAD_ARCSEC
+# with the SAME rounded constant in both roles, so PC_AU's rounding error
+# cancels identically; the true measured gap is the arctan cubic term
+# 1/(3*PC_AU^2) = 7.8e-12, making this gate ~130,000x safe (not the 840x
+# previously claimed -- the old 1.2e-9 figure was PC_AU's rounding vs the
+# exact 648000/pi, a comparison the test never performs).
 PARALLAX_REL_TOL = 1e-6
 
 # Shortcut rule "shift = move/distance" vs exact geometry, relative. The
@@ -98,8 +127,10 @@ JACOBIAN_REL_TOL = 1e-6
 # With a PERFECT camera (zero noise) the solver has no excuse: it must land
 # on the exact true position, limited only by rounding dust. Measured floor
 # from four different 1000-au starting offsets: worst 3.4e-10 au. This gate
-# sits 29x above that floor -- and 1e-8 au is about a golf ball's width
-# measured across five light-years, so "machine precision" is honest.
+# sits 29x above that floor -- and 1e-8 au is about 1.5 km of error on a
+# five-light-year problem, a part in 3e14, so "machine precision" is honest.
+# (Analogy corrected 2026-07-15: the old "golf ball across five light-years"
+# overstated the precision ~35,000x; the value itself was and is right.)
 SOLVER_RECOVERY_TOL_AU = 1e-8
 
 # The solver stops iterating once its correction step shrinks below this
@@ -124,8 +155,10 @@ MC_TRIALS = 500
 # a STATISTICS gate, not a precision gate: measured worst per-axis
 # disagreement over 20 independent seeds was 10.2% -- pure sampling
 # fluctuation, since the same code at any single seed is deterministic. A
-# real formula error (wrong J, missing sigma^2, transposed matrix) throws
-# the ratio off by 2x or more, far past 15%.
+# real formula error (wrong J, missing sigma^2, variance where a standard
+# deviation belongs) throws the ratio off by 2x or more, far past 15%.
+# ("Transposed matrix" removed from the error list 2026-07-15: J^T J is
+# exactly symmetric, so transposing it is a no-op and catches nothing.)
 MC_CRLB_REL_TOL = 0.15
 
 # Experiment E1 pass criterion (project plan): across every grid cell, the
@@ -136,3 +169,15 @@ MC_CRLB_REL_TOL = 0.15
 # ratios drifting past 1.5x, while measured behavior at the reference
 # cell is agreement within ~2%.
 E1_CRLB_TRACK_FACTOR = 1.5
+
+# Spec 7 gate (project plan, section 6): the code's per-star catalog floor
+# must reproduce the hand formula PER_STAR_FLOOR_AU above within 10%,
+# relative, at D = 1 pc. The 10% is the plan's own number. It is honest
+# because the hand formula is a far-star approximation: at the tested
+# geometry (stars near 20 pc seen from 1 pc, 90-degree placement) the
+# formula's built-in error is the D^2/2d^2 term ~ 1.3e-3 -- about 80x
+# inside this gate -- while the plausible WRONG physics miss it hugely:
+# using the star's own distance instead of the spacecraft's lands 20x off,
+# and skipping the transverse projection lands 100% off. (Measured margins
+# recorded in journal/spec-7-catalog-covariance.md.)
+CATALOG_FLOOR_REL_TOL = 0.10

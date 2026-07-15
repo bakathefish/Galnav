@@ -5,7 +5,11 @@ measurements. Sees ONLY what a real spacecraft would have."""
 
 import numpy as np
 
-from galnav.nav.measmodel import pair_angle_jacobian, predicted_pair_angles
+from galnav.nav.measmodel import (
+    catalog_angle_covariance,
+    pair_angle_jacobian,
+    predicted_pair_angles,
+)
 
 
 def solve_position(
@@ -45,20 +49,37 @@ def solve_position(
     return position, max_iters
 
 
-def position_covariance(star_pos_au, obs_pos_au, pairs, sigma_rad):
+def position_covariance(star_pos_au, obs_pos_au, pairs, sigma_rad, sigma_dist_au=None):
     """Predicted error-bar matrix of the solved position (derivation D4).
 
-    Cov = sigma^2 (J^T J)^-1 — how scattered the solved positions will be
-    around the truth when each angle measurement carries Gaussian noise
-    sigma. For Gaussian noise this is also the Cramer-Rao lower bound
-    (derivation D6): no unbiased navigator can do better.
+    Without sigma_dist_au: Cov = sigma^2 (J^T J)^-1 — how scattered the
+    solved positions will be around the truth when each angle measurement
+    carries Gaussian noise sigma. For Gaussian noise this is also the
+    Cramer-Rao lower bound (derivation D6): no unbiased navigator can do
+    better.
+
+    With sigma_dist_au (Spec 7): the error budget grows a catalog term,
+    R = sigma^2 I + R_cat (R_cat dense — pairs sharing a star carry the
+    SAME distance error), and Cov = (J^T R^-1 J)^-1 — derivation D4 with
+    W = R^-1: the best ANY navigator could achieve given both camera
+    noise and the catalog's own error bars. With a perfect camera
+    (sigma = 0) this no longer vanishes: the catalog floor. R must be
+    invertible (true for real per-star sigmas; all-zero sigma_dist_au
+    with sigma = 0 has no error budget to invert).
 
     star_pos_au: (N, 3) catalog star positions, au.
     obs_pos_au: (..., 3) position(s) where the sensitivity is evaluated, au.
     pairs: (P, 2) integer star indices per measurement (P >= 3).
     sigma_rad: per-measurement Gaussian noise, radians.
+    sigma_dist_au: optional (N,) 1-sigma catalog distance error per star, au.
     Returns: (..., 3, 3) covariance of the position estimate, au^2.
     """
     jac = pair_angle_jacobian(star_pos_au, obs_pos_au, pairs)
-    jtj = np.einsum("...pi,...pj->...ij", jac, jac)
-    return sigma_rad**2 * np.linalg.inv(jtj)
+    if sigma_dist_au is None:
+        jtj = np.einsum("...pi,...pj->...ij", jac, jac)
+        return sigma_rad**2 * np.linalg.inv(jtj)
+    r_total = catalog_angle_covariance(
+        star_pos_au, obs_pos_au, pairs, sigma_dist_au
+    ) + sigma_rad**2 * np.eye(len(pairs))
+    jtwj = np.einsum("...pi,...pj->...ij", jac, np.linalg.solve(r_total, jac))
+    return np.linalg.inv(jtwj)
