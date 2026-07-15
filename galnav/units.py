@@ -23,6 +23,13 @@ AU_KM = 149597870.7
 # (exactly 365.25 days of 86400 SI seconds — citation [JY]) over the au.
 AU_PER_LY = C_KM_S * 365.25 * 86400.0 / AU_KM
 
+# Kinematics I/O: how many km/s equal one au per Julian year. AU_KM km
+# per au, divided by the seconds in one Julian year (365.25 days x 86400
+# SI seconds — citation [JY]). Derived (not typed as a decimal); ~4.7405.
+# Used to turn per-year stellar displacements (au) into km/s velocities
+# and back for straight-line catalog aging (Spec 10).
+KMS_PER_AU_YR = AU_KM / (365.25 * 86400.0)
+
 
 def kms_to_beta(v_kms):
     """Velocity to fraction of light speed (dimensionless).
@@ -40,6 +47,27 @@ def deg_to_rad(deg):
     Returns: angle in radians.
     """
     return np.deg2rad(deg)
+
+
+def arcsec_to_rad(arcsec):
+    """Arcseconds to radians (catalog I/O edge).
+
+    arcsec: angle in arcseconds (scalar or array).
+    Returns: angle in radians (1 arcsec = 1/3600 degree, exact).
+    """
+    return deg_to_rad(np.asarray(arcsec, dtype=float) / 3600.0)
+
+
+def mas_to_rad(mas):
+    """Milliarcseconds to radians (catalog I/O edge).
+
+    Used for proper motions (mas/yr): the returned array then carries
+    units of radians per year when the input was mas per year.
+
+    mas: angle in milliarcseconds (scalar or array).
+    Returns: angle in radians (1 mas = 1/1000 arcsec, exact).
+    """
+    return arcsec_to_rad(np.asarray(mas, dtype=float) / 1000.0)
 
 
 def radec_to_unit(ra_rad, dec_rad):

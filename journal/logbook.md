@@ -1161,5 +1161,160 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   swap: navigator reads the public catalog, not truth - bitwise-identical
   results (0.0 au diff across all 96 cells), latent truth-wall flag
   closed" — no AI attribution in message or metadata, per the project's
-  standing git policy (2026-07-14 entry). Commit hash recorded at next
-  logbook touch, per convention.
+  standing git policy (2026-07-14 entry). Commit `9e7f709` (author +
+  committer bakathefish, AI-attribution-free at the git-object level;
+  git status clean after).
+
+## 2026-07-16 — Session 7: SPEC 10 — catalog aging propagator (deterministic)
+
+- PROCESS DEVIATION, recorded honestly (same standing exception as Spec 7,
+  the velocity card, and the E1 swap): this card's text AND its six
+  acceptance tests were AI-AUTHORED. The students-write-tests rule is set
+  aside for THIS CARD ONLY and remains in force otherwise. Student review
+  and ratification are PENDING — new checklist item (v) below.
+
+- WHAT WAS BUILT (TDD: tests written FIRST, RED confirmed, then minimum
+  code, pytest after every change). The deterministic linear-motion
+  propagator E6 needs, on BOTH sides of the truth wall, independent
+  implementations sharing only galnav/units.py (aberration-card precedent):
+  - galnav/units.py: arcsec_to_rad, mas_to_rad (mas/yr -> rad/yr), and
+    KMS_PER_AU_YR = AU_KM/(365.25*86400) ~ 4.7405 km/s per au/yr — all
+    derived from cited constants ([IAU12], [JY]), no decimals typed. The
+    mas/arcsec helpers RESOLVE the long-open units.py decision (ratification
+    item (f)): they now live where the rulebook says conversions live.
+  - galnav/truth/sky.py + galnav/nav/catalog.py: each load_catalog extended
+    to read pmra/pmdec/radial_velocity (neither did before) and raise on
+    non-finite pmra/pmdec; each gains star_velocities_kms(catalog,
+    rv_fill_kms) and propagate_positions_au(pos, vel, age) — written
+    INDEPENDENTLY (different float op order; they agree to ~1e-12, not
+    bitwise, which is the evidence of independence). Motion model:
+    r(t0+T)=r(t0)+v*T, v built as v_r*u_hat + d*(pmra* e_east + pmdec
+    e_north) with pmra ALREADY = pmra*=mu_alpha cos(dec) (no extra cos(dec);
+    new citation [GaiaPM]). Perspective acceleration captured EXACTLY (a
+    coordinate artifact of linear motion, not a neglected force); NOT
+    modeled: galactic acceleration, light-travel-time, all stochastic
+    degradation (that is E6).
+  - D4 missing-RV policy: velocity construction takes a REQUIRED rv_fill_kms
+    (no default) so every caller states the policy; E6 owns the real choice.
+    Verified: pmra/pmdec finite for all 1941 stars; radial_velocity NaN for
+    554/1941 (matches data/README).
+
+- GOLDEN NUMBERS — one REUSED, one added via AUTHORIZED OVERRIDE #6:
+  - REUSED existing RV_DRIFT_AU_PER_YR_AT_30KMS = 6.33 (single-source rule,
+    no duplicate) for T2; reused ANGLE_TOL_RAD = 1e-12 as the float64
+    exactness/agreement bar for T3/T4/T5 (no new constant, per the card).
+  - AUTHORIZED OVERRIDE #6 (golden file): SPEC10_DRIFT_REL_TOL = 1e-3 (plan
+    section 6, "within 0.1%") appended with its full evidence comment
+    (measured 6.328486 au/yr, 0.000239 rel, ~4.2x margin, the [JY]
+    Julian-year note). WHO PERFORMED IT: the MAIN session, human-instructed,
+    under the user's recorded STANDING authorization for the golden-override
+    procedure — deny for tests/golden_numbers.py lifted in
+    .claude/settings.json, the one block added, lock restored immediately
+    (settings.json git diff empty; golden_numbers.py git diff shows ONLY the
+    new block, no existing value changed). HONEST RECORD: this build agent
+    DECLINED to perform the override itself — the instruction reached it via
+    an agent (the team lead), and its operating constraints forbid changing
+    permission configuration or editing the deny-locked golden file on an
+    agent's say-so, so the sensitive step was correctly executed at the top
+    level by a human rather than by agent relay. Overrides #2/#3 (Spec 7)
+    and #4/#5 (velocity card) are the prior entries; #6 continues the
+    sequence.
+
+- EVIDENCE (measured, not asserted):
+  - BEFORE: pytest 37 passed (HEAD 9e7f709). New test file RED as expected.
+  - AFTER (repo state, constant still absent): 41 passed, 2 failed —
+    T2 (ImportError: SPEC10_DRIFT_REL_TOL) and, transiently during
+    development, T3. T3's first form measured tangential drift = 1.0 +
+    7.9e-12 (FAIL vs the 1e-12 bar): a REAL catastrophic-cancellation
+    finding — extracting a ~1-au drift by subtracting two ~1-parsec (2e5
+    au) position vectors loses ~11 digits. FIX (test geometry, not code):
+    place the T3 star at ra=90/dec=60 so the 1-au motion lands in x while
+    pos0_x ~ 0 — cancellation-free, now passes to ~1e-16. dec=60 still
+    guards the cos(dec) trap (a spurious cos(dec) would give 0.5 au/yr).
+  - PRE-OVERRIDE VERIFICATION (build agent, constant injected in memory,
+    repo golden file untouched): ALL SIX tests pass. Measured T2 radial
+    drift = 6.328486 au/yr vs golden 6.33 -> rel 0.000239, ~4.2x inside the
+    0.1% gate. HONEST T2 NOTE (card requirement): a 365-day year would give
+    6.3241 au, 0.094% gap — it would ALSO pass T2. The Julian-year length is
+    pinned by KMS_PER_AU_YR's [JY] derivation in units.py (code review), NOT
+    by this coarse gate. KMS_PER_AU_YR measured 4.740470.
+  - POST-OVERRIDE (after the main session applied OVERRIDE #6): the injected
+    proof is now the real repo state — FULL SUITE 43 passed, 0 skipped in
+    3.62s. T2 is green for real; the 37 prior + 6 new = 43 all pass.
+  - Regression: the load_catalog finite-pmra/pmdec guard does not break any
+    prior test (E1 and all others green among the 43 passed).
+
+- CITATIONS: added [GaiaPM] (Gaia DR3 gaia_source data model: pmra =
+  pmra* = mu_alpha cos(dec), the cos(dec) already included) — used by both
+  star_velocities_kms and T3/T5. Updated [JY] where-used to include
+  KMS_PER_AU_YR. No other new outside fact.
+
+- JOURNAL: journal/spec-10-catalog-aging.md written (every symbol; what it
+  does NOT do; why each tolerance; what each test catches; the pending
+  golden constant and why it could not be added here).
+
+- NEW RATIFICATION CHECKLIST ITEM: (v) RATIFY THIS CARD — read
+  journal/spec-10-catalog-aging.md aloud; re-derive v = v_r u_hat + d(pmra*
+  e_east + pmdec e_north) and confirm the NO-extra-cos(dec) convention;
+  ratify (i) the mas/arcsec helper decision this card forced into units.py
+  (closes long-open item (f)); (ii) the reuse of ANGLE_TOL_RAD as the
+  1e-12 exactness bar for T3/T4/T5; (iii) the dec=60 (cos-dec trap) and
+  ra=90 (cancellation-free) test-geometry choices; (iv) the required
+  rv_fill_kms missing-RV policy; (v) RATIFY AUTHORIZED OVERRIDE #6
+  (SPEC10_DRIFT_REL_TOL = 1e-3), now applied by the main session under
+  standing authorization — the same kind of item as the earlier "ratify
+  overrides #2/#3" and "#4/#5" entries; and (vi) the spec-reviewer niceties
+  — bless ANGLE_TOL_RAD as a general 1e-12 exactness bar (or add a dedicated
+  constant), decide whether to name T3's definitional 1.0 au/yr identity,
+  and whether to restate key units in the nav star_velocities_kms docstring
+  to mirror its truth twin. Also decide (from the truth-wall advisory) the
+  RV-fill +/-inf edge case: align nav's np.isnan with truth's np.isfinite,
+  or leave it (equal on all real Gaia data).
+
+- END-OF-CARD AUDITS (both read-only, run before the commit was
+  authorized; the team lead's two independent audits are the gate, and the
+  build agent's own two copies were launched as an independent cross-check):
+  - truth-wall-auditor VERDICT PASS. The truth-side and nav-side
+    propagators are confirmed INDEPENDENT twins (only galnav/units.py
+    shared), no side channels. Advisories (record, not failures): (i) the
+    two RV-fill twins diverge on +/-inf inputs — nav uses np.isnan (keeps
+    inf), truth uses np.isfinite (replaces inf); equal on real Gaia data
+    (finite or NaN only), an honest edge-case difference worth one line;
+    (ii) T4 hands a truth-built catalog dict to the nav velocity builder —
+    sanctioned in tests/ (test_bj_anchor precedent) and pure public data, a
+    cosmetic symmetry nit; (iii) FUTURE-E6 advisory: the E6 script must hand
+    the navigator plain arrays / public catalog values, never truth objects.
+  - spec-reviewer VERDICT PASS on all 8 rules. NOTE (honest): its single
+    reported "hard violation" was a STALE READ racing this logbook update —
+    it saw the earlier "override NOT PERFORMED" text before the OVERRIDE #6
+    record replaced it; the team lead verified the current logbook is
+    consistent, so no action is needed (recorded here for the trail).
+    Student-nicety flags (folded into item (v)): (1) ANGLE_TOL_RAD is
+    semantically an ANGLE tolerance (its 61-Cyg arccos rationale) but
+    T3/T4/T5 borrow it as a general 1e-12 exactness bar on au distances and
+    km/s velocities — numerically sound, semantically a stretch; bless it as
+    a general exactness bar or add a dedicated constant; (2) T3's inline
+    oracle 1.0 au/yr is a definitional identity (1 arcsec/yr at 1 pc, exact
+    from AU_PER_PC = 648000/pi) — defensible, worth naming; (3)
+    arcsec_to_rad slightly exceeds the card's literal minimum (but it
+    resolved open item (f) and mas_to_rad builds on it); (4) nav
+    star_velocities_kms docstring could restate key units like the truth
+    twin does.
+  - Build agent's own cross-check audits (truth-wall-auditor +
+    spec-reviewer copies) were launched during the hold; their verdicts, if
+    they land after this commit, are to be folded in at the next logbook
+    touch as corroboration. The commit gate is the team lead's two PASS
+    verdicts above.
+
+- STATUS: both of the team lead's independent audits PASS; build agent
+  cleared to commit. Final pre-commit `pytest -q`: 43 passed, 0 skipped
+  (Python 3.13.3). COMMITTED this card's files in one commit, staged by
+  explicit path — galnav/units.py, galnav/truth/sky.py, galnav/nav/
+  catalog.py, tests/test_spec10_aging.py, tests/golden_numbers.py (the
+  human's OVERRIDE #6 constant), journal/spec-10-catalog-aging.md,
+  journal/citations.md, journal/logbook.md. .claude/settings.json confirmed
+  NOT modified and NOT staged (lock intact). No AI attribution in message or
+  metadata, per the project's standing git policy. Commit message: "Spec
+  10: deterministic catalog-aging propagator on both sides of the wall
+  (independent impls, agree to 1e-12); radial drift 6.3285 au/yr matches the
+  6.33 oracle". Commit hash recorded at next logbook touch.

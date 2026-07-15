@@ -244,3 +244,14 @@ E1_CRLB_TRACK_FACTOR = 1.5
 # and skipping the transverse projection lands 100% off. (Measured margins
 # recorded in journal/spec-7-catalog-covariance.md.)
 CATALOG_FLOOR_REL_TOL = 0.10
+
+# Spec 10 gate (project plan, section 6: radial drift "within 0.1%"): a
+# star receding at 30 km/s must drift RV_DRIFT_AU_PER_YR_AT_30KMS (6.33 au,
+# above) per Julian year within this relative tolerance. Measured drift is
+# 6.328486 au/yr -- 0.000239 relative, ~4.2x inside the gate. The gate is
+# loose only because the plan's oracle "6.33" carries 3 significant
+# figures; the Julian-year convention itself is pinned by units.py's
+# KMS_PER_AU_YR derivation (citation [JY]), not by this tolerance -- a
+# 365-day year (0.094% off) would also pass, as recorded in
+# journal/spec-10-catalog-aging.md.
+SPEC10_DRIFT_REL_TOL = 1e-3

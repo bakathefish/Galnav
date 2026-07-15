@@ -142,10 +142,13 @@ https://www.nasa.gov/solar-system/nasas-new-horizons-conducts-the-first-interste
 - Used for: the light-year-to-au conversion behind the anchor test's
   spacecraft-distance range (Bailer-Jones draws distances in ly).
 - Where in repo: `galnav/units.py` (AU_PER_LY, moved there 2026-07-15
-  after the spec review — conversions live in units.py, nowhere else);
-  used by `tests/test_bj_anchor.py`.
+  after the spec review — conversions live in units.py, nowhere else; and
+  KMS_PER_AU_YR = AU_KM / (365.25 x 86400), added Spec 10 for catalog
+  aging — km/s per au/yr, ~4.7405); used by `tests/test_bj_anchor.py` and
+  `tests/test_spec10_aging.py`.
 - Verified: definitional; cross-checked AU_PER_LY = 63,241.077 au
-  against the standard value, 2026-07-15.
+  against the standard value, 2026-07-15; KMS_PER_AU_YR = 4.740470... and
+  the 30 km/s -> 6.3285 au/yr radial drift cross-checked 2026-07-16.
 
 **[IAU15]** IAU 2015 Resolution B2: the parsec is exactly 648000/pi au
 (follows from 1 arcsec = pi/648000 rad). Gives 206,264.806... au/pc, the
@@ -176,6 +179,25 @@ Astrophysics*, 674, A1.
   2026-07-14; exact reproducible query in `data/README.md`); consumed by
   Spec 3 (simulator) and Spec 7 (catalog covariance) onward.
 - Data source: ESA Gaia Archive TAP service, gaiadr3.gaia_source table.
+
+**[GaiaPM]** Gaia DR3 online documentation, `gaia_source` data model
+(ESA/Gaia/DPAC, Gaia DR3 documentation, table gaiadr3.gaia_source, fields
+`pmra`/`pmdec`). https://gea.esac.esa.int/archive/documentation/GDR3/
+- Fact used: the `pmra` column is the proper motion in the RA *direction*
+  ALREADY multiplied by cos(dec) — i.e. pmra = pmra* = mu_alpha* =
+  mu_alpha·cos(dec) (the documentation writes "Proper motion in right
+  ascension direction, pmRA = mu_alpha* = mu_alpha·cos(delta)"). `pmdec`
+  is the plain proper motion in declination. CONSEQUENCE for Spec 10: the
+  east tangential-velocity component is d·pmra with NO extra cos(dec)
+  factor; applying one would halve the transverse speed at dec = 60 deg
+  (the T3 trap).
+- Where in repo: `galnav/truth/sky.py` and `galnav/nav/catalog.py`
+  (star_velocities_kms, both independently); `tests/test_spec10_aging.py`
+  (T3, T5); `journal/spec-10-catalog-aging.md`.
+- Verified: the pmra*/cos(dec) convention is standard across Gaia DR1-DR3
+  and stated in the gaia_source data-model docs; students should sight the
+  online field description before the paper's methods section is finalized
+  (WebFetch was unavailable in the build session, 2026-07-16).
 
 ## Historical
 
