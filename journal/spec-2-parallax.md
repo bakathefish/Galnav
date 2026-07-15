@@ -71,14 +71,21 @@ the comfortable middle.
 ## Every tolerance used, and exactly why (measured, not guessed)
 
 - **PARALLAX_REL_TOL = 1e-6** (one part in a million) for the parsec test.
-  Measured: the true gap between our computed value and perfection is
-  1.2e-9 — mostly because our answer-key constant PC_AU is rounded to 3
-  decimal places. Our tolerance sits 840x above that floor, and any real
-  formula mistake would blow past it by thousands of times.
+  (Evidence corrected 2026-07-15, science audit.) The test uses the SAME
+  rounded constant 206264.806 as both the distance and the rad→arcsec
+  conversion, so the rounding cancels exactly; the true measured gap is
+  the arctan Taylor term 1/(3·PC_AU²) = 7.8e-12, putting the tolerance
+  ~130,000x above the floor. (The 1.2e-9 previously quoted here is
+  PC_AU's rounding versus the exact 648000/π — a comparison the test
+  never makes.) Any real formula mistake still blows past the gate by
+  thousands of times.
 - **DISPLACEMENT_REL_TOL = 1e-5** for the shortcut test. The shortcut
-  itself is imperfect by about (D/d)^2: at our closest test star that's
-  3.3e-7, measured. The tolerance sits 30x above the shortcut's own
-  imperfection but far below any coding bug.
+  itself is imperfect by (D/d)²/3 (the arctan series' first dropped
+  term): at our closest test star, (1/1000)²/3 = 3.3e-7, measured. The
+  tolerance sits 30x above the shortcut's own imperfection but far below
+  any coding bug. (2026-07-15: an earlier wording here said "(D/d)^2",
+  missing the 1/3 — the measured 3.3e-7 always matched the correct
+  (D/d)²/3 law.)
 - **ANGLE_TOL_RAD = 1e-12** for the cross-check test (below).
 
 ## The cross-check test, and an honest discovery about our own Spec 1 tool
@@ -101,8 +108,9 @@ and the comparison is fair.
 ## Which tests prove it, and what each would catch
 
 1. **Parsec definition** — catches any wrong formula, wrong units, or
-   flipped division (d/D instead of D/d gives 206,264 arcsec, off by ten
-   orders of magnitude — instantly caught).
+   flipped division (d/D instead of D/d gives ~324,000 arcsec — nearly a
+   right angle instead of one arcsecond, off by 5.5 orders of magnitude
+   — instantly caught; arithmetic corrected 2026-07-15).
 2. **Six orders of magnitude** — catches precision loss at extreme
    distances and accidental use of a bad approximation. Also asserts the
    answer comes back as an array matching the input array (the project

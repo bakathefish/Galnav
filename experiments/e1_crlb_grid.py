@@ -182,7 +182,10 @@ def main():
         ax.grid(True, which="both", alpha=0.3)
     axes[0].set_ylabel("position error, au")
     axes[0].legend(fontsize=8, title="lines: theory\ndots: 500-trial MC")
-    fig.suptitle("E1 — Monte Carlo scatter tracks the CRLB (position-only, all-pairs)")
+    fig.suptitle(
+        "E1 — Monte Carlo scatter tracks the CRLB "
+        "(position-only; all well-separated pairs, capped at 2000)"
+    )
     fig.tight_layout()
     fig.savefig(RESULTS_DIR / f"e1_crlb_grid_{stamp}.png", dpi=150)
 

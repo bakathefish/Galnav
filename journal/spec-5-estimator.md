@@ -7,8 +7,9 @@ stars (2), fake an honest sky (3), predict-and-differentiate from a guess
 (4). Today they snap together into the thing itself: hand the navigator
 nothing but measured angles, the public catalog, and a rough guess — and
 it finds the spacecraft. With a perfect camera it lands within 3.4e-10 au
-of the true spot. That's machine precision: about a golf ball's width of
-error on a five-light-year measurement.
+of the true spot. That's machine precision: about 51 meters of error on a
+five-light-year problem — one part in 10^15. (Analogy corrected
+2026-07-15: the original "golf ball's width" overstated it ~1,000x.)
 
 ## The idea, with a hot-and-cold game
 

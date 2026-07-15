@@ -16,30 +16,63 @@ interstellar navigation using an astrometric star catalogue."
 arXiv:2103.10389. https://arxiv.org/abs/2103.10389
 - Used for: the accuracy anchor we must reproduce — 20 nearest stars at
   1 arcsec measurement noise gives position to ~3 au and velocity to
-  ~2 km/s; also the 1/sqrt(N) scaling (100 stars → 1.3 au) and the
-  "accuracy proportional to measurement noise" scaling. NOTE (E1,
-  2026-07-14): his estimator solves SIX unknowns (position + velocity,
-  coupled by relativistic aberration) from of order tens of pair
-  measurements; our current position-only, all-pairs setup measured
-  0.41 au at the same (20 stars, 1 arcsec) cell — 7x tighter, consistent
-  with the easier problem, NOT an anchor reproduction. Honest comparison
-  deferred to the velocity+aberration spec (plan week-5 gate).
+  ~2 km/s; also the 1/sqrt(N) scaling (100 stars → 1.3 au, in HIS
+  per-star-measurement setup) and the "accuracy proportional to
+  measurement noise" scaling. NOTE (E1, 2026-07-14; corrected
+  2026-07-15 against the full text): his estimator solves SEVEN
+  unknowns — 3D position, 3D velocity, AND the barycentric time of
+  measurement, via 7-dimensional MCMC ("we were forced to formally
+  include the measurement time as a seventh unknown parameter") — from
+  N-1 = 19 pair angles for 20 stars (he explicitly declines all
+  N(N-1)/2 pairs), plus, in his nominal scenario, N-1 radial-velocity
+  measurements at 10 km/s accuracy. Our current position-only,
+  all-pairs setup measured 0.42 au at the same (20 stars, 1 arcsec)
+  cell at 1 pc — 7x tighter, consistent with the much easier problem,
+  NOT an anchor reproduction. Honest comparison deferred to the
+  velocity+aberration card (plan week-5 gate).
 - Where in repo: `tests/golden_numbers.py` (BAILER_JONES_ANCHOR, still
   awaiting its apples-to-apples test); `journal/e1-crlb-grid.md`.
-- Verified: abstract wording re-checked against arXiv on 2026-07-14.
+- Verified: abstract re-checked 2026-07-14; full text fetched and the
+  seven-parameter and 19-pair statements verified verbatim 2026-07-15.
 
 **[Lauer25]** Lauer, T. R., et al. (2025). "A Demonstration of Interstellar
 Navigation Using New Horizons." arXiv:2506.21666.
 https://arxiv.org/abs/2506.21666
 - Used for: measured New Horizons parallax shifts (Proxima Centauri
   32.4 arcsec, Wolf 359 15.7 arcsec, spacecraft at 47.12 au); their 0.44 au
-  position-fix benchmark; the exact aberration formula
-  phi = arctan(sin(theta) / (beta + cos(theta))) (their Eq. 1) for the
-  relativistic experiment.
-- Where in repo: `tests/golden_numbers.py` (NH_* values); future
-  experiments E3 and E7.
+  position-fix benchmark; the aberration formula
+  phi = arctan(sin(theta) / (beta + cos(theta))) (their Eq. 1) — which
+  the paper presents EXPLICITLY as the non-relativistic (v << c) case.
+  CORRECTED 2026-07-15 (science audit): this entry previously called
+  Eq. 1 "the exact aberration formula ... for the relativistic
+  experiment." It is the Galilean form; the exact special-relativistic
+  formula needs the Lorentz factor, tan(phi) = sin(theta) /
+  (gamma (beta + cos(theta))) — see [SR-ABER]. E7 at 0.1c MUST use the
+  gamma form: at beta = 0.1 the gamma-less formula errs by ~103 arcsec
+  at theta = 90 deg (checked numerically 2026-07-15), enormous against
+  our arcsecond-level measurement noise.
+- Where in repo: `tests/golden_numbers.py` (NH_* values;
+  ABERRATION_MAX_DEG_AT_0P1C carries the same v << c lineage, comment
+  updated); future experiments E3 and E7.
 - Verified: 32.4/15.7 values cross-checked against NASA press material on
-  2026-07-14 (see [NASA20]).
+  2026-07-14 (see [NASA20]); the "non-relativistic observer velocity,
+  v << c" framing of Eq. 1 verified verbatim against the arXiv full text
+  on 2026-07-15.
+
+**[SR-ABER]** Special-relativistic aberration of light,
+tan(phi) = sin(theta) / (gamma (beta + cos(theta))) with
+gamma = 1/sqrt(1 - beta^2) — standard textbook result, e.g. Rindler, W.
+(2006). *Relativity: Special, General, and Cosmological* (2nd ed.),
+Oxford University Press, ch. 4.
+- Used for: the correction to [Lauer25]'s Eq. 1 above; the formula E7
+  (0.1c experiment) must implement. Maximum deflection at beta = 0.1 is
+  5.7464 deg vs the Galilean arcsin(0.1) = 5.7392 deg.
+- Where in repo: `journal/citations.md` (this note);
+  `tests/golden_numbers.py` ABERRATION_MAX_DEG_AT_0P1C comment. No code
+  uses it yet (E7's card will).
+- Verified: reduces to the Galilean form at gamma -> 1; numerical check
+  of the 103-arcsec discrepancy at beta = 0.1, theta = 90 deg run
+  2026-07-15.
 
 **[KHE26]** Khan, A., Hou, L., & Eggl, S. (2026). "Assessing the
 Predictability of δ Scuti Variable Stars for Spacecraft Navigation."

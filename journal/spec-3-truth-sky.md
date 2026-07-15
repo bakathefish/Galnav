@@ -69,8 +69,14 @@ determinism rule, so every experiment can be replayed exactly.
 
 - **ANGLE_TOL_RAD = 1e-12** (zero-noise test): with the camera blur set
   to zero the simulator and the hand-built check compute the same
-  geometry through different code paths; only rounding dust (measured at
-  ~3.6e-14 in Spec 1's stress test) may separate them.
+  geometry through different code paths; only rounding dust may separate
+  them. (2026-07-15 re-measurement: generic pairs agree to ~1e-16..1e-13,
+  but at the suite's closest pair — 61 Cygni A/B, ~60 arcsec — arccos
+  amplifies rounding to ~4e-13 measured, ~8e-13 versus a 50-digit
+  reference, leaving only ~2.6x margin under this gate. The old
+  "~3.6e-14" figure came from a stress test that understates true error.
+  Whether to keep gating that pair is an OPEN STUDENT DECISION — see
+  logbook 2026-07-15.)
 - **SKYCOORD_AGREE_MAS = 1.0** (astropy cross-check, new this card): our
   conversion and astropy's compute the same textbook trigonometry, so
   disagreement beyond rounding dust means one of us is wrong. 1 mas —

@@ -20,9 +20,11 @@ the position information physics puts in the measured angles (the
 Cramer-Rao bound is not just an upper aspiration; it is achieved).
 
 (The first run of E1, 2026-07-14, measured 1.052; the audit fixes below
-changed how each cell's random stream is created, so the exact draws —
-and only the draws — changed. Both numbers are ~10x inside the gate;
-the ~1% wobble between them is itself a nice demonstration that the
+changed how each cell's random stream is created, so the random draws
+changed — plus one cosmetic constant alignment worth 1.2e-9 in the noise
+sigmas, and re-drawn pair subsamples shifting pair-capped cells by up to
+4%. Margins inside the 1.5 gate: 9.7x for the first run, 7.9x for this
+one; the ~1% wobble between them is itself a nice demonstration that the
 result does not depend on which random numbers you happen to get.)
 
 Files: `results/e1_crlb_grid_20260715T052152Z.png` (figure) and `.npz`
@@ -30,33 +32,54 @@ Files: `results/e1_crlb_grid_20260715T052152Z.png` (figure) and `.npz`
 regenerable from the arrays alone, per project rule).
 
 ## What the figure shows, physically
+(section rewritten 2026-07-15 after the science audit — the first
+version attributed to star physics what is mostly a memory-cap artifact)
 
-- **More stars → smaller error,** roughly like 1/sqrt(N) at first.
-- **Then a flattening past ~50–100 stars:** the nearest stars carry
-  almost all the signal (shift = move/distance!), so star #150 — five
-  times farther than star #10 — barely helps. Adding faint far stars is
-  not free navigation; this shape previews why catalog QUALITY beats
-  catalog QUANTITY, the deeper theme of the aging experiment.
-- **Slight uptick at (1 pc, 200 stars):** real and explainable — with the
-  2000-pair memory cap, random pair subsampling swaps some strong
-  near-star pairs for weak far-far pairs. Documented, not hidden.
-- **Farther spacecraft → bigger error** at fixed star count: from 20 pc
-  out, even the "nearby" stars are relatively farther, so every angle is
-  stiffer. Navigation is genuinely harder out there.
+- **More stars → smaller error, FAST.** Because we feed the solver ALL
+  well-separated pairs, the measurement count grows like N², so the
+  error falls much faster than the 1/sqrt(N) a per-star setup would
+  give: measured log-log slopes between −1.2 and −2.7 from N = 5 to 50.
+  (Bailer-Jones's 1/sqrt(N) belongs to HIS N−1-measurement design, not
+  to this figure.)
+- **The flattening past ~50–100 stars is the PAIR CAP, not the sky.**
+  With MAX_PAIRS = 2000, the measurement count stops growing past
+  N ≈ 64, so the curves flatten — an artifact of our memory budget.
+  Audit measurement: with the cap removed, the theory bound keeps
+  falling through N = 200 (at 1 pc: 0.205 → 0.082 au from the capped to
+  the uncapped N = 200 cell; stars 101–200 improve the uncapped bound
+  1.6x — they do NOT "barely help"). Whether far stars help a REAL
+  navigator (with catalog errors, Spec 7+) is E6's question — this
+  figure, with a perfect catalog, cannot answer it.
+- **Slight uptick at 200 stars in the 1 pc AND 4 pc panels** (+16–28%
+  over the 100-star cells): same cap artifact — random pair subsampling
+  swaps some strong near-star pairs for weak far–far pairs. Documented,
+  not hidden.
+- **Farther spacecraft → bigger error** at fixed star count, strictly
+  true in every uncapped cell (all N ≤ 50): from 20 pc out, even the
+  "nearby" stars are relatively farther, so every angle is stiffer. (In
+  pair-capped cells the per-cell random subsample can invert the 1→4 pc
+  step by a few percent — cap noise, not physics.)
 
 ## The honest surprise: we BEAT the published anchor, and why that's not a boast
 
 Pre-registered expectation: ~3 au at (20 stars, 1 arcsec) — the
-Bailer-Jones anchor. Measured: **0.41 au — 7x better.** Investigated
-before celebrating; two real differences between the problems:
+Bailer-Jones anchor. Measured: **0.42 au at the 1 pc cell — 7.1x
+better.** (The blessed run's exact value is 0.4219 au; the first run's
+0.41 au was quoted here until the 2026-07-15 audit caught the stale
+number.) Investigated before celebrating; two real differences between
+the problems:
 
-1. **He solves SIX unknowns, we solve three.** Bailer-Jones fits position
-   AND velocity simultaneously (his spacecraft moves at relativistic
-   speed, and aberration couples velocity into every measured angle).
-   Extra unknowns dilute the same measurements.
+1. **He solves SEVEN unknowns, we solve three.** Bailer-Jones fits 3D
+   position, 3D velocity, AND the barycentric time of measurement in a
+   7-dimensional MCMC (his spacecraft moves at relativistic speed;
+   aberration couples velocity into every measured angle, and the epoch
+   must be inferred too). Extra unknowns dilute the same measurements.
+   (First version of this entry said six — corrected 2026-07-15 against
+   the paper's full text.)
 2. **He measures far fewer pairs.** We feed the solver ALL well-separated
-   pairs of 20 stars (187 measurements); his spacecraft measures angles
-   among of order tens.
+   pairs of 20 stars (187 measurements); he uses N−1 = 19 pair angles
+   and explicitly declines using all N(N−1)/2 — though his nominal
+   scenario also adds N−1 radial-velocity measurements at 10 km/s.
 
 Both differences make OUR problem easier, in quantifiable directions —
 consistent with a ~7x gap. Conclusion recorded: this is NOT the
@@ -70,7 +93,8 @@ stay untouched, waiting for the honest comparison.
 
 - **E1_CRLB_TRACK_FACTOR = 1.5** (new golden, from the plan): across 96
   heterogeneous geometries, ratios drifting past 1.5x would signal model
-  breakdown. Measured worst: 1.064 — 10x inside the gate.
+  breakdown. Measured worst: 1.064 — deviation 6.4% against the gate's
+  allowed 50%, a 7.9x margin.
 - **Reused solver/statistics gates** via the harness acceptance tests
   (below); no other new tolerances.
 - **Design parameters** (not tolerances, recorded in the .npz): pair

@@ -473,6 +473,130 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   to skip gates.
 - pytest 24/24 green (no library code touched in this entry).
 
+## 2026-07-15 — Session 4 (continued): SPEC 7 + 28-agent science audit
+
+- Evidence-map commit: `91d34bd`.
+- PROCESS DEVIATION, recorded honestly: on explicit student instruction
+  ("you're in charge, make spec 7 and the tests"), this card's text and
+  acceptance test were AI-DRAFTED — the standing students-write-tests
+  rule was set aside for THIS CARD ONLY and remains in force. Student
+  review and ratification of the card is PENDING (checklist below).
+  Design method: three isolated agents designed Spec 7 independently
+  (physics-first, engineering-first, adversarial), a fourth judged and
+  synthesized, and the session's own hand derivation was a fifth
+  independent check — all five converged on the same floor formula,
+  the same dense-covariance requirement, and the same test set. The
+  physics agent additionally verified closure: rebuilding R from finite
+  differences reproduces position_covariance to 1.6e-9, and perturbing
+  one star's real catalog distance by +1 sigma shifts a full re-solve
+  exactly as the linear prediction says (5e-5 relative).
+- SPEC 7 BUILT (TDD: test first, RED confirmed, then minimum code):
+  nav-side catalog loader galnav/nav/catalog.py (star positions + 
+  per-star sigma_d from parallax_error — nav's OWN catalog path, closing
+  the 2026-07-15 latent flag for all new work); three measmodel
+  functions (distance Jacobian, dense R_cat, per-star floor); one
+  optional argument on position_covariance (R = sigma^2 I + R_cat,
+  Cov = (J^T R^-1 J)^-1; None-path byte-identical to Spec 6).
+  solve_position untouched — recorded derivation choice: the catalog
+  budget enters the error PREDICTION; revisit if E6 MC-vs-prediction
+  tracking breaks the 1.5x factor.
+- AUTHORIZED OVERRIDE #2 (golden file): CATALOG_FLOOR_REL_TOL = 0.10
+  added (the plan's own Spec 7 number). Lock lifted and restored the
+  same minute. Measured margins behind it: code-vs-hand-formula
+  deviation 1.25e-3 at the tested geometry (80x inside); wrong physics
+  misses 20x; FD Jacobian agreement 6.6e-8 (15x inside JACOBIAN_REL_TOL);
+  machine-precision zeros 3.7e-13 au dead-ahead / 5.7e-11 au at home.
+- Suite: 24 -> 28 tests, all green after every edit.
+- FIRST PHYSICS RESULT OF THE CARD: at D = 1 pc the median per-star
+  catalog floor over the 20 nearest stars is 20.9 au (range 13–74 au)
+  vs 2.75 au of camera-only error at 1 arcsec — the MAP, not the
+  camera, is already the binding constraint at 1 pc. E6's regime
+  exists; Spec 7 can now measure it.
+- FULL-REPO SCIENCE AUDIT (student instruction: "no science errors
+  anywhere"): 6 isolated auditors over geometry/parallax, truth+
+  measurement model, estimator+statistics, E1 claims-vs-arrays,
+  citations-vs-papers (full texts fetched), and units/frames; every
+  non-minor finding sent to 2 adversarial verifiers sworn to refute.
+  Outcome: 28 raw findings -> 9 CONFIRMED majors (all 2–0 votes),
+  19 minors, 77 areas verified clean. ALL confirmed items were
+  documentation/rationale errors — no computed result, golden VALUE,
+  or committed formula was wrong. Every value in the frozen golden
+  file AST-verified unchanged through today's edits (only the one
+  pre-authorized addition).
+- FIXES APPLIED from the audit (override #3 for the golden COMMENT
+  corrections; values untouched):
+  1. PER_STAR_FLOOR_AU docstring: D is the SPACECRAFT's distance (the
+     star's own distance cancels) — was "distance to the star".
+  2. PARALLAX_REL_TOL rationale: true measured gap is 7.8e-12 (arctan
+     cubic; PC_AU rounding cancels exactly) — was "1.2e-9, mostly from
+     rounded PC_AU". Same fix in spec-2 journal.
+  3. ANGLE_TOL_RAD rationale: true worst error ~1.1e-13 generic and
+     ~8e-13 at the 61 Cygni pair — the old 3.6e-14 stress figure
+     understates. Same fix in spec-3 journal.
+  4. Golf-ball analogy (golden + spec-5 journal): 1e-8 au is ~1.5 km,
+     3.4e-10 au is ~51 m — the analogy overstated precision ~1000x+.
+  5. MC_CRLB_REL_TOL rationale: "transposed matrix" example removed
+     (J^T J is symmetric; transposing catches nothing).
+  6. COAST_DAYS labels: the values are HALF-comb (lock-loss window)
+     drift times — labels said full comb (2x off). Values right.
+  7. ABERRATION_MAX + [Lauer25]: their Eq. 1 is EXPLICITLY the
+     non-relativistic (v<<c) form; the exact relativistic formula
+     needs gamma (new citation [SR-ABER]); at 0.1c the gamma-less form
+     errs ~103 arcsec at 90 deg. E7 must use the gamma form.
+  8. [BJ21]: he solves SEVEN unknowns (position, velocity, AND the
+     measurement time; 7-D MCMC), uses N-1 = 19 pair angles plus
+     radial velocities in his nominal setup — entry said six, and the
+     journal comparison said six; both corrected against the fetched
+     full text.
+  9. E1 journal narrative rewritten: the error-curve flattening past
+     ~50–100 stars is the MAX_PAIRS=2000 cap (uncapped, the bound
+     keeps falling: 0.205 -> 0.082 au at 1 pc, N=200; stars 101–200
+     improve it 1.6x), NOT "far stars barely help"; the early
+     improvement is slope −1.2..−2.7 (all-pairs N^2 growth), not
+     1/sqrt(N); the 200-star uptick is in the 4 pc panel too; the
+     distance trend holds strictly only in uncapped cells; the
+     Bailer-Jones cell reads 0.42 au in the blessed run (0.41 was the
+     superseded run); margins quoted as 9.7x/7.9x, not "~10x".
+     CORRECTION NOTICE for THIS logbook's earlier entries (2026-07-14
+     session 3, and the 1.052->1.064 lines above): they carry the same
+     pre-audit narrative and stale numbers; per append-only rule they
+     stay as written — this entry and the rewritten journal are the
+     corrected record.
+  10. E1 figure suptitle now says "capped at 2000" (was "all-pairs").
+- END-OF-CARD AUDITS: truth-wall-auditor VERDICT PASS (all six leak
+  vectors clean; notes the E1-harness truth-side star source as the
+  known future-card item — same flag as above). spec-reviewer VERDICT
+  PASS on all 8 rules (one nicety noted for the students, item (h)).
+- Prior-art note from the panel run: none of the fetched papers
+  contradicts E6's novelty claim; re-sweep before drafting stands.
+- STUDENT RATIFICATION CHECKLIST (the card is not student-owned until
+  these are done):
+  (a) Read journal/spec-7-catalog-covariance.md aloud; re-derive the
+      floor formula by hand; confirm the four tests test what you mean.
+  (b) Ratify (or overturn) the derivation choice: covariance weighted,
+      solver unweighted, revisit trigger at E6.
+  (c) Ratify overrides #2 and #3 (one added golden 0.10; comment/
+      docstring corrections — AST proof of value-invariance recorded).
+  (d) DECIDE: test_sky.py's pair (8,9) is 61 Cygni A/B gated at 1e-12
+      where correct code can differ by ~1.5e-12 (CONFIRMED fragile;
+      passes today by correlated rounding luck). Options: exclude 8-9
+      pairing (Spec 4 precedent) / per-pair tolerance / switch the
+      reference recipe to arctan2. Tests are yours; nothing changed.
+  (e) DECIDE (same knot): truth/observer.py still uses arccos — adopt
+      one canonical angle recipe project-wide?
+  (f) DECIDE: test_sky.py:66 converts mas inline instead of via a
+      units.py helper (the recorded open units.py decision).
+  (g) At the E7 card: re-derive ABERRATION_MAX with the gamma form
+      (5.7464 vs 5.7392 deg).
+  (h) Nicety: golden comments could note the secondary uses of
+      CATALOG_FLOOR_REL_TOL (correlation gate) and
+      SOLVER_RECOVERY_TOL_AU (vanishing-floor gate).
+  (i) Still open from before: velocity+aberration card BEFORE the
+      Aug-15 anchor gate; Python 3.11-vs-3.13 pin; np.allclose
+      symmetry tolerance; E1-harness nav-loader swap at the E6 card.
+- Commit hashes for this entry recorded at next logbook touch, per
+  convention.
+
 ## 2026-07-15 — Session 4 (continued): decisions, prior-art sweep, evidence map
 
 - Hardening commit: `f9ed3e4`.
