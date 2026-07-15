@@ -884,3 +884,66 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   are RE-CONFIRMED by this sweep, not new. No new outside
   facts/numbers were introduced, so journal/citations.md is
   deliberately untouched.
+
+## 2026-07-15 — Session 5 addendum: item (q) resolved — the 2.006 CRLB failure was mutant contamination
+
+- WHAT RAN: checklist item (q) asked whether the E1 test
+  test_grid_cells_track_crlb_within_factor has a genuine HEAD
+  threading flake — one sweep investigator saw it fail at RMS/CRLB
+  ratio 2.005857594980243 on early runs, then pass ~43 times, and
+  guessed a BLAS/threadpool heisenbug. I re-checked directly against
+  the committed tree: the E1 experiment, its test, estimator.py and
+  measmodel.py are all byte-identical to f89ef16 (git-verified), git
+  status clean, and every run used `python -B` so no stale bytecode
+  could survive. Full suite gated 34/34 first. Interpreter: Python
+  3.13.3, numpy 2.4.1, OpenBLAS 0.3.30 (pthreads, Haswell kernel),
+  16 logical CPUs. HONEST NOTE: whether to pin Python 3.11 vs 3.13 is
+  a separate OPEN student decision — this machine's only complete
+  scientific stack is 3.13, so that is the box these numbers describe.
+
+- THE DECISIVE PROBE (rules the mechanism out): the test fixes rng
+  seed 0, so for a fixed thread count the whole computation is
+  deterministic; the ONLY thing that could change a result between
+  runs is BLAS reduction order, which varies with the thread count.
+  So the exact 4-cell computation (seed 0, 200 trials, cells
+  D in {1,10} pc x N in {10,50} at 1 arcsec) was run 40 times at 1
+  OpenBLAS thread AND 40 times at 16 OpenBLAS threads (thread counts
+  confirmed with threadpoolctl). Result: byte-identical ratios across
+  all 80 runs and both thread modes — the four float64 ratios hash to
+  the same SHA-256 (bb404f03358759b9) in both. True cell ratios:
+  1.002928789653708, 1.015804177822257, 1.045030960632382,
+  1.003652731125407 — worst 1.045 against the 1.5 gate (a 33% margin).
+  Because the answer is identical at both 1 and 16 threads, any
+  auto-detected count in between is bracketed and identical too, so
+  the BLAS-reduction-order / threading heisenbug is RULED OUT on this
+  box, not merely unobserved.
+
+- THE SIGNATURE: the observed failing value 2.005857594980243 is a
+  clean 2x of the D=1 pc / N=10 cell's true ratio 1.002928789653708
+  (equal to a perfect doubling to 8 significant figures). That is
+  exactly what the sweep's own DOUBLED-NOISE mutant produces — it
+  built the Monte-Carlo measurements at 2.0*sigma_rad while leaving the
+  CRLB at sigma_rad, so the RMS (and hence the ratio) doubles in every
+  cell. The three-in-a-row early failures are explained by the mutant
+  being transiently in the working tree (then reverted), not by any
+  random flake.
+
+- CORROBORATING CAMPAIGN: the test itself, run as fresh separate
+  processes — 100 times single-threaded (all thread env vars = 1) and
+  150 times default-threaded — passed 250/250 with zero failures (my
+  own runner; counts logged). If a genuine flake existed even at the
+  ~1-in-46 rate the early observation loosely suggested, 250 clean
+  runs would be about 0.4% likely; observing zero also gives a
+  rule-of-three 95% upper bound near 1.2% on any residual rate. The
+  decisive probe is the primary evidence; this campaign is the
+  empirical backstop.
+
+- VERDICT: item (q) CLOSED. The 2.006 CRLB failure was CONTAMINATION
+  from the sweep's own doubled-noise mutant, NOT a HEAD threading
+  flake; the BLAS-threading hypothesis is ruled out on this box. HONEST
+  CAVEAT: an 80-run byte-identical probe and 250 clean reruns bound but
+  cannot PROVE absolute absence on other machines or BLAS builds — but
+  on THIS environment the proposed mechanism is eliminated, not merely
+  unseen. No code and no test were changed; the verification ran
+  read-only against the committed tree (only a scratch log outside the
+  repo was written) and git status stayed clean throughout.
