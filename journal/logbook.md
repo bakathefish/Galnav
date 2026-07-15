@@ -716,3 +716,171 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   checklist (checklist form of CLAUDE.md's rules plus the archive and
   environment rules) so the paper can be drafted from this folder
   alone.
+
+## 2026-07-15 — Session 5: post-crash skeptic sweep — HEAD f89ef16 survives
+
+- WHAT RAN: the machine CRASHED mid-session while an adversarial
+  MUTATION sweep was injecting deliberate bugs into the working tree
+  (files carrying `# MUTATION:` markers, restored after each probe).
+  On restart, the galnav-skeptic-sweep workflow (id wf_3b4188ed-b56)
+  was launched to skeptic-check EVERYTHING at commit f89ef16 — 10
+  isolated investigators across code-rule compliance, truth-wall
+  integrity, physics-vs-sources, test quality, independent
+  re-derivation of the golden file, and reproducibility, with each
+  non-trivial finding sent to adversarial verifiers sworn to refute
+  it. This is an AUDIT + JANITOR pass, not a spec card: no code
+  change, no commit, no test or golden value touched. The
+  crash-interrupted mutants were confirmed reverted before any verdict
+  was trusted (see cleanup below).
+
+- THE VERDICT: **HEAD f89ef16 survived the sweep.** No committed
+  result, golden VALUE, or committed formula was found wrong. Every
+  HIGH-severity finding was one of the sweep's OWN transient mutants
+  and was reverted by the sweep harness before it could reach a
+  commit:
+  1. a doubled-noise E1 harness (measurements built at 2.0*sigma_rad
+     while the CRLB used sigma_rad, so RMS ~2x CRLB in every cell) —
+     HEAD uses sigma_rad, and the E1 factor-1.5 gate CATCHES the
+     mutant at ratio ~2.006; and
+  2. a sign-flipped position Jacobian at galnav/nav/measmodel.py:79
+     (+dcos_dp/sin instead of the correct -dcos_dp/sin), which flips
+     the Gauss-Newton step and diverges — a sign-independent finite-
+     difference oracle confirms HEAD's -dcos_dp/sin is right (FD error
+     ~1e-14), and HEAD's committed line 79 is that correct form.
+  Physics re-confirmed independently: relativistic aberration matches
+  the SR oracle SR_ABER_PHI_RAD to ~1e-12 rad on both the truth-side
+  (_aberrate) and nav-side (_aberrate_nav) implementations, while a
+  Galilean (no-gamma) variant misses by ~103 arcsec; every position
+  and 6-state Jacobian matches central finite differences to <1e-6
+  relative over four decades of step size; and dozens of golden
+  constants plus journal headline numbers were re-derived from scratch
+  and reproduced — the Bailer-Jones anchor at 3.019 au / 2.028 km/s,
+  the per-star catalog floors, the aberration magnitudes, and the E1
+  headline worst RMS/CRLB factor 1.0637 (recomputed straight from the
+  blessed npz). pytest is 34/34 green across many repeated runs on
+  HEAD.
+
+- DURABLE FINDINGS (latent/quality issues; NONE breaks HEAD or the
+  34/34 baseline. Several RE-CONFIRM open ratification items already
+  in this logbook; a few are NEW. All are for the students — nothing
+  was actioned):
+  1. RE-CONFIRMED — the E1 truth-wall LATENT flag (first recorded this
+     session, lines 404-410 / 566-568). experiments/e1_crlb_grid.py
+     and tests/test_e1_harness.py import truth-side star positions
+     (galnav.truth.sky.star_positions_au) and feed that SAME array to
+     the navigator's solver and CRLB. Zero numerical leak TODAY —
+     truth positions are BITWISE equal to the nav catalog positions
+     (max|diff| = 0.0 au over 1941 stars) — and the AST truth-wall
+     test cannot see it because it scans only galnav/nav, never
+     experiments/ or tests/. But the moment catalog position-aging
+     lands (truth at true distance, catalog at a parallax-perturbed
+     distance) this wiring silently hands the navigator the TRUE
+     positions, and the project's headline "accuracy vs catalog age"
+     figure would show falsely-perfect navigation regardless of
+     catalog error. E1 MUST switch to the nav-side catalog path —
+     the same swap Spec 7 already made for its covariance card.
+  2. NEW — the 6-state solver's light-cone guard
+     (galnav/nav/estimator.py, _inside_light_cone) has ZERO test
+     coverage. Neutering it to the identity function leaves
+     test_solver_survives_superluminal_overshoot AND three other
+     tests still GREEN, because step-halving rejects the bad step
+     before the 0.99c re-entry clamp is ever reached (instrumented:
+     0 light-cone pulls, 207 scale=0 rejections in the anchor batch).
+     The damping itself is well covered; only the clamp sub-component
+     is dead with respect to the suite, so a wrong clamp (bad scale,
+     broadcasting bug) would slip through.
+  3. RE-CONFIRMED — the 61 Cygni close pair (stars 8,9, ~59.6 arcsec
+     apart) gated at 1e-12 in test_sky.py (ratification item (d)).
+     The assertion passes only by CORRELATED arccos-error
+     cancellation between two near-identical paths; angle_between's
+     own true error at that pair (1.179e-12 vs a 50-digit reference)
+     already EXCEEDS the 1e-12 gate, and the golden rationale
+     under-states this. The three recorded options still stand
+     (exclude the 8-9 pairing / per-pair tolerance / switch the
+     reference recipe to arctan2).
+  4. UNRESOLVED (flagged for a controlled re-run) — one investigator
+     reported the E1 test test_grid_cells_track_crlb_within_factor
+     FAILING at RMS/CRLB ratio 2.005857594980243 on early pristine
+     pytest runs and then passing ~43 consecutive later runs, and
+     diagnosed a BLAS/threadpool reduction-order heisenbug. BUT that
+     exact ratio is also what the doubled-noise mutant (finding above)
+     produces, and two other investigators attributed the same
+     failure to the mutant still being (transiently) in the tree or
+     to stale bytecode. Whether a genuine HEAD threading flake exists
+     is NOT settled. Because reproducibility is a load-bearing project
+     value (NEP 19, blessed-results archive), this deserves a
+     deliberate re-run on a guaranteed-clean checkout with fixed BLAS
+     thread counts before it is either dismissed or fixed.
+  5. NEW / RE-CONFIRMED — three gates constrain little in isolation:
+     the covariance symmetric-positive-definite check
+     (test_covariance.py:50-51, duplicated in
+     test_catalog_covariance.py) CANNOT fail for any invertible
+     Jacobian, since sigma^2 (J^T J)^-1 is symmetric-PSD by
+     construction (the golden comment already concedes this); the
+     Jacobian-magnitude test (test_measmodel.py:89-90) is a one-sided
+     upper bound that a zero Jacobian would pass; and the
+     Bailer-Jones anchor gate is a 4x-wide two-sided window (factor
+     2.0 vs the plan's "within 30%", ratification item (k)). Each is
+     fine BECAUSE the physics is pinned by the finite-difference / MC
+     / SR-oracle tests elsewhere — but weak standing alone.
+  6. RE-CONFIRMED — arcsec->radian conversion is done inline in
+     experiments/e1_crlb_grid.py (dividing by RAD_ARCSEC) rather than
+     through galnav/units.py, which currently has no arcsec helper
+     (the open units.py decision, ratification item (f)). Numerically
+     correct and at a genuine I/O edge; an architectural deviation
+     from the "one module owns all conversions" rule, not an error.
+  7. NEW — the spec-7 journal's camera/catalog floor numbers
+     (2.75 au / 11.1 au at D = 1 pc) do NOT reproduce at the canonical
+     test geometry, where the re-derivation measured ~3.1 au / ~13.7
+     au. The floors are strongly observer-direction dependent
+     (camera 2.24-3.24, catalog 9.7-19.0 across five directions) and
+     the journal does not state which direction the quoted pair comes
+     from. The qualitative claim (catalog ~4x camera, catalog-limited
+     at 1 pc) holds at EVERY direction, so this is documentation
+     imprecision, not a physics error.
+  8. NEW — the "figures are regenerable from the saved .npz arrays
+     alone" rule (results/archive/README.md) has no executable code
+     path: the only plotting code is main(), which recomputes the
+     whole 96-cell, 48,000-solve Monte Carlo in the same pass. The
+     archived arrays ARE sufficient (they carry rms_au, crlb_au,
+     dists_pc, star_counts, sigmas_rad and seed), but a load-npz ->
+     replot script would have to be written by hand to make the claim
+     literally true today.
+  9. RE-CONFIRMED — solve_position is undamped Gauss-Newton with no
+     divergence guard, unlike the damped solve_state (which got
+     step-halving + the light-cone guard after the anchor NaN bug).
+     One non-reproduced ~30x RMS blow-up in a single E1 regeneration
+     was attributed to environmental contamination (sibling agents
+     were mutating the tree at that moment; 13/13 later controlled
+     runs were byte-identical to the blessed arrays), NOT a code
+     defect — but the undamped solver is a latent robustness risk at
+     close-in, poorly-conditioned geometries (D = 1 pc, few stars).
+
+- CLEANUP (janitor pass, working-tree only, NO commit): git flagged
+  galnav/nav/estimator.py and galnav/nav/measmodel.py as modified, but
+  both were BYTE-IDENTICAL to HEAD (working blobs equal the HEAD
+  blobs, `git diff HEAD` empty, no MUTATION markers) — pure stat-cache
+  residue from the sweep rewriting identical bytes — so they were
+  restored with no work lost. Removed the sweep's litter: three *.orig
+  backups (experiments/e1_crlb_grid.py.orig,
+  tests/test_bj_anchor.py.orig, tests/test_e1_harness.py.orig), the
+  galnav.backup/ mirror of galnav/, all 10 scratch git worktrees
+  (4 locked wf_3b4188ed-b56-* under .claude/worktrees, 6 detached
+  mutation_a..f under .worktrees), their 4 worktree-* branches, and 2
+  orphan agent scratch dirs. No processes were killed. Final state:
+  git status clean, only the main worktree, HEAD f89ef16 unchanged,
+  pytest 34 passed in 1.65s (0 failed, 0 skipped).
+
+- STATUS: every durable finding above AWAITS STUDENT RATIFICATION and
+  is candidate spec-card / test-card material; NOTHING was actioned,
+  and no test or golden value was touched (this logbook entry is the
+  only file written). RATIFICATION CHECKLIST ADDITIONS (join the
+  earlier lists): (p) light-cone-guard coverage — add a test that
+  actually drives a trial velocity to c so the 0.99c clamp executes
+  (finding 2); (q) settle the E1 CRLB ratio-2.006 question with a
+  clean-checkout, fixed-thread re-run (finding 4); (r) rule on whether
+  solve_position should adopt the solve_state-style damping (finding
+  9). Items (d), (f), (k) and the E1 nav-loader swap at the E6 card
+  are RE-CONFIRMED by this sweep, not new. No new outside
+  facts/numbers were introduced, so journal/citations.md is
+  deliberately untouched.
