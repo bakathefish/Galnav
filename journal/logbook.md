@@ -472,3 +472,31 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   2026-07-15 — about three weeks ahead. That is buffer, not a license
   to skip gates.
 - pytest 24/24 green (no library code touched in this entry).
+
+## 2026-07-15 — Session 4 (continued): decisions, prior-art sweep, evidence map
+
+- Hardening commit: `f9ed3e4`.
+- DECISION (recorded): GitHub push deferred until project completion;
+  until then the record lives on this laptop + OneDrive folder sync.
+  The single-machine risk was flagged and accepted for the interim.
+- PRIOR-ART SWEEP (2026-07-15, arXiv + Semantic Scholar), protecting
+  E6's novelty claim before more work builds on it: no published
+  systematic study of navigation accuracy as a function of star-catalog
+  age was found. Nearest adjacent work is star-catalog debiasing for
+  asteroid astrometry (Farnocchia et al. 2014, arXiv:1407.8317 — about
+  correcting old catalogs, not navigation observability decay). The
+  celestial-beacon field is ACTIVE: Khan, Hou & Eggl posted a δ Scuti
+  variable-star navigation study ~3 weeks ago (new citation [KHE26]).
+  Consequence: E6's "first systematic map" framing survives the first
+  sweep; a full re-sweep is MANDATORY before the paper's related-work
+  section is drafted (rule added to journal/README.md).
+- PLAN GAP flagged for the students: the Aug-15 anchor gate (W5) needs
+  velocity + aberration in the state vector (plan §6's staged state
+  v2), but no numbered spec card (7–10) covers that extension. A card
+  must be written before W5 arrives. Next sequenced card remains
+  Spec 7 (catalog covariance in W), which must also close the latent
+  truth-wall flag recorded above (nav-side catalog path).
+- journal/README.md added: the evidence map + end-of-card storage
+  checklist (checklist form of CLAUDE.md's rules plus the archive and
+  environment rules) so the paper can be drafted from this folder
+  alone.

@@ -41,6 +41,17 @@ https://arxiv.org/abs/2506.21666
 - Verified: 32.4/15.7 values cross-checked against NASA press material on
   2026-07-14 (see [NASA20]).
 
+**[KHE26]** Khan, A., Hou, L., & Eggl, S. (2026). "Assessing the
+Predictability of δ Scuti Variable Stars for Spacecraft Navigation."
+arXiv:2606.30691. https://arxiv.org/abs/2606.30691
+- Used for: related-work candidate — evidence the celestial-beacon
+  navigation field is actively publishing (appeared ~3 weeks before our
+  2026-07-15 prior-art sweep); same group as the XNAV cold-start work
+  [HP24 anchor in plan §7]. Not used by any code.
+- Where in repo: `journal/logbook.md` (2026-07-15 prior-art sweep
+  entry); future paper related-work section.
+- Verified: abstract read on arXiv, 2026-07-15.
+
 **[NASA20]** NASA (2020). "NASA's New Horizons Conducts the First
 Interstellar Parallax Experiment." Press release, June 2020.
 https://www.nasa.gov/solar-system/nasas-new-horizons-conducts-the-first-interstellar-parallax-experiment/
