@@ -17,9 +17,15 @@ arXiv:2103.10389. https://arxiv.org/abs/2103.10389
 - Used for: the accuracy anchor we must reproduce — 20 nearest stars at
   1 arcsec measurement noise gives position to ~3 au and velocity to
   ~2 km/s; also the 1/sqrt(N) scaling (100 stars → 1.3 au) and the
-  "accuracy proportional to measurement noise" scaling.
-- Where in repo: `tests/golden_numbers.py` (BAILER_JONES_ANCHOR); future
-  experiment E1 pass/fail gate.
+  "accuracy proportional to measurement noise" scaling. NOTE (E1,
+  2026-07-14): his estimator solves SIX unknowns (position + velocity,
+  coupled by relativistic aberration) from of order tens of pair
+  measurements; our current position-only, all-pairs setup measured
+  0.41 au at the same (20 stars, 1 arcsec) cell — 7x tighter, consistent
+  with the easier problem, NOT an anchor reproduction. Honest comparison
+  deferred to the velocity+aberration spec (plan week-5 gate).
+- Where in repo: `tests/golden_numbers.py` (BAILER_JONES_ANCHOR, still
+  awaiting its apples-to-apples test); `journal/e1-crlb-grid.md`.
 - Verified: abstract wording re-checked against arXiv on 2026-07-14.
 
 **[Lauer25]** Lauer, T. R., et al. (2025). "A Demonstration of Interstellar

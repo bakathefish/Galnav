@@ -127,3 +127,12 @@ MC_TRIALS = 500
 # real formula error (wrong J, missing sigma^2, transposed matrix) throws
 # the ratio off by 2x or more, far past 15%.
 MC_CRLB_REL_TOL = 0.15
+
+# Experiment E1 pass criterion (project plan): across every grid cell, the
+# Monte Carlo RMS error must track the CRLB prediction within this factor
+# in EITHER direction (ratio between 1/1.5 and 1.5). Looser than the
+# single-cell 15% gate above because E1 sweeps many geometries, star
+# counts, and noise levels -- systematic model breakdown shows up as
+# ratios drifting past 1.5x, while measured behavior at the reference
+# cell is agreement within ~2%.
+E1_CRLB_TRACK_FACTOR = 1.5
