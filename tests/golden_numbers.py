@@ -255,3 +255,17 @@ CATALOG_FLOOR_REL_TOL = 0.10
 # 365-day year (0.094% off) would also pass, as recorded in
 # journal/spec-10-catalog-aging.md.
 SPEC10_DRIFT_REL_TOL = 1e-3
+
+# Experiment E6 smoke gate: with realistic catalog-error sampling, the
+# Monte Carlo navigation error at (age = 100 yr, sigma = 10 mas) must
+# exceed the age-0 error by at least this factor -- a coarse WIRING alarm
+# (aging must visibly hurt), not a precision claim. Why exactly 1.5:
+# design-review probes measured the full-scale ratio at 100 yr as 2.03
+# (aging term ~14.7 au in quadrature over the ~8.3 au age-zero parallax
+# floor at 1 pc / 20 nearest stars, 5 of which lack Gaia RVs), and the
+# smoke-scale (40-trial) ratio spanned 1.9-2.9 over 6 seeds -- so 1.5
+# sits below the observed seed minimum with margin while staying far
+# above the no-op ratio ~1.0. The same factor bounds the SENSOR-limited
+# flank from above (at 60 arcsec, 5 yr of aging must NOT reach it).
+# Measured evidence recorded in journal/spec-e6b-aging-experiment.md.
+E6_AGING_SMOKE_MIN_FACTOR = 1.5

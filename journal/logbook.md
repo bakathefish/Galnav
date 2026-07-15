@@ -1442,4 +1442,121 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   metadata, per the project's standing git policy. Commit message: "E6a:
   truth-side sampled sky - scatter catalog by its errors + real RVs for the
   554 missing-RV stars (missing-RV term ~4.4e4x the PM-error aging)". Commit
-  hash recorded at next logbook touch.
+  `c5ae052` (author + committer bakathefish, AI-attribution-free; git status
+  clean, golden_numbers.py + settings.json unchanged after).
+
+## 2026-07-16 — Session 9: E6b — EXPERIMENT E6, catalog aging (THE HEADLINE)
+
+- PROCESS DEVIATION, recorded honestly (same standing exception): this card's
+  text AND its five acceptance tests were AI-AUTHORED, ratification pending.
+  The FINAL card is post-review rev 2: the first draft was REJECTED by design
+  review with measured evidence (below); all fixes applied.
+
+- WHAT WAS BUILT (TDD: tests written FIRST, RED at ModuleNotFoundError, then
+  minimum code, pytest after every change). The headline experiment mapping
+  navigation error over (catalog age x sensor precision):
+  - NEW experiments/e6_catalog_aging.py: run_e6_cell (per-cell Monte Carlo),
+    run_e6_grid (age x sigma sweep, one child rng per cell), crossover_ages
+    (rms = sqrt2*rms(0), log-age interp, censored where out of range),
+    save_outputs (npz with every plotted array + params + seed), replot_from_
+    npz (figure from the npz ALONE — closes the recorded no-replot finding),
+    main (full grid — NOT run yet, per the team lead). Truth samples+ages the
+    true sky (E6a + Spec-10 truth propagator, (T,N,3) scalar-age branch);
+    nav ages its PUBLIC catalog (Spec-10 nav propagator, rv_fill=0.0) and
+    solves with E1's unweighted GN. Pair selection FROM NAV positions
+    (required: truth is per-trial (T,N,3)). Forward advisory honored: nav
+    functions receive ONLY measurements + public catalog values.
+  - NEW tests/test_e6_harness.py: T1-T5.
+
+- STUDENT'S IN-SESSION HEADLINE RULING (2026-07-16, recorded as the decision
+  evidence): extend the sensor axis to 60 arcsec AND annotate the epoch
+  parallax floor (option A+B). Justification measured: the epoch parallax
+  floor is ~8.3 au and camera noise only equals it near ~19-20 arcsec (age-0
+  rms 9.14 au @ 10", 11.18 @ 19", 11.46 @ 20", 16.27 @ 35"), so the
+  sensor-limited region lives ABOVE the plan's 10-arcsec ceiling. Age grid
+  also gained 40 & 70 yr (knee near ~55 yr; the 50->100 gap was too coarse).
+
+- DESIGN-REVIEW EVIDENCE TABLES + MY RE-VERIFICATION (I measured, did not
+  transcribe): epoch parallax floor 8.29 au (review ~8.3); aging ratio @10mas
+  2.15x @ 100 yr / 3.88x @ 200 yr (review 2.0x/3.8x); crossover @10mas 51 yr
+  (review ~55); camera==floor ~19-20 arcsec (review ~19); nearest-20 lacking
+  RV 5 of 20. The 100-yr aging term is the transverse-projected, 20-star-fused
+  ~14.7 au (NOT the raw 633 au single-star drift — the first-draft error).
+
+- AUTHORIZED OVERRIDE #7 (golden file): E6_AGING_SMOKE_MIN_FACTOR = 1.5 (plan's
+  E6 smoke gate) — added by the MAIN session, human-instructed, under the
+  user's standing authorization (same as #6): deny for tests/golden_numbers.py
+  lifted in .claude/settings.json then restored (settings.json diff empty;
+  golden_numbers.py diff shows ONLY the new block; suite 48/48 after). The
+  build agent did NOT touch golden_numbers.py or settings.json (verified empty
+  diff vs HEAD at commit). #6 (Spec 10) precedes; #7 continues the sequence.
+
+- T2 RE-VERIFICATION (team lead required — re-measure the smoke ratio over
+  seeds; STOP if any lands <= 1.5): smoke-scale (T=40) age100/age0 ratio at
+  10 mas over 6 seeds = 2.01, 2.03, 2.72, 2.23, 2.03, 2.26 (min 2.01);
+  seed-42 = 2.17. NONE <= 1.5 — the STOP condition never triggered. Recorded
+  as in-suite evidence.
+
+- FIRST-DRAFT REJECTION HISTORY (honest, per the card): (1) T1 as a BITWISE
+  identity false-fails on correct code — truth and nav age with INDEPENDENT
+  velocity builders (agree ~1e-12, not bitwise), so aged positions differ
+  ~1e-11 au; REVISED to assert recovery < SOLVER_RECOVERY_TOL_AU (measured
+  worst 3.56e-11 au, ~280x margin). (2) T2 factor 5.0 false-fails — derived
+  from the raw 633 au drift; the real induced term is ~14.7 au (transverse
+  fraction ~D/d fused over 20 stars) giving ratio ~2.0; REVISED to 1.5.
+
+- GOLDEN NUMBERS: reused SOLVER_RECOVERY_TOL_AU (T1) + E6_AGING_SMOKE_MIN_
+  FACTOR (T2/T3, override #7). No new golden added by the build agent.
+
+- EVIDENCE: BEFORE 48 passed (HEAD c5ae052); new test file RED
+  (ModuleNotFoundError); AFTER full suite 53 passed, 0 skipped. Full grid NOT
+  run (deferred to after commit, per the team lead).
+
+- CITATIONS: no new outside fact (grid constants are plan sections 6/7; the
+  crossover definition is a design choice; missing-RV 30 km/s is the plan's).
+
+- JOURNAL: journal/spec-e6b-aging-experiment.md written (the headline result;
+  mechanics symbol by symbol; the student ruling; the evidence tables; the
+  first-draft rejection history; the crossover definition; what each test
+  catches).
+
+- NEW RATIFICATION CHECKLIST ITEMS: (x) RATIFY THE CARD + the student's
+  extend-sigma-to-60"/annotate-floor headline ruling; also the spec-reviewer
+  niceties — comment the linthresh=5.0 plotting literal, add docstrings to the
+  three test helpers (_truth/_nav/_zeroed_truth), and decide the
+  run_e6_grid int-seed vs E1's rng-Generator entry-point convention (a
+  uniformity call). (y) RATIFY THE CROSSOVER DEFINITION (rms = sqrt2*rms(0),
+  log-age interpolation, censoring); (z) RATIFY THE NAV PAIR-SELECTION DELTA
+  vs E1 (E6 selects pairs from the nav catalog because truth is per-trial;
+  E1-swap left pairs on the shared array).
+
+- END-OF-CARD AUDITS (team lead's two independent audits are the gate; the
+  build agent also launched its own cross-check copies, still running):
+  - truth-wall-auditor VERDICT PASS, with a line-level dataflow trace: the
+    ONLY wall crossing is the measurement vector; no sampled-truth array ever
+    reaches a nav call; the truth-30-km/s-vs-nav-0 radial asymmetry is
+    CONFIRMED as the intended unobservable (that gap IS the aging signal).
+    Advisories recorded: the per-cell rng is shared across select_pairs and
+    truth sampling, which is NOT a leak — and at N=20 select_pairs consumes
+    NO random draws (190 pairs < the 2000 cap), so T2/T3's same-seed aging
+    isolation (age-0 and age-100 cells drawing identical skies) holds exactly.
+    Its stale-snapshot phantom (measmodel/CSV/.bak litter) was AGAIN verified
+    FALSE against the live tree — the recurring inherited-snapshot artifact,
+    no action.
+  - spec-reviewer VERDICT PASS on all rules. Niceties folded into item (x):
+    the linthresh=5.0 plotting literal wants a comment; the three test helpers
+    want docstrings; run_e6_grid takes an int seed (spawning child streams)
+    while E1's run_grid takes an rng.Generator — a cross-experiment
+    entry-point convention the students may want to unify.
+
+- STATUS: both of the team lead's independent audits PASS; build agent
+  cleared to commit. Final pre-commit `pytest -q`: 53 passed, 0 skipped
+  (Python 3.13.3). COMMITTED this card's five files in one commit, staged by
+  explicit path — experiments/e6_catalog_aging.py, tests/test_e6_harness.py,
+  tests/golden_numbers.py (the human's OVERRIDE #7 constant),
+  journal/spec-e6b-aging-experiment.md, journal/logbook.md. No settings.json.
+  No AI attribution, per the project's standing git policy. Commit message:
+  "E6b: catalog-aging experiment (the headline) - navigation error vs
+  (age x sensor); epoch parallax floor 8.3 au, aging 2.15x at 100yr, crossover
+  ~51yr at 10 mas". Commit hash recorded at next logbook touch. FULL GRID RUN
+  + blessed-results archival follow in a second commit.
