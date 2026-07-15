@@ -15,6 +15,7 @@ from pathlib import Path
 
 import numpy as np
 
+from galnav.nav.catalog import load_catalog as load_nav_catalog
 from galnav.nav.estimator import position_covariance, solve_position
 from galnav.truth.observer import observed_pair_angles
 from galnav.truth.sky import load_catalog, star_positions_au
@@ -56,19 +57,35 @@ def select_pairs(star_pos_au, obs_pos_au, max_pairs, rng):
     return pairs
 
 
-def run_cell(stars_all_au, n_stars, dist_pc, sigma_rad, n_trials, rng):
+def run_cell(
+    stars_all_au, nav_stars_all_au, n_stars, dist_pc, sigma_rad, n_trials, rng
+):
     """One grid cell: Monte Carlo RMS vs CRLB at one configuration.
 
-    stars_all_au: (N_catalog, 3) full catalog star positions, au.
+    Two star arrays are passed so the truth wall stays intact: TRUTH
+    positions generate the measurements, the public NAV CATALOG positions
+    feed the navigator (solver + CRLB covariance). Today the two arrays are
+    bitwise identical, so every number is unchanged; the split makes the
+    navigator's dependence on the public catalog explicit rather than
+    accidental.
+
+    stars_all_au: (N_catalog, 3) TRUTH star positions, au — used only to
+                  generate the measurements (and to pick well-separated
+                  pairs, a physical-separation property of the real sky).
+    nav_stars_all_au: (N_catalog, 3) public NAV CATALOG star positions, au —
+                  the ONLY sky knowledge the solver and covariance see.
     n_stars: use the n nearest stars.
     dist_pc: spacecraft distance from the Sun, parsecs.
     sigma_rad: per-measurement camera noise, radians.
     n_trials: Monte Carlo trials (solved in ONE vectorized call).
     rng: np.random.Generator — all randomness flows through here.
-    Returns: dict with rms_au (Monte Carlo RMS position error, au) and
-             crlb_au (sqrt-trace of the CRLB covariance, au).
+    Returns: dict with rms_au (Monte Carlo RMS position error, au),
+             crlb_au (sqrt-trace of the CRLB covariance, au), and measured
+             ((n_trials, P) measured pair angles, radians) — the exact
+             measurement vector the navigator consumed.
     """
     stars = stars_all_au[:n_stars]
+    nav_stars = nav_stars_all_au[:n_stars]
     # The flight PLAN puts the spacecraft here — public mission-design
     # knowledge the navigator is allowed to hold (E2 studies lost-in-space).
     plan_pos = SPACECRAFT_DIR * dist_pc * AU_PER_PC
@@ -82,23 +99,29 @@ def run_cell(stars_all_au, n_stars, dist_pc, sigma_rad, n_trials, rng):
         stars, np.broadcast_to(true_pos, (n_trials, 3)), pairs, sigma_rad, rng
     )
     solved, _ = solve_position(
-        measured, stars, pairs, starts, SOLVER_STEP_TOL_AU, SOLVER_MAX_ITERS
+        measured, nav_stars, pairs, starts, SOLVER_STEP_TOL_AU, SOLVER_MAX_ITERS
     )
 
     rms_au = float(np.sqrt(np.mean(np.sum((solved - true_pos) ** 2, axis=1))))
-    cov = position_covariance(stars, true_pos, pairs, sigma_rad)
+    cov = position_covariance(nav_stars, plan_pos, pairs, sigma_rad)
     crlb_au = float(np.sqrt(np.trace(cov)))
     return {
         "rms_au": rms_au,
         "crlb_au": crlb_au,
+        "measured": measured,
     }
 
 
-def run_grid(stars_all_au, dists_pc, star_counts, sigmas_rad, n_trials, rng):
+def run_grid(
+    stars_all_au, nav_stars_all_au, dists_pc, star_counts, sigmas_rad, n_trials, rng
+):
     """Sweep the full grid. Loops over CELLS (independent configurations);
     within each cell all trials are vectorized.
 
-    stars_all_au: (N_catalog, 3) full catalog star positions, au.
+    stars_all_au: (N_catalog, 3) TRUTH star positions, au — generate
+                  measurements.
+    nav_stars_all_au: (N_catalog, 3) public NAV CATALOG star positions, au —
+                  feed the navigator (solver + covariance).
     dists_pc: spacecraft distances from the Sun, parsecs.
     star_counts: numbers of nearest stars to use (counts, dimensionless).
     sigmas_rad: per-measurement camera noise levels, radians.
@@ -117,6 +140,7 @@ def run_grid(stars_all_au, dists_pc, star_counts, sigmas_rad, n_trials, rng):
             for c, sigma_rad in enumerate(sigmas_rad):
                 cell = run_cell(
                     stars_all_au,
+                    nav_stars_all_au,
                     n_stars=n_stars,
                     dist_pc=dist_pc,
                     sigma_rad=sigma_rad,
@@ -135,7 +159,8 @@ def main():
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    stars_all = star_positions_au(load_catalog(CATALOG_CSV))
+    stars_all = star_positions_au(load_catalog(CATALOG_CSV))  # TRUTH sky
+    nav_stars_all = load_nav_catalog(CATALOG_CSV)["star_pos_au"]  # public catalog
     dists_pc = [1.0, 4.0, 10.0, 20.0]
     star_counts = [5, 10, 20, 50, 100, 200]
     sigmas_arcsec = [0.01, 0.1, 1.0, 10.0]
@@ -144,6 +169,7 @@ def main():
 
     rms, crlb = run_grid(
         stars_all,
+        nav_stars_all,
         dists_pc,
         star_counts,
         sigmas_rad,

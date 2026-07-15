@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 
 from experiments.e1_crlb_grid import run_cell, select_pairs
+from galnav.nav.catalog import load_catalog as load_nav_catalog
 from galnav.truth.sky import load_catalog, star_positions_au
 from tests.golden_numbers import E1_CRLB_TRACK_FACTOR, RAD_ARCSEC
 
@@ -25,6 +26,13 @@ CATALOG_CSV = (
 
 def _stars_all():
     return star_positions_au(load_catalog(CATALOG_CSV))
+
+
+def _nav_stars_all():
+    # Public catalog positions the navigator (solver + covariance) sees;
+    # bitwise identical to truth today (test_e1_catalog_path proves it), so
+    # the harness numbers below are unchanged by routing through it.
+    return load_nav_catalog(CATALOG_CSV)["star_pos_au"]
 
 
 def test_pair_selection_excludes_close_pairs_and_caps_count():
@@ -50,11 +58,13 @@ def test_grid_cells_track_crlb_within_factor():
     # scaling, or a harness that computes theory and practice at
     # different geometries.
     stars = _stars_all()
+    nav_stars = _nav_stars_all()
     sigma_rad = 1.0 / RAD_ARCSEC  # 1 arcsec (setup value)
     for dist_pc in (1.0, 10.0):
         for n_stars in (10, 50):
             cell = run_cell(
                 stars,
+                nav_stars,
                 n_stars=n_stars,
                 dist_pc=dist_pc,
                 sigma_rad=sigma_rad,
@@ -71,8 +81,9 @@ def test_cell_results_are_reproducible():
     # Same seed, same cell, byte-identical numbers -- every figure must be
     # regenerable exactly (project rule).
     stars = _stars_all()
+    nav_stars = _nav_stars_all()
     kwargs = dict(n_stars=15, dist_pc=5.0, sigma_rad=1.0 / RAD_ARCSEC, n_trials=100)
-    a = run_cell(stars, rng=np.random.default_rng(3), **kwargs)
-    b = run_cell(stars, rng=np.random.default_rng(3), **kwargs)
+    a = run_cell(stars, nav_stars, rng=np.random.default_rng(3), **kwargs)
+    b = run_cell(stars, nav_stars, rng=np.random.default_rng(3), **kwargs)
     assert a["rms_au"] == b["rms_au"]
     assert a["crlb_au"] == b["crlb_au"]

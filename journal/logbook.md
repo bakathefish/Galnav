@@ -1038,3 +1038,128 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   changed; all three passes ran read-only. Every finding and flag above
   awaits student ratification and remains candidate spec-card /
   test-card material.
+
+## 2026-07-15 — Session 6: E1 CATALOG SWAP — latent truth-wall flag closed
+
+- PROCESS DEVIATION, recorded honestly (same standing exception as
+  Spec 7 and the velocity card): on the team lead's instruction this
+  card's text AND its three acceptance tests were AI-AUTHORED. The
+  students-write-tests rule is set aside for THIS CARD ONLY and remains
+  in force otherwise. Student review and ratification of the card are
+  PENDING — new checklist item (u) below.
+
+- WHAT THE CARD FIXES: the E1 truth-wall LATENT flag first recorded this
+  session (lines ~404-410 / 566-568 / 767-781). experiments/
+  e1_crlb_grid.py and tests/test_e1_harness.py loaded star positions
+  ONCE from the truth side (galnav.truth.sky) and fed that SAME array to
+  BOTH the camera (measurement generation) AND the navigator (solver +
+  CRLB). Harmless today (truth positions are bitwise equal to the nav
+  catalog), a silent lie the day catalog aging lands. Now closed while
+  provably a no-op — the E1 twin of the swap Spec 7 already made on the
+  covariance side.
+
+- BUILT (TDD: acceptance test written FIRST, RED confirmed, then minimum
+  wiring, then GREEN):
+  - NEW tests/test_e1_catalog_path.py — three tests, all exact-equality,
+    no new golden constant:
+    (1) test_navigator_reads_catalog_not_truth — same truth stars
+        (identical measurements) but ONE catalog star flung +1000 au;
+        asserts measurements byte-identical AND rms/crlb both change.
+        Proves the solver+covariance consume the catalog, not truth.
+    (2) test_catalog_and_truth_positions_bitwise_identical_today —
+        np.array_equal(truth, catalog); the executable WHY-nothing-
+        changes, and a loud alarm the day they diverge.
+    (3) test_swap_preserves_results_bitwise — one cell via the truth
+        path vs the catalog path, same seed, asserts (rms, crlb) equal
+        with ==. Self-contained no-op proof.
+  - experiments/e1_crlb_grid.py — run_cell/run_grid gained a second star
+    array (nav_stars_all_au); solve_position and position_covariance now
+    read it; measurement generation and pair selection keep the truth
+    array; main() builds both (truth via truth.sky, catalog via the
+    Spec-7 nav loader galnav.nav.catalog.load_catalog). run_cell now also
+    returns the "measured" vector so Test 1 can prove the physics was
+    untouched. One tiny in-scope cleanup: the covariance evaluation point
+    is now the public plan_pos instead of the truth-named true_pos (same
+    value bit-for-bit; the score line still grades against true_pos).
+  - tests/test_e1_harness.py — re-wired to pass the catalog array to
+    run_cell (architecture change the card authorizes). NO assertion or
+    tolerance weakened; numbers identical because truth == catalog.
+
+- EVIDENCE (measured, not asserted):
+  - BEFORE: pytest 34 passed. New test file RED as expected (2 of 3
+    failed on the missing nav argument; test 2 already green since
+    truth == catalog). AFTER: pytest 37 passed, 0 skipped (34 + 3), on
+    Python 3.13.3.
+  - FULL-GRID BITWISE NO-OP: re-ran the real 96-cell grid two ways at
+    seed 42 — navigator fed truth (old behavior) vs navigator fed
+    catalog (this card). rms old==new AND crlb old==new BITWISE
+    (max|diff| = 0.0 au both). New code vs the blessed archive
+    (e1_crlb_grid_20260715T052152Z.npz): BITWISE identical (max|diff| =
+    0.0), worst RMS/CRLB factor 1.064 — exactly the blessed headline.
+  - PERTURBATION EFFECT (Test 1, measured): flinging catalog star 0 by
+    +1000 au (it appears in 7 of the 28 selected pairs at n_stars=8,
+    D=1 pc) moves both rms and crlb while the measurement vector stays
+    byte-identical — the swap is observable exactly where it should be
+    and invisible where it should be.
+
+- NOT TOUCHED (recorded, out of this card's scope): pair selection still
+  reads the truth array (a "what the camera resolves" property; rerouting
+  it would also break Test 1's measurement-identity proof); the
+  initial-guess channel (separately-recorded LOW flag, built from
+  plan_pos anyway); the catalog per-star sigma_dist_au (E1 covariance is
+  position-only, so "catalog sigma in W" is not applicable until the
+  aging experiments). galnav/ was not modified at all — the fix lives in
+  the experiment script and its harness test, where note-passing belongs.
+
+- citations.md: DELIBERATELY UNTOUCHED — this card introduces no new
+  outside fact, number, formula, or tool (the nav catalog loader and the
+  CRLB formula are both pre-existing, already cited).
+
+- JOURNAL: journal/spec-e1-catalog-swap.md written (every moving part,
+  what it does NOT do, why no tolerance was needed, what each test would
+  catch). A parallel documentation task may add
+  journal/ratification-worksheet.md; this card's commit includes ONLY
+  this card's files.
+
+- END-OF-CARD AUDITS (both read-only, run before the commit was
+  authorized):
+  - truth-wall-auditor VERDICT PASS. The navigator (solver + CRLB)
+    consumes ONLY catalog-derived stars; the known-open channels — pair
+    selection on truth positions, and the initial guess built from plan
+    — were confirmed disclosed-and-unchanged (not regressions of this
+    card); plan_pos was ruled DESIGN-derived, not truth-derived, so the
+    covariance evaluation point is clean. Advisories (not failures, for
+    the students): (1) the inline comment at e1_crlb_grid.py:94 ("Nav
+    side sees ONLY: the plan, the catalog stars, and the measurements")
+    slightly OVERSTATES the closure — it omits that pair selection still
+    reads truth positions; the run_cell docstring does disclose this, so
+    it is a comment-precision nit, left unchanged under one-card
+    discipline; (2) when execution error is later added (E2) and the true
+    position drifts from the plan, keep evaluating the CRLB at the
+    plan/estimate, NEVER at true_pos.
+  - spec-reviewer VERDICT PASS on all 8 rules. No assertion or tolerance
+    was weakened (diffed vs HEAD); no magic tolerances introduced (all
+    three new tests use exact equality); journal depth exceeds precedent.
+    Nuance flagged for the students: the covariance evaluation point was
+    renamed true_pos -> plan_pos — identical value today, done for
+    truth-wall hygiene.
+
+- NEW RATIFICATION CHECKLIST ITEM: (u) RATIFY THIS CARD — read
+  journal/spec-e1-catalog-swap.md aloud; confirm the two-array data-flow
+  rule (truth -> measurements + pair geometry; catalog -> solver +
+  covariance) is what you mean; ratify the AI-authored test set; ratify
+  the tiny true_pos -> plan_pos covariance-evaluation-point rename (same
+  value, cleaner provenance); note the auditor advisory that the
+  e1_crlb_grid.py:94 comment omits the truth-side pair selection.
+  Pair-selection and initial-guess channels remain open items, not
+  closed by this card.
+
+- STATUS: both audits PASS; team lead authorized the commit. Final
+  pre-commit `pytest -q` re-run immediately before staging: 37 passed,
+  0 skipped in 1.70s (Python 3.13.3). COMMITTED all five of this card's
+  files in one commit (staged by explicit path) with message "E1 catalog
+  swap: navigator reads the public catalog, not truth - bitwise-identical
+  results (0.0 au diff across all 96 cells), latent truth-wall flag
+  closed" — no AI attribution in message or metadata, per the project's
+  standing git policy (2026-07-14 entry). Commit hash recorded at next
+  logbook touch, per convention.
