@@ -1558,5 +1558,48 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   No AI attribution, per the project's standing git policy. Commit message:
   "E6b: catalog-aging experiment (the headline) - navigation error vs
   (age x sensor); epoch parallax floor 8.3 au, aging 2.15x at 100yr, crossover
-  ~51yr at 10 mas". Commit hash recorded at next logbook touch. FULL GRID RUN
-  + blessed-results archival follow in a second commit.
+  ~51yr at 10 mas". Commit `4f80687` (author + committer bakathefish,
+  AI-attribution-free; git status clean, settings.json unchanged after). FULL
+  GRID RUN + blessed-results archival follow in this second commit.
+
+## 2026-07-16 — Session 9 (continued): E6 HEADLINE RUN + blessed archive
+
+- THE HEADLINE FIGURE EXISTS. Ran the full E6 grid after the code commit
+  (`python -m experiments.e6_catalog_aging`): 10 catalog ages x 10 sensor
+  sigmas x 500 trials, seed 42, 1 pc, 20 nearest stars (5 lacking Gaia RV),
+  missing_rv_scale 30 km/s. Output (results/, git-ignored bench):
+  e6_catalog_aging_20260715T231348Z.npz + .png (UTC stamp; local date
+  2026-07-16, machine is UTC+5:30).
+- HEADLINE NUMBERS (measured from the blessed .npz, the authoritative record):
+  - epoch parallax floor: **7.66 au** (age 0, finest sensors ~0.01-0.1").
+  - aging at the 10 mas sensor: rms **7.70 -> 17.07 -> 31.90 au** at age
+    0 / 100 / 200 yr (**ratio 2.22x at 100 yr, 4.14x at 200 yr**).
+  - crossover age (rms = sqrt2 x rms(age 0)), per sensor sigma, ALL
+    uncensored: 0.01" 44.8 yr, 0.0316" 51.1, 0.1" 46.9, 0.316" 48.5, 1"
+    55.8, 3.16" 55.8, 10" 59.1, 20" 77.1, 35" 108.6, 60" 161.9 — the
+    crossover MOVES LATER as the sensor coarsens (a coarse camera already
+    dominates, so aging takes longer to matter), the qualitative headline.
+  - knee (camera noise == floor in quadrature, age-0 rms crosses
+    sqrt2*floor = 10.83 au): sigma ~ **15.9 arcsec** — this is WHY the
+    student ruled to extend the sensor axis to 60" (the sensor-limited
+    region lives above ~16").
+- HONEST RECONCILIATION (append-only): the code-commit journal + logbook
+  quoted pre-run SINGLE-CELL estimates (floor ~8.3 au, ratio 2.15x @100yr,
+  crossover ~51 yr @10mas) measured with a direct default_rng(42). The
+  blessed GRID run uses run_e6_grid's per-cell spawned child streams — a
+  different, equally valid rng realization — giving floor 7.66 au, ratio
+  2.22x @100yr, crossover 44.8 yr @10mas. Same ~8 au floor and ~45-55 yr
+  crossover story; the .npz is the authoritative number for the paper, the
+  earlier figures were correct-order-of-magnitude pre-run estimates. The
+  1.5 smoke gate is unaffected (a coarse wiring alarm, not these numbers).
+- BLESSED per journal/README.md's end-of-card storage checklist: the .npz +
+  .png COPIED into results/archive/ (un-ignored, version-controlled), with a
+  Contents entry (producing commit 4f80687, journal explainer, headline
+  numbers, grid dims). FINAL PROOF the figure is regenerable from arrays
+  alone: experiments.e6_catalog_aging.replot_from_npz(blessed.npz) rebuilt a
+  valid 2-axis figure from the .npz with NO Monte-Carlo recompute.
+- ENVIRONMENT: unchanged (Python 3.13.3, numpy 2.4.1, matplotlib 3.10.8, same
+  machine) — no upgrade, so environment.md needs no new section (checklist #6).
+- pytest re-run after the archival edits: 53 passed, 0 skipped. Committing
+  results/archive/ (npz + png + README) + this logbook addition as the second
+  commit. Both commit hashes recorded at next logbook touch.

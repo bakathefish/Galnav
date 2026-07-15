@@ -38,3 +38,14 @@ the cross-check.
   2026-07-15). Kept because the logbook quotes its number, and because
   the code that produced it was never committed — this file is its only
   record.
+- `e6_catalog_aging_20260715T231348Z.npz` / `.png` — the E6 HEADLINE run
+  (produced by commit `4f80687`; archived in this commit): navigation
+  error over 10 catalog ages x 10 sensor sigmas x 500 trials, seed 42,
+  1 pc, 20 nearest stars (5 lacking Gaia RV), missing_rv_scale 30 km/s.
+  Headline numbers: epoch parallax floor 7.66 au; at the 10 mas sensor the
+  error ages 7.70 -> 17.07 -> 31.90 au (ratio 2.22x at 100 yr, 4.14x at
+  200 yr); crossover age (rms = sqrt2 x rms(age 0)) rises 44.8 yr at the
+  finest sensor to 161.9 yr at 60 arcsec; camera noise equals the floor in
+  quadrature near ~15.9 arcsec. Explained in
+  `journal/spec-e6b-aging-experiment.md`; figure regenerable from the .npz
+  alone via `experiments.e6_catalog_aging.replot_from_npz`.
