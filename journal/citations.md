@@ -189,6 +189,23 @@ Journal*, 935, 167.
 **[Python]** Python Software Foundation. Python Language Reference.
 **[pytest]** Krekel, H., et al. pytest. https://pytest.org
 
+**[NEP19]** NumPy Developers. "NEP 19 — Random Number Generator Policy"
+(accepted 2018-07), https://numpy.org/neps/nep-0019-rng-policy.html; and
+"Compatibility policy," NumPy Reference Manual, numpy.random section,
+https://numpy.org/doc/stable/reference/random/compatibility.html
+- Used for: the fact that a seeded `np.random.Generator` is guaranteed
+  to reproduce the same stream only on the same numpy build, in the same
+  environment, on the same machine — and that distribution streams may
+  change between numpy versions so algorithms can improve. This is why
+  `results/archive/` keeps the exact result arrays in version control
+  instead of relying on "just re-run the seed," and why
+  `journal/environment.md` records the exact environment behind every
+  committed result.
+- Where in repo: `journal/environment.md`, `results/archive/README.md`.
+- Verified: both pages checked on 2026-07-15 (policy wording: the
+  same-build / same-environment / same-machine guarantee; cross-version
+  stream changes allowed "with caution").
+
 ## Learning resources consulted (log for the ISEF logbook, not paper refs)
 
 - Khan Academy, "Defining the angle between vectors."

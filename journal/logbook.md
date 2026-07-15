@@ -427,3 +427,48 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   updated; the 2026-07-14 run's files remain on disk as the record of
   the pre-fix code.
 - pytest 24/24 green after every change (run after each edit).
+
+## 2026-07-15 — Session 4 (continued): paper-data storage audit + hardening
+
+- E1 committed: `8025e78`, tagged `e1-complete`.
+- Question audited: is everything a ~20-page original paper will need
+  being stored? Findings — already solid: journal entries exist for
+  every spec + E1; citations carry verification dates; the logbook is
+  dated and append-only; the catalog snapshot, its exact ADQL query,
+  retrieval date, and row-level sanity checks are tracked in git
+  (data/README.md); the full project plan with pre-registered
+  predictions is tracked. Three real gaps found, all closed today:
+  1. THE ENVIRONMENT WAS UNRECORDED, and it is load-bearing: NumPy's
+     official policy (NEP 19 + the numpy.random compatibility page,
+     new citation [NEP19]) guarantees a seeded Generator stream only on
+     the same numpy build, same environment, same machine — so
+     "regenerable from seed" is only guaranteed on THIS laptop with
+     THESE versions. Created journal/environment.md: OS build, CPU/RAM
+     (runtime claims mean this machine), Python 3.13.3, numpy 2.4.1,
+     scipy 1.17.0, astropy 7.2.0, matplotlib 3.10.8, pytest 9.0.2,
+     seeds inventory, and a re-snapshot rule for upgrades.
+  2. RESULTS LIVED OUTSIDE VERSION CONTROL (results/ is git-ignored by
+     design — fine for the lab bench, not for quoted evidence). Created
+     results/archive/ (un-ignored): the blessed E1 paper run
+     (20260715T052152Z) AND the superseded 2026-07-14 run — whose
+     generating code predates the commit, making its .npz the only
+     record — now live in git with a policy README (never overwrite,
+     always traceable to commit + journal entry).
+  3. NO GIT REMOTE EXISTS — the entire lab record has no off-machine
+     copy beyond OneDrive folder sync. Flagged for decision: a private
+     GitHub repository is one command away; needs the students'
+     go-ahead (account/ownership is theirs).
+- Now-urgent open decision (feeds the paper's reproducibility
+  statement): CLAUDE.md says "Python 3.11" but the machine runs 3.13.3,
+  and requirements.txt is ">=" minimums only. Pin one Python and decide
+  on an exact-version lock for the science-freeze environment.
+- Candidate future cards for MORE original data (students to spec, in
+  plan order): (a) denser E1 grid — the plan sized E1 at ~1500 cells vs
+  the 96 run today; a few CPU-hours, gives print-smooth curves; (b) E1
+  per-trial supplementary dump (~1 MB) making trial-level statistics
+  environment-independent; (c) Spec 7 next per schedule, which must
+  also close the latent truth-wall flag recorded above.
+- Schedule note: E1 was planned for W4 (Aug 4–10) and finished
+  2026-07-15 — about three weeks ahead. That is buffer, not a license
+  to skip gates.
+- pytest 24/24 green (no library code touched in this entry).
