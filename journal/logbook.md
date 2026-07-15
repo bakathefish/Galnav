@@ -947,3 +947,94 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   unseen. No code and no test were changed; the verification ran
   read-only against the committed tree (only a scratch log outside the
   repo was written) and git status stayed clean throughout.
+
+## 2026-07-15 — Session 5 verification round: triple independent re-check before moving on
+
+- WHAT RAN: at the user's direction, three independent verification
+  agents re-checked the evening's work before anything builds on it,
+  each read-only against the repo (nothing fixed or changed): (a) an
+  empirical reproduction of all 8 durable skeptic-sweep findings in a
+  throwaway clone; (b) a claim-by-claim fact-check of the two Session 5
+  logbook entries and their commits (39588d1, 3b419e8); (c) a full
+  reproduction of the blessed-results archive. Before committing, this
+  recording session INDEPENDENTLY re-confirmed the load-bearing
+  headline numbers below (marked "[re-confirmed here]") rather than
+  transcribing them.
+
+- RESULT — everything stands:
+  - All 8 durable findings CONFIRMED with measured evidence (the
+    light-cone-coverage, 61-Cyg, CRLB-flake, structural-test,
+    truth-wall, arcsec, spec-7-floor and undamped-solver items from the
+    Session 5 entry).
+  - Both Session 5 entries fact-checked and SAFE TO STAND: every
+    checkable claim verified — the commit author/committer are
+    AI-attribution-free at the raw git-object level [re-confirmed here:
+    `git cat-file -p` on both 39588d1 and 3b419e8 shows author and
+    committer bakathefish and no Claude / Anthropic / Co-Authored-By
+    text], the four E1 cell ratios recompute, the 250/250 campaign log
+    is real, and the full suite is 34/34 in a fresh clone.
+  - Blessed archive REPRODUCES: the Bailer-Jones anchor is
+    byte-identical across consecutive runs at 3.0187070352864076 au /
+    2.0281995306093057 km/s (blessed 3.019 / 2.028) [re-confirmed here:
+    two consecutive runs equal to the last bit]; the E1 headline worst
+    RMS/CRLB factor recomputes to 1.063652 from the saved .npz arrays
+    ALONE [re-confirmed here: 1.063651611909769 straight from
+    results/archive/e1_crlb_grid_20260715T052152Z.npz, no Monte-Carlo
+    recompute]; the blessed figure regenerates from its .npz alone;
+    both tracked figures carry their exact arrays (npz keys include
+    rms_au, crlb_au, dists_pc, star_counts, sigmas_rad, seed,
+    n_trials); and commit 8025e78 with the annotated tag e1-complete
+    are intact [re-confirmed here: both resolve].
+
+- REFINEMENTS (sharper than the Session 5 wording):
+  (i) LIGHT-CONE GUARD — its code path is NEVER executed by any test:
+      with est._inside_light_cone neutered to the identity the suite
+      still passes 34/34 [re-confirmed here], and instrumentation shows
+      the maximum trial speed reached in the 100-run anchor batch is
+      0.5004c with ZERO superluminal / NaN velocity evaluations. So the
+      "207 scale=0 rejections" the Session 5 entry noted are GENERAL
+      uphill-step rejections, not superluminal ones — the clamp itself
+      never fires. This sharpens ratification item (p): the guard needs
+      a test that actually pushes a trial past c.
+  (ii) 61 CYGNI — the arccos error cancellation is PARTIAL, about 3.1x:
+      angle_between's own true error at the pair is 1.179e-12 rad, the
+      test's asserted difference is 3.845e-13 rad, and the gate is
+      1e-12. The arctan2 recipe's true error at the same pair is
+      3.34e-17 rad — 4-5 orders of magnitude better — confirming the
+      recorded fix direction (switch the reference recipe to arctan2).
+      Only test_sky.py carries the fragility.
+  (iii) SPEC-7 FLOORS — the journal's quoted 2.75 / 11.1 au do not
+      reproduce at the canonical test direction (measured 3.105 /
+      13.696 au, +13% / +23%). Across five observer directions the
+      camera floor spans 2.57-3.69 au and the catalog floor 11.30-19.00
+      au (ratio 3.06x-6.13x); the qualitative claim "catalog dominates
+      at 1 pc" holds at EVERY direction. The spec-7 entry should state
+      the observer direction it measured.
+  (iv) The units.py deviation is that e1_crlb_grid.py imports
+      RAD_ARCSEC from tests.golden_numbers rather than defining it
+      file-locally — the substance (arcsec->rad not routed through
+      units.py) is unchanged from the Session 5 wording.
+
+- COSMETIC RECORD NOTES (verified imprecisions in the Session 5
+  addendum; no correction needed, logged for honesty): the addendum's
+  15-decimal (16-significant-figure) cell ratios sit ~1 ULP from the
+  exact float64 value, which needs 17 significant digits to round-trip;
+  "a 33% margin" is loose — the worst ratio 1.045 sits ~30% below the
+  1.5 gate (headroom 0.455 = 0.30 x gate); and "HEAD f89ef16" is
+  shorthand for "code byte-identical to f89ef16" — the live HEAD is now
+  two logbook-only commits ahead (39588d1, 3b419e8).
+
+- NEW RATIFICATION CHECKLIST ITEMS: (s) PIN THE REPRODUCIBILITY
+  ENVIRONMENT to Python 3.13.3 + numpy 2.4.1 (ideally a lockfile) —
+  every blessed number is a 3.13.3 number and NEP-19 byte-identity
+  depends on the same numpy build; CLAUDE.md currently says Python
+  3.11, so reconciling this is a load-bearing student decision. (t)
+  Reword the results/archive README provenance to "produced by
+  8025e78 / archived in f9ed3e4" to preempt a misread. NOTE: item (q)
+  was already closed by the Session 5 addendum; this findings pass
+  deliberately excluded it.
+
+- STATUS: nothing was actioned — no code, test, or golden value was
+  changed; all three passes ran read-only. Every finding and flag above
+  awaits student ratification and remains candidate spec-card /
+  test-card material.
