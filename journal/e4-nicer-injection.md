@@ -94,7 +94,12 @@ Two of three measurement folds sit INSIDE the plan's 1–50 µs budget row
 (B1937 ~43 µs, J0437 31 µs); J0030's short soft-band exposure measures
 ~134–149 µs and is recorded openly — its σ enters the recovery weights
 honestly, and T3's gate asserts the budget on the folds whose brightness
-assumption it fits, plus sanity (0 < σ < 500 µs) on all.
+assumption it fits, plus sanity (0 < σ < 500 µs) on all. (Seed note,
+added by the 2026-07-17 sweep: the TEMPLATE-σ column above was measured
+at the evidence-pass seed 20260716; the blessed seed-42 archive's
+bootstrap gives 216.1/80.5/74.7 µs — bootstrap-seed variation on the
+same folds; no gated number is affected, and the measurement-fold TOA
+σs 31.0/43.2/148.6 µs match the archive exactly.)
 
 ## 4. How a shift is measured, and what σ honestly means
 
@@ -147,9 +152,15 @@ a one-draw template excursion. Three consequences worth reading aloud:
    turns, verified from the blessed archive by the doubt-everything
    sweep). Disclosed in the machinery docstring and here.
 3. The mission lesson: the TEMPLATE, not the measurement, is this
-   experiment's noise floor. σ_template ∝ 1/√N ⇒ a 16× deeper template
-   campaign (~470 ks per pulsar instead of ~29 ks) would pull the shared
-   offset from ~76 km to ~20 km. Real X-ray navigation programs build
+   experiment's noise floor. IF the shared offset is template-photon
+   noise, σ_template ∝ 1/√N implies a 16× deeper template campaign
+   (~470 ks per pulsar instead of ~29 ks) would pull it from ~76 km to
+   ~20 km — but a fixed cross-epoch systematic (a profile or chromatic
+   difference between the two observations, which the photon-only
+   bootstrap σ cannot see and the 2σ gate only bounds below ~2σ) is NOT
+   excluded and would floor the error higher; distinguishing the two
+   needs a third epoch (hedge added by the 2026-07-17 sweep — do not
+   present 20 km as established). Real X-ray navigation programs build
    deep templates for exactly this reason — our two-ObsID subset
    quantifies why.
 

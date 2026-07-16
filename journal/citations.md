@@ -77,8 +77,9 @@ https://arxiv.org/abs/2506.21666
 - Verified: 32.4/15.7 values cross-checked against NASA press material on
   2026-07-14 (see [NASA20]); the "non-relativistic observer velocity,
   v << c" framing of Eq. 1 verified verbatim against the arXiv full text
-  on 2026-07-15. Peer-reviewed venue confirmed 2026-07-16: AJ 170, 1
-  (2025); the 0.44 au result is a 0.441 x 0.233 x 0.206 au error ellipsoid
+  on 2026-07-15. Peer-reviewed venue confirmed 2026-07-16, article locator corrected by
+  the 2026-07-17 sweep via Crossref: AJ 170, 22 (2025) — "170, 1" was the
+  issue, not the article; the 0.44 au result is a 0.441 x 0.233 x 0.206 au error ellipsoid
   vs JPL (notebook cell, 2026-07-16).
 
 **[Lauer25-data]** Lauer, T. R., et al. (2025). "Computational Notebook for
@@ -518,8 +519,10 @@ https://arxiv.org/abs/1305.4842
 - Where in repo: `journal/spec-e5-pulsar-lattice.md`; paper related work.
   Verified: abstract via arXiv, 2026-07-16.
 
-**[AbsAstro50]** Malbet, F., et al. / Hobbs, D., et al. (2014). "Absolute
-astrometry in the next 50 years." arXiv:1408.2190. https://arxiv.org/abs/1408.2190
+**[AbsAstro50]** Høg, E. (2014). "Absolute astrometry in the next 50
+years." arXiv:1408.2190. https://arxiv.org/abs/1408.2190 (author corrected
+by the 2026-07-17 sweep — the arXiv record's sole author is Erik Høg; the
+earlier "Malbet/Hobbs et al." attribution was wrong)
 - Used for: related work bounding E6. The astrometric community KNOWS catalog
   accuracy degrades with epoch as proper-motion errors accumulate (Gaia position
   error grows ~1.76 mas in 2026 -> ~3.5 mas 2036 -> ~8.8 mas 2066). E6's novelty
@@ -611,6 +614,26 @@ deep-space navigation using X-ray pulsar timing." *Experimental Astronomy*,
 - Where in repo: journal/logbook.md (2026-07-16 dead-leg re-run);
   journal/spec-e5-pulsar-lattice.md related work; future paper. Verified:
   abstract via OpenAlex, 2026-07-16 (students should sight before drafting).
+
+**[PulsarDoppler]** Liu, J., & Fang, J. (2015). "X-ray pulsar/starlight
+Doppler deeply-integrated navigation." *IEEE Aerospace & Electronic
+Systems Magazine* (doi:10.1109/MAES.2014.140074); and Wang, Y., Zheng,
+W., & Zhang, D. (2017). *Journal of Navigation*
+(doi:10.1017/S0373463317000042); plus siblings (Liu & Fang, AST 2015;
+formation-flight variants 2015-2021).
+- Used for: related work the paper MUST cite and distinguish — an
+  identically-NAMED decade-old sub-field ("X-ray pulsar + starlight
+  navigation") found by the 2026-07-17 doubt-everything red-team. The
+  distinction, in one sentence: that body fuses pulsar timing with
+  starlight DOPPLER (spectrometer radial velocity) as a VELOCITY aid for
+  SOLAR-SYSTEM navigation; this project's claims concern INTERSTELLAR
+  POSITION — the (catalog age x sensor) navigation-error map (E6) and the
+  starlight-fix-cannot-bootstrap-the-comb-integer impossibility (E5) —
+  neither of which that literature addresses. E5/E6 novelty survives; the
+  naming collision must be defused up front.
+- Where in repo: `journal/findings-compilation.md` (F5/F6 framing);
+  future paper related-work. Verified: DOIs live-confirmed by the sweep,
+  2026-07-17; students should sight both before drafting.
 
 ## Learning resources consulted (log for the ISEF logbook, not paper refs)
 

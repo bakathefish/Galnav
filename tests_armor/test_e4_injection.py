@@ -58,9 +58,10 @@ N_BOOT = 200
 BIAS_KM = 100.0  # injected magnitude: up to ~334 us of light-time along a
 # sightline (0.058-0.214 turns across these three pulsars -- comfortably
 # under the 0.5-turn wrap ceiling, which sits at |dr| = 0.5 c / f0_max =
-# 233 km for B1937, and decisively above the measured 116-260 us shift
-# noise so the recovery is sharp, not vacuous) -- stimulus parameter,
-# documented here and in the journal, not a tolerance.
+# 233 km for B1937, and decisively above the measured 81-262 us shift
+# noise (blessed seed-42 archive) so the recovery is sharp, not vacuous)
+# -- stimulus parameter, documented here and in the journal, not a
+# tolerance.
 
 PULSARS = {
     "J0030+0451": {
@@ -135,8 +136,10 @@ def test_t1_bias_recovered_within_two_sigma_three_injections():
     What it catches: a sign error in the Roemer projection, a wrong f0/c
     scaling, an orbit injection that PINT silently ignored, mixed-up
     pulsar ordering, an over-optimistic sigma -- each moves some component
-    outside 2 sigma immediately (the injected shifts are ~1e2-1e3x the
-    fold noise).
+    outside 2 sigma (the strongest B1937/J0437 shift projections reach
+    ~3-4x the fold noise; the archive's per-pulsar |predicted|/sigma range
+    is 0.02-3.85 -- corrected by the 2026-07-17 sweep from an earlier
+    ~1e2-1e3x overstatement).
     """
     res = _run()
     assert res["n_hats"].shape == (3, 3)

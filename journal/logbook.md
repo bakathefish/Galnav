@@ -2715,3 +2715,61 @@ wrong.**
   spine re-verified 84 passed after the edits.
 - COMMIT: this commit. Remaining 17 legs + synthesis re-running; their
   results will be recorded when they land.
+
+## 2026-07-17 - DOUBT-EVERYTHING SWEEP CLOSED: 18/18 legs, 167 verdicts, VERDICT SAFE-TO-PRESENT, FATAL = 0; all 14 open items fixed
+- WHAT: the trimmed resume completed every leg (12 replayed from cache,
+  6 live + synthesis; the armor-suite reproduction was self-run by the
+  main session: 8 passed in 514.8 s post-corrections). Synthesis verdict:
+  "SCIENCE IS SAFE TO PRESENT... no computed result is in doubt
+  (FATAL=0). Every computed number reproduces bitwise." All 14 remaining
+  open items were prose/citation-level and are FIXED in this commit; the
+  full report lives in the session scratchpad (key content mirrored
+  here and in the files themselves).
+- FIX-BEFORE-PAPER items applied: (O1) [Lauer25] article locator AJ 170,
+  22 (was "170, 1" - the issue, not the article; Crossref-verified);
+  (O2) [AbsAstro50] author corrected to Hog, E. (arXiv sole author; was
+  "Malbet/Hobbs et al."); (O3) the TWO packing-radius lattices are now
+  labeled (286.02 km physical c*P lattice vs 285.978 km frozen-integer
+  COMB_KM test lattice, 47 m / 0.02% apart) in the compilation; (O4) the
+  E4 "16x deeper templates -> ~20 km" projection is HEDGED (degenerate
+  with a non-reducible cross-epoch systematic; needs a third epoch);
+  (O5) E4 T1 docstring signal/noise corrected to the measured 0.02-3.85x
+  (was ~1e2-1e3x); (O6) the identically-named solar-system sub-field
+  "X-ray pulsar / starlight Doppler navigation" (Liu&Fang 2015, Wang/
+  Zheng/Zhang 2017) entered the registry as [PulsarDoppler] with the
+  one-sentence distinction (velocity-aiding in-system vs interstellar
+  position bootstrap - E5/E6 novelty survives); (O7) F11 now states
+  plainly that the 8 armor tests run only by explicit WSL invocation,
+  with a science-freeze re-run+record requirement (FREEZE-CHECKLIST
+  ITEM: run tests_armor in WSL and record the pass immediately before
+  the Oct 1 freeze).
+- COSMETIC items applied: numbers-table rows relabeled (1.064 grid /
+  1.045 CI-cells provenance; 7.66 au = journal asymptote, archive finest
+  cell 7.70); E4 journal template-sigma column now carries its seed
+  (evidence-pass 20260716; blessed seed-42 bootstrap gives
+  216.1/80.5/74.7 us - no gated number affected); test comment shift-
+  noise range now quotes the blessed archive (81-262 us); override-count
+  wording notes the ~6 pre-numbering lock-lift events (13-vs-18 is a
+  ratification wording call).
+- HALLUCINATION CATCH (the sweep working as ordered): two references the
+  novelty scout had suggested for PROPOSED finding F12 ("He&Zhao 2025",
+  "SESCC 2026") FAILED live verification - no matching papers exist.
+  STRUCK from the F12 ledger with a warning; every citation used by a
+  DONE finding (F1-F10) was verified real and correctly used. Also added
+  by the sweep: Fialho&Mortari 2019 to F13's must-distinguish ledger and
+  the stellar-aided lock-hold prior art to F14's.
+- EVIDENCE: 18/18 legs returned, 167 verdicts (152 CONFIRMED), 0 legs
+  died; red-team verdict "no exposure invalidates a finding"; PINT
+  orbit-injection mechanism and H-test bit-match verified live; the one
+  consistency-not-reexecution link (that the E4 npz shifts came from the
+  actual 150k-photon folds) is noted for the record - the live suite
+  re-runs and archive reproductions make fabrication there effectively
+  impossible. Suites after all edits: spine 84 passed, armor 8 passed
+  (both re-run this session).
+- COMMIT: this commit (citations O1/O2/[PulsarDoppler], compilation
+  fixes + F12 strike + F13/F14 ledger additions, E4 journal hedge + seed
+  note, test docstring corrections, journal/findings-compilation.md
+  committed for the first time as the paper source pack). The sweep was
+  executed as a 30-leg plan trimmed to 18 at the user's token budget;
+  agents implemented, main session verified and integrated - the AI
+  workflow this logbook openly documents.
