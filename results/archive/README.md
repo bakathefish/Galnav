@@ -77,3 +77,17 @@ the cross-check.
   Zenodo doi:10.5281/zenodo.15359866 ([Lauer25], [Lauer25-data]). Explained in
   `journal/spec-e3-triangulation.md`; figure regenerable from the .npz alone via
   `experiments.e3_new_horizons.replot_from_npz`.
+- `e2_convergence_basins_20260716T075137Z.npz` / `.png` — the E2 convergence-basin
+  map (produced by commit `732cb50`; archived in the commit below). The capture
+  fraction over (star count x initial-guess displacement) at 1 pc, zero noise,
+  500 isotropic starts per cell, seed 42. Headline: the navigator's 0.5-capture
+  radius (basin median radius) grows with the number of stars — 2.00 pc (5
+  stars), 3.94 pc (10), 6.33 pc (20), 9.79 pc (50), 11.57 pc (100) — matching the
+  design reviewer's independent probe (2.0 pc at 5 stars, 11.8 pc at 100). So a
+  coarse interstellar prior (light-years off) is captured only with many stars,
+  and the UNDAMPED Gauss-Newton solver already reaches ~2-12 pc without damping
+  (evidence for worksheet item (r)). Failure handling = option A (per-trial
+  try/except LinAlgError isolation; a start can drive J^T J singular
+  mid-iteration). Explained in `journal/spec-e2-convergence-basins.md`; figure
+  regenerable from the .npz alone via
+  `experiments.e2_convergence_basins.replot_from_npz`.

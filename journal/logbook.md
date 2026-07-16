@@ -2039,3 +2039,30 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   ratification-flagged exception (item (cc)). Both audits PASS; suite 73 passed,
   0 skipped. pytest immediately pre-commit clean. Commit hash + blessed full-grid
   numbers at the next logbook touch (blessed-run entry).
+
+### E2 BLESSED RUN (archived; card commit 732cb50)
+
+- CARD COMMIT: **732cb50** ("E2 convergence basins: navigator captures from
+  ~2-12 pc at 1 pc (5-100 stars), option-A failure isolation"), author
+  bakathefish, AI-attribution grep clean. File set: experiments/
+  e2_convergence_basins.py, tests/test_e2_basins.py, tests/golden_numbers.py
+  (override #10, staged by path -- not edited by the build agent), journal/
+  spec-e2-convergence-basins.md, journal/logbook.md, journal/
+  ratification-worksheet.md (item (cc)).
+- BLESSED RUN: results/archive/e2_convergence_basins_20260716T075137Z.npz/.png,
+  produced by 732cb50 (500 trials, seed 42, 1 pc, 5-100 stars, 9 displacements
+  0.1-100 pc). Verified the figure regenerates from the archived .npz ALONE
+  (replot_from_npz); npz carries capture_fraction, disps_pc, dist_pc,
+  fifty_pc_disp_pc, n_trials, seed, star_counts; capture grid spans 0.0-1.0 so
+  the 0.5 contour exists.
+- MEASURED HEADLINE (full grid): the navigator's 0.5-capture radius (basin
+  median radius) grows with star count -- **2.00 pc (5 stars), 3.94 pc (10),
+  6.33 pc (20), 9.79 pc (50), 11.57 pc (100)** -- matching the design reviewer's
+  independent probe (2.0 pc @5, 11.8 pc @100) to within the trial-count fuzz.
+  Story: a coarse interstellar prior (light-years off) is captured only with
+  many stars, and the UNDAMPED Gauss-Newton solver already reaches ~2-12 pc with
+  no damping -- the evidence that closes item (r) toward "no damping needed for a
+  coarse prior."
+- Archive README Contents entry added. This is the last buildable card before
+  the user-blocked ones (Spec 9 PINT, E4 NICER/HEASoft); E7 (relativistic
+  aberration, pure-numpy) remains buildable. NEXT: report to team-lead.
