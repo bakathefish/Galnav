@@ -2597,3 +2597,63 @@ wrong.**
   README/gitignore updates + golden override #12 + [NG15]/[PINT] citations
   + journal entry + worksheet item hh). Audits: truth-wall + spec-review
   run before commit; results recorded in the worksheet item.
+
+## 2026-07-16 - E4 DONE: real NICER photons recover an injected 100 km orbit bias within 2 sigma - THE BUILD QUEUE IS EMPTY
+- WHAT: the last experiment. Machinery tests_armor/_e4_fold.py (energy
+  filtering, truth-side orbit injection into the FPorbit ORBIT extension,
+  first-harmonic fold peak + de Jager H-test + chunked photon bootstrap,
+  nav-side WLS recovery with observable-subspace bookkeeping), acceptance
+  tests tests_armor/test_e4_injection.py (T1 the compass 2-sigma gate x3
+  injections, T2 fold cleanliness, T3 the 1-50 us budget row, T4
+  determinism), experiment experiments/e4_nicer_photon.py (house pattern,
+  seed 42, replot_from_npz -> Path), blessed archive
+  results/archive/e4_bias_recovery_20260716T154452Z.npz/.png. Timing
+  models: all three NG15 narrowband pars extracted from the canonical
+  Zenodo tarball (638,719,668 B, md5 == manifest 557d42dd...); J0030's par
+  BYTE-MATCHED the Spec 9 copy (worksheet-hh deferred check CLOSED);
+  B1937+21_PINT_20220306 (sha b3883117...) and J0437-4715_PINT_20220301
+  (sha 0fa244c2..., BINARY DD) newly committed to pars/. Overrides #13
+  (E4_HTEST_MIN=20.0, E4_TOA_SIGMA_MAX_S=50e-6, evidence in the golden
+  comments + journal tables). Journal: journal/e4-nicer-injection.md.
+  Citation added: [deJager89].
+- WHY: E4 is the armor finale - the demonstration ON REAL DATA that pulsar
+  photon phases carry spacecraft position information: inject a known
+  ephemeris error (truth), watch three real folds shift by
+  f0 (dr.n_hat)/c, invert (nav) and demand 2-sigma agreement, three
+  seeded injections (the compass section-7 pass criterion verbatim).
+  Discovery en route: J0437-4715 IS in NG15 (my northern-only assumption
+  was wrong) and B1937's par hides under its B-name - so all three legs
+  got phase-connected models and the recovery is FULL 3-D (rank 3), not
+  the 2-pulsar projection fallback.
+- EVIDENCE (measured): strict TDD - RED captured (ImportError on the two
+  not-yet-frozen golden constants + NotImplementedError stubs), GREEN =
+  armor suite 8 passed in 343.6 s; Windows spine 84 passed 0 skipped.
+  BACKGROUND LESSON: J0030 template unfiltered H=5.1 (93% background) ->
+  banded H=96.2; B1937 band scan ON TEMPLATE DATA picked PI 120-400
+  (H 15.5 -> 43.8 template, 133.7 -> 199.3 measurement; the wide band
+  hides a hard background component, H=0.3 at 2.5-12 keV). Final folds:
+  H = 96.2/295.0 (J0030), 43.8/199.3 (B1937), 169.2/874.1 (J0437 - the
+  binary DD model validated end to end); TOA sigmas 149/43/31 us -
+  J0437 + B1937 demonstrate the plan's 1-50 us budget row on real data,
+  J0030's short soft exposure (134-149 us) recorded openly. BLESSED RUN
+  (seed 42): three 100 km injections recovered with |error| = 76.15 km,
+  worst components 1.84/1.88/1.85 sigma - PASS. The near-identical errors
+  across injections are the SHARED TEMPLATE's single noise draw frozen
+  into the linear recovery (~1.85 sigma of the recovery covariance -
+  exactly what the quadrature error bars predict): the gate passed
+  because the sigmas are honest, and the mission lesson is quantified in
+  the journal (template depth, not measurement depth, is the noise floor;
+  16x deeper templates -> ~20 km).
+- DESIGN DECISIONS FOR RATIFICATION (worksheet item ii): per-pulsar energy
+  bands + the template-data-only band scan; cross-epoch template design
+  (independent photons = honest sigma; shared-template correlation
+  disclosed); BIAS_KM=100 (wrap ceiling 233 km); T3's
+  best-fold-demonstrates-budget form; first-harmonic estimator as v1 with
+  template-fit TOA recorded as the v1.1 deferral; E4 stays inside one
+  comb wavelength (|dr| < rho = 286 km) consistent with E5-lite.
+- COMMIT: this commit (machinery + tests + experiment + pars + blessed
+  archive + overrides #13 + journal + citation + worksheet item ii).
+  Audits: truth-wall + spec-review run pre-commit; results recorded in
+  the worksheet item. Workflow note (openly disclosed, as this logbook
+  does): built by the main session directly with background compute jobs;
+  scouts/implementer agents contributed earlier stages this same day.

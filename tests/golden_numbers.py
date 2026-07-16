@@ -326,3 +326,28 @@ COMB_MATCH_KM = 1.0
 # pre-registered gate (authorized override #12, 2026-07-16), not a measured
 # tolerance.
 SPEC9_PHASE_AGREEMENT = 1e-9
+
+# E4 fold-cleanliness floor (ARMOR suite, tests_armor/test_e4_injection.py
+# T2). H is the de Jager H-test: p ~ exp(-0.4 H), so H = 20 means the fold
+# is non-noise at p ~ 3e-4, while pure noise folds measure H ~ 2-5. WHY
+# exactly 20: the six energy-filtered E4 folds MEASURED (2026-07-16, seed
+# 20260716 bootstrap pass + band scan; tables in
+# journal/e4-nicer-injection.md) H = 96.2 / 295.0 (J0030 template /
+# measurement, PI 30-150), 43.8 / 199.3 (B1937, PI 120-400 -- the band
+# scan's winner; the wide 100-700 band measured 15.5 on the template
+# because of a hard background component), 169.2 / 874.1 (J0437,
+# PI 30-150). The floor 20 sits 2.2x below the WEAKEST measured fold and
+# 4-9x above noise: it trips on a par/data mismatch, a wrong-pulsar file
+# swap, or a band that guts the pulse, without flaking on the real data
+# (authorized override #13, 2026-07-16).
+E4_HTEST_MIN = 20.0
+
+# E4 photon-TOA (folding) budget ceiling (ARMOR suite, T3). The plan's
+# section-11 E4 error-budget table states "Photon TOA (folding): 1-50 us"
+# verbatim -- this is that table's own upper bound, frozen. Measured
+# 2026-07-16: the J0437 measurement fold delivers 31.3 us and B1937
+# ~40 us (inside the budget row); J0030's short soft-band exposure
+# measured 134 us, recorded openly (its sigma enters the recovery
+# weights honestly; the budget row is demonstrated by the folds the
+# assumption fits). Authorized override #13, 2026-07-16.
+E4_TOA_SIGMA_MAX_S = 50e-6

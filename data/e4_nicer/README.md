@@ -154,3 +154,19 @@ recorded sha256 above makes it a one-command check at the sitting. Note:
 both Spec 9 test routes share this par, so the Spec 9 gate is insensitive
 to par authenticity; authenticity matters for E4's folds and the paper's
 citation ([NG15] in journal/citations.md).
+
+Timing-model additions (2026-07-16, E4): the canonical NG15 release tarball
+(NANOGrav15yr_PulsarTiming_v2.1.0.tar.gz, 638,719,668 bytes) was downloaded
+from Zenodo record 16051178 and its md5 MATCHED the record manifest
+(557d42dd8486a5f8272d90dec9b228a8). Two further pars were extracted from
+narrowband/par/ and committed; the previously-committed J0030 par
+BYTE-MATCHED the tarball copy (sha256 identical), closing the deferred
+verification recorded above.
+
+| file | pulsar | sha256 |
+|---|---|---|
+| `B1937+21_PINT_20220306.nb.par` | PSR B1937+21 (isolated) | b38831170401abcac1e932906ec1994fcd3ea9b24003347ee7ed38a3118a6bcb |
+| `J0437-4715_PINT_20220301.nb.par` | PSR J0437-4715 (BINARY DD) | 0fa244c25f3f580fe6f615a3ef356d82a3e9f88f93a17fe105df3dd358ec8862 |
+
+F0 cross-checks vs the frozen comb table: B1937 641.928 Hz -> P = 1.5578 ms
+(table: 1.558 ms); J0437 173.688 Hz -> P = 5.7575 ms (table: 5.757 ms).

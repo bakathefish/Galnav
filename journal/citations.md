@@ -303,6 +303,23 @@ The first stellar parallax measurement in history — of 61 Cygni.
 - Where in repo: `tests/test_measmodel.py` (pair-selection comment),
   `journal/spec-4-measmodel.md`, logbook 2026-07-14.
 
+**[deJager89]** de Jager, O. C., Raubenheimer, B. C., & Swanepoel, J. W. H.
+(1989). "A powerful test for weak periodic signals with unknown light curve
+shape in sparse data." *Astronomy & Astrophysics*, 221, 180.
+- Fact/method used: the H-test statistic for pulsation significance,
+  H = max_{m<=20} (Z^2_m - 4m + 4) with Z^2_m the Rayleigh power summed
+  over the first m harmonics, and the significance approximation
+  p ~ exp(-0.4 H). E4 uses it as the fold-cleanliness gate (frozen
+  E4_HTEST_MIN, override #13) and it is the method the compass section-11
+  budget row itself names ("H-test / template").
+- Where in repo: `tests_armor/_e4_fold.py` (htest);
+  `tests_armor/test_e4_injection.py` (T2); `tests/golden_numbers.py`
+  (E4_HTEST_MIN comment); `journal/e4-nicer-injection.md`.
+- Verified: standard X-ray pulsar-timing statistic (PINT ships the same
+  test in pint.eventstats, cross-checked at Spec 9: hm() on the J0030
+  fold matched our implementation's H = 77.4); students should sight the
+  original before the paper's reference list is finalized.
+
 ## Standard mathematics (textbook results, not original to any paper)
 
 **[DOT]** The identity a·b = |a| |b| cos(angle) for vectors — standard

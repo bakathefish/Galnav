@@ -986,7 +986,10 @@ documentation clean-ups for the students to accept or action.
      F0-vs-comb-table cross-check (0.002%) as today's evidence; byte-level
      extraction check vs the 638.7 MB Zenodo tarball (md5 recorded) is
      DEFERRED to the sitting — one command, sha256 already recorded.
-     Confirm the deferral.
+     Confirm the deferral. (UPDATE, same day: CLOSED at E4 — the canonical
+     tarball was downloaded for the B1937/J0437 pars, its md5 matched the
+     Zenodo manifest, and the committed J0030 par BYTE-MATCHED the tarball
+     copy. See the E4 logbook entry.)
   4. OVERRIDE #12 (SPEC9_PHASE_AGREEMENT = 1e-9): the plan's own verbatim
      gate, frozen into golden_numbers.py; measured agreement is 0.0 so the
      gate is a pure regression tripwire. Confirm.
@@ -1027,6 +1030,79 @@ documentation clean-ups for the students to accept or action.
 
 ---
 
+## Item (ii) — E4: real NICER photons recover an injected orbit bias (the last experiment)
+
+- **What:** the AI-authored E4 — machinery `tests_armor/_e4_fold.py`,
+  gate `tests_armor/test_e4_injection.py`, experiment
+  `experiments/e4_nicer_photon.py`, blessed archive
+  `results/archive/e4_bias_recovery_20260716T154452Z.npz/.png`
+  (regenerable from the npz alone), the B1937/J0437 NG15 pars, and golden
+  override #13. Three seeded 100 km ISS-ephemeris biases injected (truth),
+  each recovered in full 3-D from three real pulsar folds (nav) within
+  2σ — the compass §7 pass criterion verbatim.
+- **Where recorded:** logbook 2026-07-16 (E4 entry);
+  `journal/e4-nicer-injection.md` (every measured table); citation
+  [deJager89]; provenance data/e4_nicer/README.md.
+- **Evidence:** armor suite 8 passed (343.6 s); spine 84 passed 0 skipped.
+  Blessed run: |recovery error| 76.15 km on 100 km injections, worst
+  components 1.84/1.88/1.85 σ (gate 2.0). Folds H = 43.8–874.1 after
+  energy cuts; TOA σ 31.0/43/149 µs. J0030 par byte-matched the canonical
+  NG15 tarball (md5-verified) — the item-(hh) deferred check is CLOSED.
+- **Sub-items to rule on:**
+  1. The card + tests themselves (own every assertion, incl. that T1 is
+     the compass criterion verbatim and the recovery is rank-3).
+  2. PER-PULSAR ENERGY BANDS (J0030/J0437 PI 30–150; B1937 PI 120–400 via
+     a measured band scan ON TEMPLATE DATA — selection independent of the
+     measurement): unfiltered J0030 folds at H=5.1 (93% background), the
+     compass §11 background row made concrete. Same band both epochs
+     (chromatic-profile rule). Confirm bands + the scan method.
+  3. CROSS-EPOCH TEMPLATE DESIGN: template peak from the OTHER ObsID
+     (independent photons → honest σ² = σ_m² + σ_t²); NG15 phase
+     connection (~1 µs) is what makes it meaningful; the SHARED template
+     correlates the three injections' errors (disclosed). Confirm.
+  4. THE 76-km FROZEN-NOISE READING: near-identical recovery errors
+     across injections = the shared template's single ~1.85σ noise draw
+     mapped through the linear recovery — the honest-σ validation and the
+     "template depth is the noise floor" mission lesson (16× deeper
+     templates → ~20 km). Confirm this interpretation and its journal
+     framing.
+  5. BIAS_KM = 100 (stimulus): decisive vs 116–260 µs shift noise,
+     under the 233 km / 0.5-turn wrap ceiling, and INSIDE one comb
+     wavelength (|dr| < ρ = 286 km) — consistent with E5-lite's ambiguity
+     finding (E4 measures differential shifts, not absolute combs).
+     Confirm.
+  6. OVERRIDE #13: E4_HTEST_MIN = 20.0 (2.2× below the weakest measured
+     fold, 4–9× above noise) and E4_TOA_SIGMA_MAX_S = 50e-6 (§11's own
+     upper bound; demonstrated by J0437 31.0 µs and B1937 ~43 µs;
+     J0030's 134–149 µs recorded openly). T3's best-fold-demonstrates
+     form + the 500 µs sanity ceiling. Confirm.
+  7. FIRST-HARMONIC PEAK AS THE v1 ESTIMATOR, with the template-fit
+     (matched-filter) TOA estimator recorded as the v1.1 deferral
+     (E3-×60 pattern). Confirm the deferral.
+  8. HEASOFT-FREE PIPELINE (already-screened cl.evt + PINT barycentering)
+     and the constant-dr bias model as the honest reading of
+     "orbit-ephemeris bias". Confirm.
+- **Audit results (pre-commit):** truth-wall-auditor PASS — the injected
+  dr_trues vector was traced to exactly three sites (the truth-side
+  injection, the post-recovery scoring line, and the npz/figure record)
+  and never reaches recover_bias, whose arguments are measurements +
+  public pulsar facts only; galnav/ zero-diff and golden +25/−0 confirmed
+  mechanically by git diff. spec-reviewer PASS on all 8 code rules, with
+  two student-glance notes (neither blocking): the unused `projector`
+  return of recover_bias (safe to delete later), and the standard 1e-12
+  SVD rank epsilon at _e4_fold.py — the only inline numeric threshold
+  outside golden_numbers.py; it decides matrix rank, not physics, and
+  never bites with three separated sightlines (singular values ~1e-3).
+- **AI-recommended ruling:** accept all eight — the gate is the plan's
+  own, every number is measured, the weak spots (J0030's σ, the shared
+  template) are disclosed rather than hidden, and the two lessons
+  (background cuts, template depth) are the kind of real-data findings
+  the paper's E4 section should lead with.
+- **STUDENT RULING:** ____________
+- **Date/initials:** ____________
+
+---
+
 *End of worksheet. Original 2026-07-15 draft consolidated twenty-five items
 from `journal/logbook.md` (Spec 7 items a–i, velocity+aberration items j–o,
 Session 5 skeptic-sweep items p–r, triple-verification items s–t, plus two
@@ -1037,7 +1113,8 @@ lattice), bb (E3 New Horizons real-data anchor), cc (E2 convergence basins +
 the option-A failure-handling ruling), dd (E7 relativistic aberration at
 0.1c), ee (maximum-correctness sweep hardening niceties), ff (Spec 8b
 closest-lattice-point CVP solver), gg (the WSL2 armor environment for
-Spec 9/E4), and hh (Spec 9 PINT photon phase) — see their logbook entries
+Spec 9/E4), hh (Spec 9 PINT photon phase), and ii (E4 real-NICER bias
+injection/recovery — the final experiment) — see their logbook entries
 for the full evidence. AI-drafted as a
 decision aid; all rulings pending student sign-off; the logbook remains
 authoritative.*
