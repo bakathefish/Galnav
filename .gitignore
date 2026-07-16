@@ -11,4 +11,11 @@ results/*
 data/e3_new_horizons/*
 !data/e3_new_horizons/README.md
 !data/e3_new_horizons/fetch_e3_data.py
+
+# E4 raw data (~90 MB of NICER FITS) is re-fetchable from HEASARC; vendor only
+# the provenance README + fetch script, not the download. The per-month ObsID
+# directories are ignored wholesale (git does not descend into them).
+data/e4_nicer/*
+!data/e4_nicer/README.md
+!data/e4_nicer/fetch_e4_data.py
 .planning/

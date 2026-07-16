@@ -2502,3 +2502,38 @@ wrong.**
   + worksheet item (gg). Executed by the main session directly (system-state
   work), with the NICER data-scout agent running in parallel -- the AI
   workflow this logbook openly documents.
+
+## 2026-07-16 - E4 DATA ACQUISITION: six verified NICER ObsIDs (three pulsars) fetched with full provenance
+- WHAT: downloaded the raw data for E4 (and Spec 9's gate) into
+  data/e4_nicer/: cleaned level-2 event files + ISS orbit files for TWO
+  ObsIDs on each of PSR J0030+0451 (1060020263 @ 29.5 ks, 1060020113 @
+  29.2 ks), PSR B1937+21 (1070020148 @ 29.0 ks, 1070020147 @ 21.6 ks), and
+  PSR J0437-4715 (1060010188 @ 19.7 ks, 1060010157 @ 19.1 ks) -- 12 files,
+  90,354,942 bytes. New data/e4_nicer/fetch_e4_data.py (stdlib-only,
+  retry + AWS-mirror fallback, streams-while-hashing, gzip-verifies,
+  idempotent) and README.md (provenance table, URL pattern, sha256
+  manifest). .gitignore gained the E3-pattern block: raw data ignored,
+  README + fetch script tracked.
+- WHY: E4 must fold REAL photons and recover an injected orbit-ephemeris
+  bias from phase residuals of 2-3 pulsars (compass section 7/11); the .orb
+  files are mandatory for barycentering (compass budget: < 1 us). Two
+  ObsIDs per pulsar were taken (not one) so the fold has photon-count
+  headroom: the six event files carry 50k-1.6M photon rows each. ObsIDs
+  were verified to EXIST on HEASARC (directory listings fetched) by a scout
+  agent BEFORE any download -- the project rule is that no fabricated
+  identifier may enter the repo; identification leaned on the published
+  clean sets (Riley/Bogdanov 2019 for J0030; Choudhury 2024 for J0437).
+- EVIDENCE: 12/12 downloads succeeded first try (0 retries, 0 mirror
+  fallbacks); every gzip decompresses; sha256 manifest in
+  data/e4_nicer/README.md; FITS readability check on all six event files
+  passed with OBS_ID(header) == ObsID(path), OBJECT == claimed pulsar,
+  EXPOSURE == listed (e.g. 1060020263: OBJECT PSR_J0030+0451, 152,107
+  EVENTS rows, 29.5 ks, DATE-OBS 2018-01-19). Quirk recorded: J0437's
+  OBJECT keyword reads "PSR_J0437-4715_opt1" (a NICER pointing-optimization
+  label, same pulsar). git check-ignore confirms raw files ignored, README
+  + script tracked. Citations added: [NICERarch] (archive + the six
+  ObsIDs), [NICER16] (instrument).
+- COMMIT: this entry + data/e4_nicer/README.md + fetch_e4_data.py +
+  .gitignore + the two citation entries. Scout + fetch executed by isolated
+  agents, verified and committed by the main session -- the AI workflow
+  this logbook openly documents.

@@ -240,6 +240,34 @@ Astrophysics*, 674, A1.
   online field description before the paper's methods section is finalized
   (WebFetch was unavailable in the build session, 2026-07-16).
 
+**[NICERarch]** NICER (Neutron star Interior Composition Explorer) public
+data archive, HEASARC, NASA GSFC.
+https://heasarc.gsfc.nasa.gov/FTP/nicer/data/obs/
+- Used for: the E4/Spec 9 RAW PHOTON DATA — six ObsIDs, two per pulsar:
+  PSR J0030+0451 (1060020263, 1060020113 — the Riley et al. 2019 /
+  Bogdanov et al. 2019 NICER campaign era), PSR B1937+21 (1070020148,
+  1070020147), PSR J0437-4715 (1060010188, 1060010157 — the Choudhury et
+  al. 2024 dataset era). Cleaned level-2 event files (cl.evt.gz) plus ISS
+  orbit files (.orb.gz, required for barycentering). ~90.4 MB total.
+- Where in repo: `data/e4_nicer/` (raw files git-ignored; committed
+  `README.md` carries the full provenance table + sha256 manifest;
+  `fetch_e4_data.py` re-fetches and re-verifies everything from scratch);
+  Spec 9 tests (tests_armor/); experiment E4.
+- Verified: each ObsID's archive directory listing fetched 2026-07-16 and
+  both files confirmed present BEFORE download; after download every file
+  passed byte-count, gzip-decompression, and sha256 recording; FITS headers
+  confirm OBS_ID == path ObsID, OBJECT == claimed pulsar, EXPOSURE == the
+  listed exposure for all six event files (astropy.io.fits, 2026-07-16).
+
+**[NICER16]** Gendreau, K. C., Arzoumanian, Z., & Okajima, T. (2016). "The
+Neutron star Interior Composition Explorer (NICER): design and development."
+*Proc. SPIE*, 9905, 99051H.
+- Used for: the instrument citation behind all E4/Spec 9 photon data (the
+  paper's methods section must cite the instrument, not just the archive).
+- Where in repo: `data/e4_nicer/README.md`; future paper methods.
+- Verified: standard NICER instrument reference; students should sight the
+  SPIE page before the paper's reference list is finalized.
+
 ## Historical
 
 **[Gauss1809]** Gauss, C. F. (1809). *Theoria Motus Corporum Coelestium*.
