@@ -367,15 +367,38 @@ estimation." *Journal of Geodesy*, 70, 65-82.
   correct integer set is still unambiguous is the packing radius rho =
   lambda_1 / 2 (half the shortest lattice vector). E5-lite uses only this
   packing-radius criterion — it does NOT run the LAMBDA decorrelation/search
-  itself; the full closest-vector integer solver (LAMBDA / LLL, optionally via
-  `fpylll`) is the deferred follow-up card.
+  itself. UPDATE 2026-07-16: the d=3 closest-vector solver itself landed as
+  `closest_lattice_point` (Spec 8b — Babai rounding + exact 27-box, see
+  [Babai86]); LAMBDA-style decorrelation / general LLL for near-degenerate
+  geometries stays the deferred follow-up.
 - Where in repo: `galnav/pulsar.py` (ambiguity_lattice_generator,
-  shortest_vector_km, packing_radius_km); `tests/test_e5_pulsar.py`;
-  `journal/spec-e5-pulsar-lattice.md`. The plan's E5-lite run-book (section 7)
-  is the internal source that establishes this framing and the GPS analogy.
+  shortest_vector_km, packing_radius_km, closest_lattice_point);
+  `tests/test_e5_pulsar.py`; `tests/test_spec8_cvp.py`;
+  `journal/spec-e5-pulsar-lattice.md`; `journal/spec-8-cvp-solver.md`. The
+  plan's E5-lite run-book (section 7) is the internal source that establishes
+  this framing and the GPS analogy.
 - Verified against the project plan's own citation; students should sight the
   Teunissen original before the paper's methods section (WebFetch unavailable
   in the build session, 2026-07-16).
+
+**[Babai86]** Babai, L. (1986). "On Lovász' lattice reduction and the nearest
+lattice point problem." *Combinatorica*, 6(1), 1–13. doi:10.1007/BF02579403
+- Fact/method used: the nearest-lattice-point estimate m0 = round(B^{-1} t) —
+  round the target's lattice coordinates to the nearest integers.
+  `closest_lattice_point` uses this as its first guess, then refines exactly
+  over the 27-point {-1,0,+1}^3 offset box to correct the off-by-one that
+  simple rounding makes on a skewed lattice. This is the "rounding off"
+  heuristic of the paper (Babai also gives a stronger "nearest plane"
+  variant); at dimension 3, for the project's well-conditioned §12 geometries,
+  rounding + the ±1 box is exact (measured: Babai lands within one L-inf step
+  of the true integer here). NOT the general c^d-approximation LLL machinery —
+  that stays the deferred fpylll/LLL follow-up card.
+- Where in repo: `galnav/pulsar.py` (closest_lattice_point);
+  `tests/test_spec8_cvp.py`; `journal/spec-8-cvp-solver.md`.
+- Verified: citation details (author, title, Combinatorica vol. 6(1)
+  pp. 1–13, 1986, doi:10.1007/BF02579403) confirmed via web 2026-07-16
+  (Springer Nature Link, ACM DL, Semantic Scholar); students should sight the
+  Babai original before the paper's methods section is finalized.
 
 ## Related work (prior-art re-sweep 2026-07-16 — positioning, not method sources)
 

@@ -2414,3 +2414,46 @@ wrong.**
 - COMMIT: this entry + the five [YucalanPeck19]/[YucalanPeck21]/
   [ZhangLiLiu26]/[Franzese26]/[Shemar16] registry entries in
   journal/citations.md (docs only; no code, golden, or test files touched).
+
+## 2026-07-16 - Spec 8b: closest-lattice-point (CVP) solver (completes Spec 8)
+- WHAT: appended closest_lattice_point(B, targets_km) to galnav/pulsar.py -- a
+  hand-coded 3-D CVP solver: Babai rounding m0 = round(B^-1 t) [Babai86] plus
+  an exact 27-point {-1,0,+1}^3 refinement, fully vectorized ((n,1,3) x
+  (1,27,3) broadcast, no Python loop over targets). New acceptance tests
+  tests/test_spec8_cvp.py (T1 on-lattice exactness + shape contract, T2 the
+  compass section-6 criterion, T3 boundary honesty, T4 validation). Journal:
+  journal/spec-8-cvp-solver.md. Together with E5-lite's comb half this
+  COMPLETES Spec 8.
+- WHY: E5-lite built the lattice and the packing radius rho (the window inside
+  which comb integers are recoverable); this card builds the solver that
+  recovers them. USER RULING 2026-07-16: hand-coded numpy over fpylll, on the
+  verified trade study -- exact at dimension 3, zero new dependencies, and
+  fpylll has no native-Windows build (conda-forge linux/macOS only), so
+  adopting it would endanger the byte-reproducibility story of the pinned
+  native-Windows env. Compass section 5 itself sanctions "a small hand-coded
+  3D closest-lattice-point search." Implemented by an isolated build agent,
+  audited and integrated by the main session -- the AI workflow this logbook
+  openly documents.
+- EVIDENCE: strict TDD -- tests written first; RED = 4 failures, all
+  "AttributeError: module 'galnav.pulsar' has no attribute
+  'closest_lattice_point'"; then minimal code; GREEN = 84 passed, 0 skipped
+  (was 80; independently re-run by the main session: 84 passed in 10.01s).
+  ZERO new golden numbers, ZERO new tolerances (T1/T2 integer-exact via
+  np.array_equal; rho from packing_radius_km; lambda_1 by bounded
+  enumeration; COMB_KM read-only). T2 recovered all 8000 (2000 x 4 fracs)
+  injected integers exactly inside rho on the real T5b lattice. Measured
+  Babai margin: 0 L-inf steps (orthonormal) / exactly 1 (T5b real lattice) --
+  the 27-box is load-bearing and exactly wide enough. T3 boundary:
+  lambda_1 = 571.956 km, rho = 285.978 km; at 1.5*rho along v1 the injected
+  integer (residual 428.97 km = 0.75*lambda_1) loses to the neighbor
+  (142.99 km = 0.25*lambda_1) and the integer flips -- correct ambiguity
+  behavior, not a defect. AUDITS: truth-wall-auditor PASS (module stays
+  neither-truth-nor-nav; no side channels; frozen files zero-diff);
+  spec-reviewer PASS on all code rules (its two journal-rule gaps -- the
+  missing [Babai86] citation and this missing logbook entry -- are closed by
+  this commit, which also un-stales the [LAMBDA] deferred-solver note).
+- CAVEAT (same as shortest_vector_km): the +-1 box is verified only for the
+  well-conditioned section-12 geometries; a near-degenerate geometry could
+  need LLL/fpylll -- that stays deferred. Ratification: worksheet item (ff).
+- COMMIT: this commit (code + tests + journal entry + [Babai86]/[LAMBDA]
+  citation updates + worksheet item (ff)).

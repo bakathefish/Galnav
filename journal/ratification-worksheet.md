@@ -862,6 +862,57 @@ documentation clean-ups for the students to accept or action.
 
 ---
 
+## Item (ff) — Spec 8b: closest-lattice-point (CVP) solver (completes Spec 8)
+
+- **What:** the AI-authored `closest_lattice_point` in `galnav/pulsar.py`
+  (Babai rounding + exact 27-point box, fully vectorized), tests
+  `tests/test_spec8_cvp.py`, journal `journal/spec-8-cvp-solver.md`
+  (2026-07-16, build-night pattern). Completes Spec 8: recovers the injected
+  integer turn-counts whenever the prior offset is inside the packing radius
+  rho = lambda_1/2.
+- **Where recorded:** logbook 2026-07-16 (Spec 8b entry);
+  `journal/spec-8-cvp-solver.md`; citation [Babai86] (+ the [LAMBDA] entry's
+  deferred-solver note updated). Audits: truth-wall PASS, spec-review PASS.
+- **Evidence:** pytest 80 -> 84, 0 skipped (RED first: 4 AttributeError
+  failures before the code existed). NO golden override, NO new tolerance —
+  a first for a pulsar card: integer recovery is proven by integer equality.
+  T2 recovers all 8000 injected integers exactly inside rho; measured Babai
+  margin 0 / exactly-1 L-inf step (orthonormal / T5b real lattice); T3
+  boundary flip at 1.5·rho (lambda_1 = 571.956 km, rho = 285.978 km:
+  injected residual 428.97 km loses to neighbor at 142.99 km).
+- **Sub-items to rule on:**
+  1. The card + tests themselves (own every assertion, esp. that T2 is the
+     compass §6 criterion — "recovers injected integers when prior < packing
+     radius" — made exhaustive and tolerance-free).
+  2. THE numpy-OVER-fpylll RULING (user ruling 2026-07-16): hand-coded numpy
+     CVP because it is exact at dimension 3 and fpylll has no native-Windows
+     build (conda-forge linux/macOS only) — a compiled dep would also
+     endanger the byte-reproducibility story. Compass §5 sanctions the
+     hand-coded path explicitly. Confirm you accept the trade study and that
+     the general LLL/fpylll solver stays deferred.
+  3. THE 27-BOX SUFFICIENCY ARGUMENT + caveat: the ±1 box is proven
+     sufficient ONLY for the well-conditioned §12 geometries (measured Babai
+     margin exactly 1 L-inf step on T5b — the box is load-bearing AND exactly
+     wide enough); a near-degenerate geometry could defeat it (same caveat as
+     shortest_vector_km, stated in the docstring). Confirm.
+  4. SEED = 20260716 and frac choices {0.5, 0.9, 0.99, 0.999}: the fracs
+     march up to the rho boundary to stress the tightest recoverable case.
+     Confirm.
+  5. T3 BOUNDARY DESIGN: one crafted offset at 1.5·rho along the shortest
+     vector v1, where the neighboring lattice point is provably closer
+     (0.25·lambda_1 < 0.75·lambda_1); asserting the solver does NOT return
+     the injected integer and returns a strictly closer point — documenting
+     that rho is the physical ambiguity boundary, not a solver defect.
+     Confirm you accept this as the boundary proof.
+- **AI-recommended ruling:** accept the card and the completed Spec 8;
+  accept the numpy-over-fpylll ruling and the LLL deferral; accept the
+  27-box with its well-conditioned caveat; accept the seed/frac/T3 design.
+  Cleanest pulsar card so far — no golden change at all.
+- **STUDENT RULING:** ____________
+- **Date/initials:** ____________
+
+---
+
 *End of worksheet. Original 2026-07-15 draft consolidated twenty-five items
 from `journal/logbook.md` (Spec 7 items a–i, velocity+aberration items j–o,
 Session 5 skeptic-sweep items p–r, triple-verification items s–t, plus two
@@ -870,6 +921,7 @@ after that draft: items u (E1 catalog swap), v/vi (Spec 10 propagator),
 w (E6a sampled sky), x/y/z (E6b aging experiment), aa (E5-lite pulsar
 lattice), bb (E3 New Horizons real-data anchor), cc (E2 convergence basins +
 the option-A failure-handling ruling), dd (E7 relativistic aberration at
-0.1c), and ee (maximum-correctness sweep hardening niceties) — see their logbook entries for the full evidence. AI-drafted as a
+0.1c), ee (maximum-correctness sweep hardening niceties), and ff (Spec 8b
+closest-lattice-point CVP solver) — see their logbook entries for the full evidence. AI-drafted as a
 decision aid; all rulings pending student sign-off; the logbook remains
 authoritative.*
