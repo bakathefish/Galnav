@@ -913,6 +913,53 @@ documentation clean-ups for the students to accept or action.
 
 ---
 
+## Item (gg) — The ARMOR environment: WSL2 + PINT for Spec 9 / E4
+
+- **What:** a second, separate, fully-recorded environment (WSL2 Ubuntu
+  24.04.4, /opt/galnav/venv, Python 3.12.3, pint-pulsar 1.1.4, numpy 2.4.1)
+  stood up 2026-07-16 because PINT's < 1e-9 phase gate needs 80-bit long
+  double, which native Windows/MSVC cannot provide. Full record with every
+  version, hash, and why: `journal/environment-armor.md`;
+  `requirements-armor.txt` at the repo root.
+- **Where recorded:** logbook 2026-07-16 (armor environment entry);
+  `journal/environment-armor.md` (the exact stack, the measured eps on both
+  platforms, the ephemeris hashes, the rebuild recipe).
+- **Evidence:** measured eps — Windows native 2.220446049250313e-16 (FAIL,
+  MSVC long double == double) vs WSL2 float128 1.084202172485504434e-19
+  (PASS; PINT `check_longdouble_precision() == True`). Spine untouched:
+  requirements.txt zero-diff; spine suite still 84 passed / 0 skipped on
+  native Windows. DE421/DE440 downloaded once and hash-pinned.
+- **Sub-items to rule on:**
+  1. THE TWO-ENVIRONMENT SPLIT itself: armor numbers (Spec 9/E4) are
+     produced/reproduced only in WSL2; spine numbers only on native
+     Windows; neither re-blesses the other. Accept this documented,
+     one-way split (the alternative was the Sep-5 gate's sim-only
+     fallback).
+  2. PYTHON 3.12.3 (distro default) instead of the spine's 3.13.3 — no
+     third-party PPA in a reproducibility-critical env; numpy pinned to
+     the SAME 2.4.1 on both sides to minimize the delta. Confirm.
+  3. requirements-armor.txt AS A SECOND REQUIREMENTS FILE (spine
+     requirements.txt untouched) and pint-pulsar==1.1.4 superseding the
+     compass §5 "1.1.2" pin (stale at build time). Confirm.
+  4. TESTS_ARMOR/ SEPARATE TEST ROOT (created at Spec 9): armor tests run
+     only inside WSL; they are deliberately NOT in tests/ because the
+     spine's definition of done is zero-skip green on Windows, and this
+     project does not ship skipping tests. One suite per environment,
+     each fully green where it lives. Confirm.
+  5. EPHEMERIS/CLOCK DETERMINISM POLICY: DE421/DE440 downloaded once at
+     build time and hash-recorded (astropy's own de421 shorthand URL has
+     rotted — PINT's loader is the blessed path); ephemeris name to be
+     pinned explicitly in code and PINT clock files frozen at the Spec 9
+     card. Confirm the policy.
+- **AI-recommended ruling:** accept the split, the 3.12.3 choice, the
+  second requirements file, the separate armor test root, and the
+  determinism policy — the environment is fully rebuildable from the
+  recorded recipe and touches nothing on the spine.
+- **STUDENT RULING:** ____________
+- **Date/initials:** ____________
+
+---
+
 *End of worksheet. Original 2026-07-15 draft consolidated twenty-five items
 from `journal/logbook.md` (Spec 7 items a–i, velocity+aberration items j–o,
 Session 5 skeptic-sweep items p–r, triple-verification items s–t, plus two
@@ -921,7 +968,8 @@ after that draft: items u (E1 catalog swap), v/vi (Spec 10 propagator),
 w (E6a sampled sky), x/y/z (E6b aging experiment), aa (E5-lite pulsar
 lattice), bb (E3 New Horizons real-data anchor), cc (E2 convergence basins +
 the option-A failure-handling ruling), dd (E7 relativistic aberration at
-0.1c), ee (maximum-correctness sweep hardening niceties), and ff (Spec 8b
-closest-lattice-point CVP solver) — see their logbook entries for the full evidence. AI-drafted as a
+0.1c), ee (maximum-correctness sweep hardening niceties), ff (Spec 8b
+closest-lattice-point CVP solver), and gg (the WSL2 armor environment for
+Spec 9/E4) — see their logbook entries for the full evidence. AI-drafted as a
 decision aid; all rulings pending student sign-off; the logbook remains
 authoritative.*

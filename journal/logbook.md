@@ -2457,3 +2457,48 @@ wrong.**
   need LLL/fpylll -- that stays deferred. Ratification: worksheet item (ff).
 - COMMIT: this commit (code + tests + journal entry + [Babai86]/[LAMBDA]
   citation updates + worksheet item (ff)).
+
+## 2026-07-16 - ARMOR ENVIRONMENT: WSL2 + PINT 1.1.4 stood up and verified (Spec 9 / E4 unblocked)
+- WHAT: built and verified the second, separate environment required for the
+  armor tier (Spec 9 PINT photon phase, E4 real NICER), per the user's
+  explicit go ("start the admin shell install whatever... finish this entire
+  thing"). Discovery: WSL2 was ALREADY installed on the box (WSL 2.6.3.0,
+  Ubuntu 24.04.4 LTS distro present, stopped) -- no admin elevation, no
+  reboot, no system change was needed after all. Created /opt/galnav/venv
+  (distro Python 3.12.3), installed requirements-armor.txt (new file, repo
+  root: pint-pulsar==1.1.4, numpy==2.4.1 pinned to match the spine,
+  matplotlib), warmed + hash-recorded the DE421/DE440 ephemerides. Full
+  record with every version, hash, and why: journal/environment-armor.md.
+- WHY: measured 2026-07-16 on the spine box, np.longdouble == float64
+  (eps 2.220446049250313e-16) because MSVC defines long double as double;
+  PINT requires eps < 2e-19 (80-bit) for its precision-critical paths, so
+  Spec 9's <1e-9 phase gate is UNREACHABLE on native Windows -- a platform
+  property no pip/conda install can fix. WSL2 Ubuntu on x86-64 provides
+  float128 (eps 1.084202172485504434e-19). The two-environment split
+  (native-Windows spine, WSL2 armor) is therefore forced, is documented,
+  and is one-way: neither side re-blesses the other's numbers.
+- EVIDENCE: GO/NO-GO probe in the venv: longdouble = float128,
+  eps = 1.084202172485504434e-19 (< 2e-19 OK), pint 1.1.4 imports,
+  check_longdouble_precision() == True; numpy 2.4.1, astropy 8.0.1,
+  matplotlib 3.11.0; full pip freeze (24 packages) recorded in
+  journal/environment-armor.md. Ephemerides cached deterministically:
+  DE421 16,788,480 B sha256 a20a7139...d2deedc, DE440 119,799,808 B sha256
+  a4ce9bf9...ff7c4b5 (full hashes in the environment file). Discovery
+  recorded: astropy 8's shorthand de421 URL 404s (URL rot);
+  pint.solar_system_ephemerides.load_kernel is the working, blessed
+  acquisition path. astropy 8 cache lives at ~/.cache/astropy (not the old
+  ~/.astropy). Spine untouched: requirements.txt zero-diff, spine suite
+  still 84 passed / 0 skipped on Windows.
+- DECISIONS FOR RATIFICATION (worksheet item gg): the WSL2 armor env
+  itself; distro Python 3.12.3 instead of the spine's 3.13.3 (no
+  third-party PPA; envs are necessarily different anyway; numpy pinned
+  2.4.1 on both to minimize the delta); requirements-armor.txt as a second
+  requirements file (spine requirements.txt untouched);
+  pint-pulsar==1.1.4 superseding the compass section-5 1.1.2 pin (stale);
+  armor tests to live in tests_armor/ run only inside WSL (spine pytest
+  stays zero-skip green on Windows); ephemeris pinned by name in code +
+  clock-file freeze to be executed at the Spec 9 card.
+- COMMIT: this entry + requirements-armor.txt + journal/environment-armor.md
+  + worksheet item (gg). Executed by the main session directly (system-state
+  work), with the NICER data-scout agent running in parallel -- the AI
+  workflow this logbook openly documents.

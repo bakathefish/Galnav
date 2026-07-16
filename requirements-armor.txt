@@ -1,0 +1,20 @@
+# GalNav ARMOR environment (WSL2 Ubuntu 24.04 x86-64) - Spec 9 + E4 ONLY.
+#
+# The native-Windows SPINE environment (requirements.txt) is UNCHANGED by
+# this file. This separate env exists because PINT's photon-phase gate
+# (< 1e-9 phase) requires 80-bit extended-precision long double
+# (np.longdouble eps ~1.08e-19), which native Windows/MSVC cannot provide:
+# measured on the project box 2026-07-16, np.longdouble == float64,
+# eps 2.220446049250313e-16 (PINT requires < 2e-19). See the 2026-07-16
+# logbook entries and the ratification worksheet.
+#
+# Install route (the project's allowed one):
+#   wsl -d Ubuntu -u root -- /opt/galnav/venv/bin/python -m pip install \
+#       -r /mnt/c/Users/rudra/OneDrive/Desktop/spacenav/requirements-armor.txt
+#
+# numpy is pinned to the SAME version as the spine (2.4.1) to minimize the
+# cross-env delta; the exact resolved environment (pip freeze) is recorded
+# in the journal at install time.
+pint-pulsar==1.1.4
+numpy==2.4.1
+matplotlib
