@@ -61,3 +61,19 @@ the cross-check.
   on the star-fix band (7.70 au) is read live from the E6 archive above.
   Explained in `journal/spec-e5-pulsar-lattice.md`; figure regenerable from the
   .npz alone via `experiments.e5_pulsar_lattice.replot_from_npz`.
+- `e3_new_horizons_20260716T071109Z.npz` / `.png` — the E3 REAL-DATA anchor
+  (produced by commit `b788690`; archived in the commit below). Deterministic
+  (no Monte Carlo), so byte-identical on re-run. Our fully independent pipeline
+  — Gaia DR3 CSV -> select Proxima Cen + Wolf 359 by source_id -> propagate
+  J2016.0 to the mean LORRI image epoch (age 4.3087 yr, PM+RV; skipping the
+  propagation lands ~30 au off) -> `n_star_solve` on Lauer's measured star
+  directions — recovers the real New Horizons position to **0.3467 au** vs the
+  JPL Horizons ephemeris, ~8.7x inside the 3 au plan gate (JPL enters only the
+  score, never the solver). Reproduction cross-check (fed Lauer's own inputs):
+  matches his recovered x2 to 0.0065 au (8-digit fixture rounding), miss vs JPL
+  0.3457 au. Reported, not gated: our 2-star 1-sigma ellipsoid 1.08/0.57/0.50 au
+  vs Lauer's 12-line x60 ellipsoid 0.441/0.233/0.206 au (his miss 0.351 au; the
+  famous "0.44 au" is the ellipsoid semi-axis, not the miss). Real star data from
+  Zenodo doi:10.5281/zenodo.15359866 ([Lauer25], [Lauer25-data]). Explained in
+  `journal/spec-e3-triangulation.md`; figure regenerable from the .npz alone via
+  `experiments.e3_new_horizons.replot_from_npz`.

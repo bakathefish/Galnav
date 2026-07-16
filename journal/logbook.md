@@ -1933,3 +1933,26 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   override-#9 logbook entry above. Pointer, not a re-litigation.
 - pytest immediately pre-commit: 65 passed, 0 skipped. Commit hash back-filled
   at the next logbook touch (blessed-run entry).
+
+### E3 BLESSED RUN (archived; card commit b788690)
+
+- CARD COMMIT: **b788690** ("E3 New Horizons: independent pipeline recovers real
+  spacecraft position to 0.35 au vs JPL from two star sightings (gate 3 au)"),
+  author bakathefish, AI-attribution grep clean. File set: galnav/nav/
+  triangulate.py, experiments/e3_new_horizons.py, tests/test_e3_triangulation.py,
+  tests/golden_numbers.py (override #9, staged by path -- not edited by the build
+  agent), journal/spec-e3-triangulation.md, journal/logbook.md. (citations.md +
+  ratification-worksheet.md item (aa) were already in HEAD, untouched.)
+- BLESSED RUN: results/archive/e3_new_horizons_20260716T071109Z.npz/.png,
+  produced by b788690. Deterministic (no Monte Carlo) -> byte-identical on
+  re-run. Verified the figure regenerates from the archived .npz ALONE
+  (replot_from_npz), and the npz now carries lauer_x60_miss_au + nh_nav_tol_au so
+  the title annotation needs no external constant.
+- MEASURED HEADLINE (real New Horizons data): our full independent pipeline
+  recovers the spacecraft position to **0.3467 au** vs the JPL ephemeris
+  (recovered [13.669, -41.819, -16.201] au; age 4.3087 yr), ~8.7x inside the
+  3 au gate. Reproduction cross-check (Lauer's own inputs): x2 to 0.0065 au,
+  miss vs JPL 0.3457 au. Reported ellipsoids: ours (2-star) 1.08/0.57/0.50 au;
+  Lauer x60 (12-line) 0.441/0.233/0.206 au, his miss 0.351 au. The "0.44 au"
+  is the ellipsoid semi-axis, NOT the miss -- kept distinct everywhere.
+- Archive README Contents entry added. NEXT: E2 convergence basins.
