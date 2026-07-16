@@ -2159,3 +2159,36 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   conversion-path inconsistency (a uniformity clean-up, not a bug).
 - pytest immediately pre-commit: 80 passed, 0 skipped. Commit hash back-filled at
   the next logbook touch (blessed-run entry).
+
+### E7 BLESSED RUN (archived; card commit 288212a)
+
+- CARD COMMIT: **288212a** ("E7 relativistic aberration: classical navigator
+  misses by ~1350 au at 0.1c, exact recovers to 1e-9 au"), author bakathefish,
+  AI-attribution grep clean. File set: experiments/e7_relativistic_aberration.py,
+  tests/test_e7_aberration.py, journal/spec-e7-relativistic-aberration.md,
+  journal/citations.md, journal/logbook.md, journal/ratification-worksheet.md
+  (item (dd)). NO golden change (golden_numbers.py untouched), NO galnav/ change.
+- BLESSED RUN: results/archive/e7_relativistic_aberration_20260716T084155Z
+  .npz/.png, produced by 288212a (200 runs, seed 42, Sun + 19 nearest bright,
+  0.1c). Verified the figure regenerates from the archived .npz ALONE.
+- MEASURED HEADLINE: Part A Galilean max 5.7392 deg (peak 95.74) vs exact
+  5.7464 deg (peak 92.87), gap 26.0 arcsec. Part B exact recovery 1.2e-9 au /
+  8.0e-10 km/s. Part C per-angle model error median 401.7 arcsec; classical
+  navigator bias median **1356.5 au / 1200.9 km/s**; linearized cross-check
+  1196 au. At 0.1c, classical navigation misses by ~1350 au -- relativity is
+  not a refinement, it is the difference between arriving and being lost.
+
+### RESOURCE-FREE BUILD QUEUE COMPLETE
+
+E3, E5-lite, E6, E2, and E7 are all built, blessed, and journaled; the suite is
+80/80. WHAT COMES NEXT FOR THE HUMANS:
+1. The RATIFICATION SITTING -- the students walk journal/ratification-worksheet.md
+   items (a)-(dd) and sign each ruling (they must be able to read and explain
+   every line; several sub-items ask them to tighten a gate or accept a
+   documented choice).
+2. USER-BLOCKED cards, each needing a decision or data: Spec 9 (add the PINT
+   dependency), E4 (NICER/HEASoft real X-ray timing data), and the pulsar
+   closest-vector solver (fpylll-vs-numpy-enumeration ruling).
+3. Before the paper's related-work: re-run the prior-art sweep's rate-limited
+   Semantic Scholar / Google Scholar legs (a sweep is in flight this session).
+4. The deferred true-history GitHub push, to be done at project completion.

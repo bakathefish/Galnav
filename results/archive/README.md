@@ -91,3 +91,19 @@ the cross-check.
   mid-iteration). Explained in `journal/spec-e2-convergence-basins.md`; figure
   regenerable from the .npz alone via
   `experiments.e2_convergence_basins.replot_from_npz`.
+- `e7_relativistic_aberration_20260716T084155Z.npz` / `.png` — the E7 relativistic
+  armor at 0.1c (produced by commit `288212a`; archived in the commit below).
+  200-run ensemble, seed 42, Sun + 19 nearest bright stars, speed pinned to 0.1c.
+  Headline: a navigator using the classical (Galilean, Lauer Eq. 1) aberration
+  mislocates the spacecraft by a **median 1356 au / 1201 km/s** (~400x/600x the
+  Bailer-Jones anchor), while the deployed exact-aberration solve_state recovers
+  the true 6-state to **1.2e-9 au / 8.0e-10 km/s** — relativity is the difference
+  between arriving and being lost. Part A: Galilean max deflection 5.7392 deg
+  (peak 95.74) vs exact 5.7464 deg (peak 92.87 — gamma pulls the peak toward 90),
+  gap 26 arcsec. The Part-C payload is the ~500 arcsec (median 402) PER-ANGLE
+  exact-vs-classical model error, NOT the 26 arcsec max gap. Linearized bias
+  cross-check 1196 au (~12%, order-of-magnitude only). No new golden; galnav/
+  unchanged (the classical predictor is experiment-local wrong physics).
+  Explained in `journal/spec-e7-relativistic-aberration.md`; figure regenerable
+  from the .npz alone via
+  `experiments.e7_relativistic_aberration.replot_from_npz`.
