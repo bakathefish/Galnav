@@ -574,12 +574,72 @@ figure, then the smaller test/tooling/doc cards.)*
 
 ---
 
+## Item (bb) — E3: real New Horizons interstellar-navigation anchor
+
+- **What:** the AI-authored E3 card — the closed-form line-of-position solver
+  `galnav/nav/triangulate.py::n_star_solve`, its tests
+  `tests/test_e3_triangulation.py`, and the experiment
+  `experiments/e3_new_horizons.py` (built 2026-07-16 under the build-night
+  pattern). The result: OUR fully independent pipeline recovers the REAL New
+  Horizons spacecraft position from optical measurements of two nearby stars
+  (Proxima Cen, Wolf 359) to **0.3467 au** of the JPL Horizons ephemeris — the
+  project's first real-data anchor, reproducing Lauer et al. (2025).
+- **Where recorded:** logbook 2026-07-16 (E3 override-#9, design-review,
+  part-1, part-2, END-OF-CARD, and blessed-run entries);
+  `journal/spec-e3-triangulation.md`; `results/archive/` Contents entry;
+  citations [Lauer25], [Lauer25-data], [LAMBDA]. Commits b788690 (card) /
+  6e3832e (blessed archive).
+- **Evidence:** pytest 63 -> 65, 0 skipped. Pipeline miss vs JPL 0.3467 au
+  (~8.7x inside the 3 au gate); Gaia J2016.0 -> image-epoch propagation is
+  MANDATORY (unpropagated miss ~30 au). Reproduction cross-check on Lauer's own
+  inputs matches his x2 to 0.0065 au (miss vs JPL 0.3457 au). Reported ellipsoids:
+  ours (2-star) 1.08/0.57/0.50 au, Lauer x60 (12-line) 0.441/0.233/0.206 au;
+  Proxima-Wolf direction separation 80.6 deg. Both audits PASS (truth-wall:
+  JPL enters only the score; spec-review: PASS with two fixes, applied).
+- **Sub-items to rule on:**
+  1. The card + tests themselves (own every assertion; T1/T2 are the exact
+     synthetic algorithm proof at SOLVER_RECOVERY_TOL_AU, T3 is the real-data
+     gate, T6 the reproduction cross-check).
+  2. AUTHORIZED OVERRIDE #9: golden `NH_NAV_TOL_AU = 3.0` — the project plan's
+     own pre-registered section-7 pass gate (main session performed it; the
+     build agent never edited golden_numbers.py). Confirm you accept the value
+     and its evidence comment (which also pins the 0.351-au-MISS vs
+     0.441-au-ELLIPSOID distinction permanently).
+  3. The MISS vs ELLIPSOID distinction: Lauer's famous "0.44 au" is the largest
+     1-sigma error-ellipsoid SEMI-AXIS, NOT the miss (his miss is 0.351 au;
+     0.94-sigma Mahalanobis). Confirm the framing (kept distinct in journal,
+     figure, golden comment, archive README).
+  4. The reproduction is REPORTED, not gated at 1e-8: the extracted 8-digit
+     fixtures give 0.0065 au (rounding), and our propagation differs from the
+     notebook's by ~0.0035 au, so the identity is a reported cross-check while
+     T1/T2 carry the exact proof. Confirm you accept reported-not-gated here.
+  5. The Wolf 359 RV FILL = 19.57 km/s (Simbad, Lauer's value): our Gaia CSV
+     lacks Wolf 359's radial velocity; rv_fill = 0 shifts the miss by only
+     ~0.03 au. Confirm you accept the documented fill choice.
+  6. ABERRATION: no per-star stellar-aberration correction is applied — the
+     directions are Gaia-frame plate solutions whose bulk aberration cancels in
+     the pair geometry; E7 handles the relativistic form separately. Confirm you
+     accept this for the 2-star anchor.
+  7. The DEFERRED x60 (v1.1): the 12-line x60 full reproduction + ellipsoid
+     recompute from the 12 per-image directions (notebook cells 4-5) is flagged
+     for a follow-up card; the quoted x60 ellipsoid stands in for now. Confirm
+     you accept the deferral.
+- **AI-recommended ruling:** accept the card and the real-data anchor result
+  (0.3467 au); accept override #9 (the plan's own gate); accept the RV fill and
+  the aberration simplification for the two-star anchor; keep the reproduction
+  reported-not-gated (T1/T2 already prove the algorithm exactly); defer the x60
+  full reproduction to a v1.1 card before the paper quotes the ellipsoid.
+- **STUDENT RULING:** ____________
+- **Date/initials:** ____________
+
+---
+
 *End of worksheet. Original 2026-07-15 draft consolidated twenty-five items
 from `journal/logbook.md` (Spec 7 items a–i, velocity+aberration items j–o,
 Session 5 skeptic-sweep items p–r, triple-verification items s–t, plus two
 legacy test items and three new-card items). Build-night additions appended
 after that draft: items u (E1 catalog swap), v/vi (Spec 10 propagator),
-w (E6a sampled sky), x/y/z (E6b aging experiment), and aa (E5-lite pulsar
-lattice) — see their logbook entries for the full evidence. AI-drafted as a
-decision aid; all rulings pending student sign-off; the logbook remains
-authoritative.*
+w (E6a sampled sky), x/y/z (E6b aging experiment), aa (E5-lite pulsar
+lattice), and bb (E3 New Horizons real-data anchor) — see their logbook
+entries for the full evidence. AI-drafted as a decision aid; all rulings
+pending student sign-off; the logbook remains authoritative.*
