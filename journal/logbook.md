@@ -1956,3 +1956,86 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   Lauer x60 (12-line) 0.441/0.233/0.206 au, his miss 0.351 au. The "0.44 au"
   is the ellipsoid semi-axis, NOT the miss -- kept distinct everywhere.
 - Archive README Contents entry added. NEXT: E2 convergence basins.
+
+## 2026-07-16 — E2: convergence basins (lost-in-space capture map)
+
+- BUILT `experiments/e2_convergence_basins.py` + `tests/test_e2_basins.py`
+  (7 tests). Question: how far can the initial guess be displaced from the true
+  spacecraft position and still have Gauss-Newton converge back? Maps the
+  CAPTURE FRACTION over (displacement magnitude x star count) at 1 pc, zero
+  noise, isotropic random start directions.
+- FAILURE-HANDLING RULING = OPTION A (per-trial try/except LinAlgError failure
+  isolation), decided under the build authority, ratification-flagged as
+  worksheet item (cc). Why NOT the others: the batched `np.linalg.solve` raises
+  for the WHOLE cell when any one trial's `JtJ` goes singular MID-ITERATION
+  (a start that is well-conditioned at round 1 diverges and poisons `JtJ` at
+  round 5). B (damp the solver) would re-bless E1/E6/anchor; C (hold) stalls the
+  build; **D (batched pre-solve condition screen) is BLIND to a mid-iteration
+  singularity** and would need retry/bisection machinery. A is ~10 lines,
+  reviewer-measured at seconds; "simplicity beats cleverness" settles it. The
+  loop is the DOCUMENTED, ratification-flagged exception to the no-trial-loops
+  rule: that rule is for MC THROUGHPUT, this loop is FAILURE ISOLATION. I had
+  initially recommended D to team-lead and RETRACTED it once the mid-iteration
+  reason was clear (my pre-screen could not have caught it).
+- CAPTURE = no-raise AND all-finite AND `|solved - true| < SOLVER_RECOVERY_TOL_AU`
+  (BOTH clauses kept — the reviewer measured a real ~30% finite-but-wrong
+  population at the basin edge; the distance clause is what rejects it).
+- Directions drawn BATCHED up front as normalised standard-normal (isotropic);
+  a normalised uniform cube is NOT isotropic (over-weights the diagonals) — T5
+  guards it via axis-vs-diagonal projection-variance equality. Zero measurement
+  noise (basin is a landscape property; true pos is an exact fixed point).
+- NO NEW GOLDENS: reuses SOLVER_RECOVERY_TOL_AU (capture radius) + the deployed
+  solver's own SOLVER_STEP_TOL_AU / SOLVER_MAX_ITERS (E2 characterises the
+  SHIPPED navigator, said so in the journal + module docstring).
+- GRID re-centered per review: displacements [0.1,1,2,3,5,8,12,20,100] pc
+  (0.1/100 end anchors, dense 1-20 pc where the edge lives); star counts
+  [5,10,20,50,100]. 0.5-contour has a degenerate-field guard (all-1/all-0 rows
+  draw no contour and the 0.5-radius finder returns NaN, never extrapolates).
+- MEASURED (reduced 200-trial probe, seed 42): 0.5-capture radius 1.90 pc (5
+  stars) -> 3.88 -> 6.32 -> 9.80 -> 11.49 pc (100 stars), monotone in star
+  count and matching the design reviewer's independent probe (2.0 pc @5,
+  11.8 pc @100). Capture grid spans 0.0-1.0 so the 0.5 contour exists. Feeds
+  worksheet item (r): the UNDAMPED solver already captures from ~2-12 pc, so a
+  coarse interstellar prior sits well inside the basin without damping.
+- Suite 65 -> 72 passed, 0 skipped. AUDITS (truth-wall + spec-review) before
+  commit. Commit hash + blessed full-grid numbers at the next logbook touch.
+- TRUTH-WALL AUDIT: **PASS**. Observation 1 (APPLIED before commit, not just
+  flagged): `capture_fraction_cell` originally displaced the starts and selected
+  pairs off `true_pos` directly; introduced `plan_pos = SPACECRAFT_DIR * dist_pc
+  * AU_PER_PC` as the mission-design quantity and keyed pair selection + the
+  displaced starts off `plan_pos`, keeping `true_pos` as the truth-only scoring
+  reference (today `true_pos = plan_pos` bitwise, exactly E1's pattern at
+  e1_crlb_grid.py:89-100). This restores "the navigator sees the plan, never the
+  truth", so a future execution error will not silently feed the executed true
+  position into the nav path. Behaviorally identical today (7/7 E2 tests still
+  pass unchanged). Observation 2 (measmodel.py / gaia CSV showing "modified") is
+  the stale inherited git-snapshot phantom seen on every audit this session --
+  verified FALSE against the live tree (git status shows only the E2 file set;
+  neither file is touched by this card).
+- SPEC-REVIEW AUDIT: **PASS** with one should-fix + polish, all applied:
+  - SHOULD-FIX -> AUTHORIZED OVERRIDE #10. The inline isotropy tolerance in T5
+    belonged in golden_numbers.py. Chasing it surfaced a DEEPER defect I fixed:
+    the original T5 compared axis-vs-diagonal projection VARIANCE, which does
+    NOT discriminate the normalised-uniform-cube bug it guards -- I measured the
+    cube's variance-difference at ~8e-4 vs the sphere's ~9e-4, BOTH below the old
+    0.01 gate, so the test would PASS on the bug. Rewrote T5 to use the 4th
+    MOMENT: projection onto any unit vector is Uniform(-1,1) for a true sphere,
+    so E[(u.v)^4] = 1/5 for every direction; the cube breaks it (axis ~0.18 vs
+    diagonal ~0.21, gap ~0.033). Verified T5 now FAILS on the cube. Override #10
+    (E2_ISOTROPY_M4_TOL = 0.01) performed by the MAIN SESSION under the standing
+    authorization (deny-lock lifted then restored -- settings diff empty after;
+    golden diff = only the new block; build agent never edited golden_numbers.py
+    or settings.json). At N = 200,000 draws SE(m4) ~ 6e-4; correct draw measures
+    ~2e-4 (fixed seed) / <=2.5e-3 (200 seeds) vs 0.033 cube: gate 0.01 is ~4x
+    above the correct worst case, ~3x below the bug. Suite 73 passed after.
+  - POLISH (all applied): (a) T2b finite-basin headline pin (strict
+    inequalities, no tolerance -- at N=5, far capture strictly < near AND < 1.0;
+    72 -> 73 tests); (b) one-line Returns docstrings on save_outputs / _draw /
+    replot_from_npz / main; (c) run_grid takes dist_pc as a parameter (default
+    DIST_PC) instead of reading the module global; (d) matplotlib.use("Agg")
+    moved out of module scope into replot_from_npz (E1's precedent) so importing
+    the experiment has no backend side effect.
+- NO-TRIAL-LOOPS EXCEPTION + option-A ruling accepted as the documented,
+  ratification-flagged exception (item (cc)). Both audits PASS; suite 73 passed,
+  0 skipped. pytest immediately pre-commit clean. Commit hash + blessed full-grid
+  numbers at the next logbook touch (blessed-run entry).

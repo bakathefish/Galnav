@@ -283,6 +283,23 @@ E6_AGING_SMOKE_MIN_FACTOR = 1.5
 # journal/spec-e3-triangulation.md.
 NH_NAV_TOL_AU = 3.0
 
+# E2 isotropy gate (test_e2_basins.py T5). A uniformly-random unit vector
+# on S^2 has its projection onto ANY fixed unit vector distributed
+# Uniform(-1,1), so the 4th moment E[(u.v)^4] = 1/5 = 0.2 for every
+# direction v -- axis and diagonal projections must agree. The guarded
+# bug (a normalised-uniform-CUBE sampler, which is NOT isotropic) gives
+# axis ~0.18 vs diagonal ~0.21, a gap of ~0.033. The 2nd moment does NOT
+# discriminate (both constructions give projection variance ~1/3), which
+# is why this gate uses the 4th moment -- the original variance-based
+# check was measured to PASS on the bug and was replaced. At the test's
+# N = 200,000 draws: E[X^8] = 1/9, so Var(m4) = (1/9 - 1/25)/N and
+# SE(m4) ~ 6.0e-4 (difference of two, ~8.4e-4). Measured
+# |m4_axis - m4_diag| ~ 2e-4 at the test seed, <= ~2.5e-3 over 200
+# seeds, vs ~0.033 for the cube bug: 0.01 sits ~4x above the correct
+# draw's worst case and ~3x below the bug's gap. Evidence in
+# journal/spec-e2-convergence-basins.md.
+E2_ISOTROPY_M4_TOL = 0.01
+
 # Spec 8 / E5-lite comb-spacing match gate: the code's c*P comb spacing
 # must land within this many km of the frozen COMB_KM oracles above.
 # Why exactly 1.0 km: the plan (section 6, Spec 8) states the published

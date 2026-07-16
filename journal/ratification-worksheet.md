@@ -634,12 +634,66 @@ figure, then the smaller test/tooling/doc cards.)*
 
 ---
 
+## Item (cc) — E2: convergence basins + the OPTION-A failure-handling ruling
+
+- **What:** the AI-authored E2 card — `experiments/e2_convergence_basins.py`
+  and `tests/test_e2_basins.py` (built 2026-07-16 under the build-night
+  pattern). The result: the navigator's convergence BASIN (how far the initial
+  guess can be displaced and still converge) at 1 pc grows from a ~2 pc
+  0.5-capture radius with 5 stars to ~12 pc with 100 stars.
+- **Where recorded:** logbook 2026-07-16 (E2 entry);
+  `journal/spec-e2-convergence-basins.md`; commits recorded in the logbook.
+- **Evidence:** pytest 65 -> 73, 0 skipped. Reduced 200-trial probe (seed 42):
+  0.5-capture radius 1.90 / 3.88 / 6.32 / 9.80 / 11.49 pc for N = 5 / 10 / 20 /
+  50 / 100, matching the design reviewer's independent probe (2.0 pc @5,
+  11.8 pc @100). Reuses SOLVER_RECOVERY_TOL_AU + SOLVER_STEP_TOL_AU +
+  SOLVER_MAX_ITERS; ONE golden ADDED via authorized override #10
+  (E2_ISOTROPY_M4_TOL = 0.01, main session).
+- **Sub-items to rule on:**
+  1. The card + tests themselves (own every assertion).
+  2. THE FAILURE-HANDLING RULING = OPTION A (per-trial `try/except LinAlgError`
+     failure-isolation loop), AI-decided under the build authority. Confirm you
+     accept A over: B (damp the solver — would re-bless E1/E6/anchor),
+     C (hold), and D (batched pre-solve condition screen — REJECTED because the
+     singularity first appears MID-iteration, so a pre-screen is blind to it).
+     "Simplicity beats cleverness" (the project rulebook) drove the choice.
+  3. THE NO-TRIAL-LOOPS EXCEPTION: the per-trial loop knowingly breaks the
+     project's "vectorise over trials, no Python loops" rule. Confirm you accept
+     it as documented FAILURE ISOLATION (the rule is for MC throughput; this
+     loop runs in seconds and there is no vectorised way to isolate a
+     mid-iteration singularity without re-writing the deployed solver).
+  4. ZERO-NOISE basin definition: E2 studies the residual landscape, so it uses
+     no measurement noise (true position is an exact fixed point). Confirm.
+  5. `np.errstate` scoped around the isolated solve to silence the divide /
+     invalid warnings that escaping trials legitimately raise (sin(theta) -> 0
+     mid-divergence). Confirm you accept the scoped suppression.
+  6. This card supplies the measured basin as EVIDENCE for item (r) (the
+     undamped `solve_position`): the undamped solver already captures from
+     ~2-12 pc, so a coarse interstellar prior is well inside the basin without
+     damping. Rule (r) and (cc.2) together.
+  7. AUTHORIZED OVERRIDE #10: golden `E2_ISOTROPY_M4_TOL = 0.01` (isotropy gate
+     for the direction sampler, T5). Confirm you accept it. Note the honest
+     history: the first T5 used a projection-VARIANCE check that was measured to
+     PASS on the very cube bug it guards (the 2nd moment does not discriminate);
+     T5 was rewritten to the 4th moment, which cleanly separates the correct
+     draw (~2e-4) from the cube (~0.033), and the 0.01 gate was promoted to this
+     golden. Derivation is in the golden comment + the E2 journal.
+- **AI-recommended ruling:** accept the card and the basin result; accept
+  option A and its documented no-trial-loops exception; accept the zero-noise
+  definition and the scoped errstate; treat the measured basin as the evidence
+  that resolves item (r) toward "no damping needed for a coarse prior."
+- **STUDENT RULING:** ____________
+- **Date/initials:** ____________
+
+---
+
 *End of worksheet. Original 2026-07-15 draft consolidated twenty-five items
 from `journal/logbook.md` (Spec 7 items a–i, velocity+aberration items j–o,
 Session 5 skeptic-sweep items p–r, triple-verification items s–t, plus two
 legacy test items and three new-card items). Build-night additions appended
 after that draft: items u (E1 catalog swap), v/vi (Spec 10 propagator),
 w (E6a sampled sky), x/y/z (E6b aging experiment), aa (E5-lite pulsar
-lattice), and bb (E3 New Horizons real-data anchor) — see their logbook
-entries for the full evidence. AI-drafted as a decision aid; all rulings
-pending student sign-off; the logbook remains authoritative.*
+lattice), bb (E3 New Horizons real-data anchor), and cc (E2 convergence
+basins + the option-A failure-handling ruling) — see their logbook entries
+for the full evidence. AI-drafted as a decision aid; all rulings pending
+student sign-off; the logbook remains authoritative.*
