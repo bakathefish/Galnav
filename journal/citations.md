@@ -102,11 +102,14 @@ gamma = 1/sqrt(1 - beta^2) — standard textbook result, e.g. Rindler, W.
 (2006). *Relativity: Special, General, and Cosmological* (2nd ed.),
 Oxford University Press, ch. 4.
 - Used for: the correction to [Lauer25]'s Eq. 1 above; the formula E7
-  (0.1c experiment) must implement. Maximum deflection at beta = 0.1 is
-  5.7464 deg vs the Galilean arcsin(0.1) = 5.7392 deg.
+  (0.1c experiment) implements via the SR_ABER_PHI_RAD oracle. Maximum
+  deflection at beta = 0.1 is 5.7464 deg (peak 92.87 deg) vs the Galilean
+  arcsin(0.1) = 5.7392 deg (peak 95.74 deg); E7's classical navigator
+  (Lauer Eq. 1, no gamma) is biased ~1350 au at 0.1c (2026-07-16).
 - Where in repo: `journal/citations.md` (this note);
-  `tests/golden_numbers.py` ABERRATION_MAX_DEG_AT_0P1C comment. No code
-  uses it yet (E7's card will).
+  `tests/golden_numbers.py` ABERRATION_MAX_DEG_AT_0P1C comment;
+  `experiments/e7_relativistic_aberration.py` (exact oracle for Part A and
+  the deployed recovery) and `journal/spec-e7-relativistic-aberration.md`.
 - Verified: reduces to the Galilean form at gamma -> 1; numerical check
   of the 103-arcsec discrepancy at beta = 0.1, theta = 90 deg run
   2026-07-15.

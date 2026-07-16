@@ -2066,3 +2066,96 @@ of Claude Code) live separately in `ai_sessions/` — students only.
 - Archive README Contents entry added. This is the last buildable card before
   the user-blocked ones (Spec 9 PINT, E4 NICER/HEASoft); E7 (relativistic
   aberration, pure-numpy) remains buildable. NEXT: report to team-lead.
+
+## 2026-07-16 — E7: relativistic aberration at 0.1c (the relativistic armor)
+
+- BUILT experiments/e7_relativistic_aberration.py + tests/test_e7_aberration.py
+  (7 tests). Card DRAFTED FIRST and adversarially reviewed by main (APPROVE WITH
+  AMENDMENTS) before any code — build-night discipline held.
+- KEY REFRAMING confirmed in review: the aberration is ALREADY exact
+  special-relativistic on BOTH sides (truth _aberrate + nav _aberrate_nav,
+  independent Klioner-2003 k-forms with gamma, agree to ~1e-16), so E7 modifies
+  NOTHING in galnav/ and re-blesses nothing. Its payload is that at 0.1c the
+  EXACT form is MANDATORY.
+- HEADLINE (measured, full run seed 42): at 0.1c a navigator using the classical
+  (Galilean, Lauer Eq. 1) aberration mislocates the spacecraft by a **median
+  ~1356 au / ~1201 km/s** (~400x/600x the BJ anchor), while the exact solve_state
+  recovers to **1.2e-9 au / 8.0e-10 km/s**. Relativity is the difference between
+  arriving and being lost.
+- THREE AMENDMENTS from the review, all folded (they were real errors in my first
+  draft):
+  - B1: the payload is the ~500 arcsec PER-ANGLE model error (median 402 arcsec
+    measured; theta=90 gives 102.9 arcsec ~ citations.md's 103), NOT the 26 arcsec
+    max-DEFLECTION gap. The 26 arcsec is a Part-A curiosity only; quoting it as
+    the payload understated the result ~20x.
+  - B2: the LINEARIZED bias is a disclosed cross-check only (median 1196 au,
+    ~12% agreement / up to ~330% tail vs the full solve, because the ~500 arcsec
+    error is far outside the linear regime); the FULL experiment-local Galilean
+    6-state solve is v1 primary.
+  - B3: "pure reuse" was FALSE — no Galilean aberration exists in galnav (both
+    sides carry gamma). The classical predictor is NEW experiment-local
+    WRONG-PHYSICS code (u' = normalize(u + beta)), reusing nav _unit_directions +
+    _pair_sin_cos, differing only in the aberration line; honestly labelled.
+  - S1: T2 reframed — the gamma discriminator is exact peak 92.87 deg < Galilean
+    peak 95.74 deg ("peak > 90" holds for BOTH). My original narrative was
+    backwards: gamma pulls the peak TOWARD 90, not past it.
+  - S3: three DISTINCT maxima kept separate — small-angle 5.730, Galilean
+    (arcsin 0.1) 5.739 = golden, exact 5.746 deg.
+- IMPLEMENTATION CHOICE (flagged to main): the Galilean solver's jacobian is a
+  hand-rolled FINITE-DIFFERENCE of the classical predictor, vectorized over the
+  ensemble (true Galilean least-squares fixed point; predictor is the single
+  source of truth; no scipy in the loop; sub-second). Peak LOCATION via bounded
+  scipy.optimize.minimize_scalar (grid argmax would quantize it; value is
+  grid-robust). GALILEAN_MAX_ITERS=60 experiment-local (wrong-physics fit never
+  zeroes the residual), NOT the deployed budget, NOT a golden.
+- NO NEW GOLDEN, NO OVERRIDE: Part A checks the existing ABERRATION_MAX_DEG_AT_0P1C
+  (Galilean max) + derives the exact max from SR_ABER_PHI_RAD; Part B keys off
+  SOLVER_RECOVERY_TOL_AU/_KMS; Part C payload gate is structural (median
+  |d_pos| > 1 au, measured orders above). Citations already cover it
+  ([SR-ABER], [Klioner03], [Lauer25] Eq. 1) — no new outside facts.
+- SCOPE (does NOT): no acceleration, no light-travel-time/parallax-over-time, no
+  Doppler/photometric aberration, no epoch time-dilation, no gravitational
+  bending, single-epoch snapshot; consistent with the velocity card.
+- Suite 73 -> 80 passed, 0 skipped. AUDITS (truth-wall + spec-review) before
+  commit. Commit hash + blessed numbers at the next logbook touch. Ratification
+  item (dd) with sub-items (dd.1-dd.8).
+
+### E7 END-OF-CARD (both audits in; fixes applied; committing)
+
+- TRUTH-WALL AUDIT: **PASS**. The wrong-physics classical predictor is cleanly
+  quarantined (experiment-local, labelled); both navigators use IDENTICAL
+  perturbed 0.9-1.1x starts (neither handed the truth); the dtheta computation is
+  scoring-only (compares two nav models at a known point); galnav/ untouched. The
+  measmodel/CSV "modified" line is the same stale-snapshot phantom, verified
+  false.
+- SPEC-REVIEW AUDIT: **SHIPPABLE** with should-fix + nice-to-haves, ALL applied:
+  - argument-unit docstrings added to _draw_truths, linearized_galilean_bias,
+    compute (beta v/c, n_runs count, seed int, sigma_arcsec arcsec, rng
+    Generator, directions unit-vector return);
+  - T1 now DERIVES the exact-max reference from the SR_ABER_PHI_RAD oracle
+    (fine-grid max) instead of hard-coding 5.7464 (a change to the oracle can no
+    longer silently pass);
+  - arcsec routed through units.arcsec_to_rad at both edges (sigma in,
+    dtheta out via / arcsec_to_rad(1.0)) for the e3/e6 conversion path;
+  - non-singular-J^T-J assumption documented on both batched solves
+    (galilean_solve_state, linearized_galilean_bias) -- unlike the deployed
+    solver this wrong-physics probe has no recovery guarantee, used only on the
+    well-conditioned hub geometry (verified non-raising over 200 runs);
+  - _galilean_fd_jacobian return units tightened (cols 0-2 rad/au, 3-5
+    rad/(km/s)).
+- FD-JACOBIAN documented per main's ruling: central differences; step
+  h ~ eps^(1/3)*L (L = star distance ~2e5 au / c ~3e5 km/s -> ~1 au / ~1 km/s,
+  optimal band); the GN fixed point depends on the jacobian only through the
+  stationarity condition, so FD-vs-analytic moves the answer by O(step^2) --
+  MEASURED identical bias (1356.47 au / 1200.9 km/s) across four decades of step
+  (h in [0.1, 100]); the step is an implementation parameter, not a golden.
+- DISCLOSED BLIND SPOT (spec-review, recorded verbatim per main and in item
+  (dd)): T4's ">1 au" floor sits ~3 orders of magnitude UNDER the measured
+  ~1350 au, so the test proves the bias is catastrophic but does NOT pin its
+  magnitude -- the exact headline is pinned only by the blessed npz, not a test.
+  Left deliberately loose (no new golden); a student may tighten it (e.g.
+  ">100 au") at the ratification sitting.
+- WORKSHEET NICETY added: the e1-uses-RAD_ARCSEC vs e3/e6/e7-use-arcsec_to_rad
+  conversion-path inconsistency (a uniformity clean-up, not a bug).
+- pytest immediately pre-commit: 80 passed, 0 skipped. Commit hash back-filled at
+  the next logbook touch (blessed-run entry).

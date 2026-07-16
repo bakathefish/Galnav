@@ -687,13 +687,72 @@ figure, then the smaller test/tooling/doc cards.)*
 
 ---
 
+## Item (dd) — E7: relativistic aberration at 0.1c (the relativistic armor)
+
+- **What:** the AI-authored E7 card — `experiments/e7_relativistic_aberration.py`
+  and `tests/test_e7_aberration.py` (built 2026-07-16 under the build-night
+  pattern; card adversarially reviewed by main, APPROVED WITH AMENDMENTS). The
+  result: at 0.1c a navigator using the classical (Galilean, Lauer Eq. 1)
+  aberration mislocates the spacecraft by ~1350 au, while the exact navigator
+  recovers to ~1e-9 au — the exact special-relativistic form is MANDATORY.
+- **Where recorded:** logbook 2026-07-16 (E7 entry);
+  `journal/spec-e7-relativistic-aberration.md`; citations [SR-ABER], [Klioner03],
+  [Lauer25] Eq. 1 (all pre-existing). Commits recorded in the logbook.
+- **Evidence:** pytest 73 -> 80, 0 skipped. Full run (seed 42): Part A Galilean
+  max 5.7392 deg (peak 95.74) vs exact 5.7464 deg (peak 92.87), gap 26.0 arcsec;
+  Part B exact recovery 1.2e-9 au / 8.0e-10 km/s; Part C per-angle model error
+  median 402 arcsec, classical-navigator bias median 1356 au / 1201 km/s,
+  linearized cross-check 1196 au. No golden override.
+- **Sub-items to rule on:**
+  1. The card + tests themselves (own every assertion).
+  2. E7 is an EXPERIMENT — it does NOT modify galnav/ (aberration already exact
+     both sides). Confirm you accept the pure-experiment scope.
+  3. The THREE distinct aberration maxima (small-angle 5.730 / Galilean 5.739 /
+     exact 5.746 deg) and that the golden ABERRATION_MAX_DEG_AT_0P1C is the
+     Galilean one. Confirm the framing.
+  4. The PAYLOAD is the ~500 arcsec per-angle model error (median 402), NOT the
+     26 arcsec max-deflection gap (a Part-A curiosity). Confirm.
+  5. Part B uses the full 6-state solve_state (not position-only). Confirm.
+  6. The recovery floor at 0.1c (1.2e-9 au) is ~6x under SOLVER_RECOVERY_TOL_AU,
+     thinner than the golden comment's low-speed 16x margin (0.1c is a harder
+     inversion). Confirm you accept the thinner-but-comfortable margin.
+  7. (dd.7) THE GALILEAN PREDICTOR DESIGN: a NEW experiment-local WRONG-PHYSICS
+     classical predictor (u' = normalize(u + beta)) + hand-rolled damped GN with
+     a FINITE-DIFFERENCE jacobian, vectorized. Confirm you accept the
+     finite-difference jacobian choice (vs analytic) and the wrong-physics
+     labelling.
+  8. (dd.8) THE CORRECTED d_theta PROVENANCE: the payload's ~500 arcsec is the
+     per-angle exact-vs-Galilean difference in the real hub geometry, distinct
+     from the 26 arcsec max-deflection gap — a first-draft conflation caught in
+     review. Confirm the corrected number is the one the paper quotes.
+  9. (dd.9) T4 DISCLOSED BLIND SPOT (spec-review): the payload test gates only
+     median |d_pos| > 1 au, which sits ~3 orders UNDER the measured ~1350 au, so
+     the test proves the bias is catastrophic but does NOT pin its magnitude —
+     the ~1350 au headline is pinned only by the blessed npz. Decide whether to
+     tighten the gate (e.g. "> 100 au") or leave it loose. (No new golden either
+     way; a strict ">100 au" is still structural.)
+  10. (dd.10) CONVERSION-PATH UNIFORMITY (nicety, not a bug): E1 converts
+     arcsec via the raw RAD_ARCSEC constant while E3/E6/E7 use
+     units.arcsec_to_rad. Same value; decide whether to unify E1 onto the edge
+     helper for consistency.
+- **AI-recommended ruling:** accept the card and the ~1350 au headline; accept
+  the pure-experiment scope, the three-maxima framing, the corrected ~500 arcsec
+  payload, the 6-state recovery, the thinner 0.1c recovery margin, and the
+  finite-difference Galilean predictor as documented wrong-physics; keep the
+  linearized bias as the disclosed cross-check.
+- **STUDENT RULING:** ____________
+- **Date/initials:** ____________
+
+---
+
 *End of worksheet. Original 2026-07-15 draft consolidated twenty-five items
 from `journal/logbook.md` (Spec 7 items a–i, velocity+aberration items j–o,
 Session 5 skeptic-sweep items p–r, triple-verification items s–t, plus two
 legacy test items and three new-card items). Build-night additions appended
 after that draft: items u (E1 catalog swap), v/vi (Spec 10 propagator),
 w (E6a sampled sky), x/y/z (E6b aging experiment), aa (E5-lite pulsar
-lattice), bb (E3 New Horizons real-data anchor), and cc (E2 convergence
-basins + the option-A failure-handling ruling) — see their logbook entries
-for the full evidence. AI-drafted as a decision aid; all rulings pending
-student sign-off; the logbook remains authoritative.*
+lattice), bb (E3 New Horizons real-data anchor), cc (E2 convergence basins +
+the option-A failure-handling ruling), and dd (E7 relativistic aberration at
+0.1c) — see their logbook entries for the full evidence. AI-drafted as a
+decision aid; all rulings pending student sign-off; the logbook remains
+authoritative.*
