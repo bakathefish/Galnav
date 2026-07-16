@@ -48,6 +48,13 @@ storage rules added 2026-07-15.
 8. Commit, then grep the commit for AI attribution in message/metadata
    (must be none; the logbook documents AI use openly instead).
 9. 5-line plain-English summary the students can read aloud.
+10. AFTER ANY CRASH or interrupted run: before declaring the tree clean, run
+    `git stash list` AND `git status --untracked-files=all`, not just a
+    worktree/backup/.orig sweep. A crash can leave a `git stash` entry that a
+    later `git stash pop` would silently re-inject — and a stash can carry a
+    mutated GOLDEN value, which the deny-lock does not protect against
+    (2026-07-16: a crash-era stash held a doubled-noise E1 mutant plus
+    SOLVER_RECOVERY_TOL_AU 1e-8→1e-9; see the logbook).
 
 ## When the paper gets written (after science freeze, Oct 1)
 

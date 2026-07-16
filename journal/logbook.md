@@ -2192,3 +2192,33 @@ E3, E5-lite, E6, E2, and E7 are all built, blessed, and journaled; the suite is
 3. Before the paper's related-work: re-run the prior-art sweep's rate-limited
    Semantic Scholar / Google Scholar legs (a sweep is in flight this session).
 4. The deferred true-history GitHub push, to be done at project completion.
+
+## 2026-07-16 — Post-crash STASH debris found and disposed (git-hygiene)
+
+- FOUND during the final correctness sweep: `git stash list` showed
+  `stash@{0}` ("WIP on master: f89ef16") -- crash-era debris from the
+  2026-07-15 interrupted mutation sweep that EVERY prior cleanup missed. The
+  post-crash janitoring swept worktrees, backups, and .orig/.bak litter, but
+  nobody ran `git stash list`, so the stash sat untouched for a day.
+- VERIFIED CONTENTS before disposal (exactly two files, two lines): (1) the
+  doubled-noise E1 mutant -- `observed_pair_angles`'s `sigma_rad -> 2.0*sigma_rad`
+  in experiments/e1_crlb_grid.py; (2) a MUTATED GOLDEN --
+  SOLVER_RECOVERY_TOL_AU `1e-8 -> 1e-9` in tests/golden_numbers.py. This is the
+  exact transient scaffold the Session-5 skeptic sweep documented (the
+  doubled-noise mutant is the source of the observed 2.006 CRLB "failure" that
+  item q already resolved as mutant contamination).
+- WHY IT WAS DANGEROUS: a future `git stash pop` -- easy to run absent-mindedly
+  on a clean tree -- would have SILENTLY re-injected the doubled-noise mutant AND
+  corrupted a golden tolerance by 10x. A tightened golden (1e-9) would not even
+  fail loudly; it would quietly make the recovery gate 10x stricter and could
+  start rejecting correct code, or mask a real regression. Debris that edits a
+  golden is the worst kind: the deny-lock protects against live edits, not
+  against a stash pop.
+- DISPOSAL: the main session ran `git stash drop` (dropped object 97d8726, still
+  reachable via reflog for the grace period should forensics want it). Confirmed
+  after: `git stash list` empty; working tree carries the CORRECT values
+  (SOLVER_RECOVERY_TOL_AU = 1e-8, E1 noise un-doubled -- re-verified this entry);
+  suite 80/80.
+- LESSON (added to journal/README.md's end-of-card / post-crash checklist):
+  post-crash cleanup MUST include `git stash list` -- worktrees, backups, and
+  litter files are not the only place a crash hides a mutant.
