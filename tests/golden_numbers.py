@@ -270,6 +270,19 @@ SPEC10_DRIFT_REL_TOL = 1e-3
 # Measured evidence recorded in journal/spec-e6b-aging-experiment.md.
 E6_AGING_SMOKE_MIN_FACTOR = 1.5
 
+# Experiment E3 pass gate (project plan, section 7): our full pipeline's
+# New Horizons position fix -- Gaia CSV -> select Proxima Cen + Wolf 359
+# by source_id -> propagate J2016.0 to the mean image epoch (~J2020.31)
+# -> n_star_solve on Lauer's published measured directions -- must land
+# within this many au of the JPL Horizons ground-truth state. The 3 au
+# is the plan's own pre-registered gate. Measured miss ~0.345 au (~8.7x
+# inside). For the record (both numbers live in the Lauer 2025 deposit
+# and are easy to conflate): the Lauer team's actual miss vs JPL is
+# 0.351 au; their published "0.441 au" is the error ellipsoid's LARGEST
+# 1-sigma SEMI-AXIS, not the miss. Evidence in
+# journal/spec-e3-triangulation.md.
+NH_NAV_TOL_AU = 3.0
+
 # Spec 8 / E5-lite comb-spacing match gate: the code's c*P comb spacing
 # must land within this many km of the frozen COMB_KM oracles above.
 # Why exactly 1.0 km: the plan (section 6, Spec 8) states the published

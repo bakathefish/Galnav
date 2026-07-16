@@ -1827,3 +1827,109 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   0.441 au ellipsoid. NEXT: draft the E3 card (n_star_solve re-implementation +
   the real-data recovery test) and send to team-lead for design review before
   code, per the card-first discipline. Commit hash recorded next logbook touch.
+
+## 2026-07-16 — E3 part 1: line-of-position triangulation navigator
+
+- AUTHORITY: user granted full one-shot build authority with the gate "run
+  review agents until clean, fix+rerun, then move on." Proceeding autonomously
+  in build order (E3 -> E2 -> pulsar solver -> armor), audit-gated commits, no
+  golden_numbers.py / settings.json edits by me (still hard-walled).
+- BUILT galnav/nav/triangulate.py::n_star_solve — independent re-implementation
+  of Lauer et al. (2025)'s closed-form line-of-position solver: w_i = (I -
+  d_i d_i^T)/|p_i|^2, x = (sum w_i)^{-1}(sum w_i p_i). Nav-side, numpy-only,
+  truth-wall clean. TDD: tests/test_e3_triangulation.py RED (ModuleNotFound)
+  then GREEN. Suite 59 -> 63.
+- GOLDEN-FREE by design: synthetic tests assert exact recovery to the frozen
+  SOLVER_RECOVERY_TOL_AU (reused); the real-data test (part 2) will assert we
+  reproduce Lauer's published x2 to the same gate, so NO override #9
+  (NH_NAV_TOL_AU) is needed and the 0.44 au result is a reported figure.
+- SPLIT: E3 is two increments (E5-lite precedent). Part 1 = navigator + 4
+  synthetic exact-geometry tests + journal (spec-e3-triangulation.md). Part 2 =
+  real-data experiment: extract Lauer's measured directions (p_dbar, w_dbar)
+  and Gaia star positions (proxima.p, wolf.p) + JPL truth (~(13.55,-42.02,
+  -16.46) au, 47.12 au) from the notebook, reproduce x2 (~(13.68,-41.82,
+  -16.20) au), report the ~0.4 au NH-JPL error + figure. Notebook extraction
+  DELEGATED to an Opus agent (per the user's delegate-easy-work instruction).
+- AUDITS: truth-wall-auditor + spec-reviewer run before commit (gate). Commit
+  hash recorded next logbook touch.
+- AUTHORIZED OVERRIDE #9 (performed by MAIN SESSION under standing
+  authorization, same procedure as #6/#7/#8 — build agent did NOT edit
+  golden_numbers.py or settings.json): added NH_NAV_TOL_AU = 3.0 (plan
+  section-7 E3 pass gate) with a full evidence comment that also encodes the
+  0.351-au-MISS vs 0.441-au-ELLIPSOID distinction permanently. Deny-lock lifted
+  then restored (settings diff empty); golden diff = only the new block; suite
+  63 passed after.
+- E3 DESIGN REVIEW (team-lead e3-reviewer, notebook re-run + independent Opus
+  extraction reconciled): APPROVE WITH AMENDMENTS. CRITICAL correction folded
+  in: "0.44 au" is the ellipsoid semi-axis, the MISS is 0.351 au; epoch
+  propagation is MANDATORY (unpropagated 30.28 au, propagated 0.3547 au);
+  covariance is unit-angular-variance (scale by rmssig=0.44" for the physical
+  ellipsoid); two solves x2 (2 averaged directions) and x60 (12 lines); JPL
+  truth = 0.5*(mean 6 Proxima + mean 6 Wolf) hardcoded-cell-4 Horizons.
+- TOLERANCE DECISION (approved): synthetic T1/T2/T4/T5 prove the algorithm
+  EXACTLY at SOLVER_RECOVERY_TOL_AU (reused). The real-data GATE is T3 only:
+  full galnav pipeline (CSV -> select by source_id -> propagate J2016->image
+  epoch -> n_star_solve on the measured directions) miss vs JPL <
+  NH_NAV_TOL_AU=3.0 (measured ~0.345 au, ~8.7x inside). The notebook-x2
+  identity is a REPORTED cross-check (~0.006 au = 8-digit fixture rounding, not
+  1e-8; documented choice — feeding full-precision fixtures would make it
+  exact, but T1/T2 already carry the exact proof, so it is not gated). Miss and
+  ellipsoid (0.441/0.233/0.206) are reported in journal+figure, not gated.
+- VERIFIED numerically (2026-07-16): our n_star_solve on Lauer's extracted
+  inputs reproduces his x2 to 0.0065 au and yields a 0.346 au miss vs JPL
+  (Lauer 0.351); Proxima-Wolf direction separation 80.6 deg (cond ~2.7). The
+  navigator works on real New Horizons data.
+
+## 2026-07-16 — E3 part 2: real New Horizons recovery (the real-data anchor DONE)
+
+- BUILT experiments/e3_new_horizons.py (input artifact + pipeline + reproduction
+  + figure + npz + replot) and tests T3/T6. Suite 63 -> 65.
+- HEADLINE (measured): OUR FULL INDEPENDENT PIPELINE recovers the real New
+  Horizons position to **0.347 au** vs the JPL ephemeris — inside the plan's
+  3 au gate by ~8.6x, on real spacecraft photographs of two stars. Pipeline =
+  our Gaia DR3 catalogue -> select Proxima + Wolf 359 by source_id -> propagate
+  J2016.0 to the image epoch (age 4.3087 yr, PM+RV, MANDATORY: unpropagated the
+  miss is ~30 au) -> n_star_solve on Lauer's measured directions -> miss vs JPL.
+  The reproduction cross-check (Lauer's own inputs) matches his x2 to 0.0065 au.
+- AMENDMENTS FOLDED (design review): epoch propagation via catalog.py; miss
+  (0.351/our 0.347) kept DISTINCT from the 0.441/0.233/0.206 au ellipsoid;
+  source_id selection helper (load_catalog drops the column); Wolf 359 RV fill =
+  Simbad 19.57 (our CSV lacks it; rv_fill=0 shifts ~0.03 au, documented);
+  aberration note (Gaia-frame plate solutions, bulk cancels, no correction);
+  triangulate.py never sees JPL (truth wall — JPL only in scoring). x60 (12-line)
+  full reproduction + ellipsoid recompute FLAGGED as v1.1 (needs 12 per-image
+  directions); Lauer's x60 ellipsoid quoted for now.
+- TRUTH WALL: triangulate.py imports numpy only (self-verified); AST test green;
+  JPL truth enters only the miss score. AUDITS (truth-wall + spec-review) on the
+  complete E3 run before commit. Commit hash next logbook touch. Then E2.
+
+### E3 END-OF-CARD (both complete-E3 audits in; fixes applied; committing)
+
+- TRUTH-WALL AUDIT: **PASS**. JPL state (NEWH_X_JPL) enters ONLY the miss score,
+  never n_star_solve; the hardcoded Lauer inputs (directions, his propagated
+  star positions, his x2) are correctly classed as MEASUREMENTS / public-catalog
+  values, not truth. Nice detail the auditor traced: the "13.5495" leading digit
+  that visually collides with NEWH_X_JPL[0] is an unrelated coincidence -- it is
+  the x-component of the JPL truth vector itself, and separately Wolf 359's RV
+  fill (19.57) has no digit overlap with any truth quantity; no truth constant
+  is smuggled through a look-alike literal. AST truth-wall test green.
+- SPEC-REVIEW AUDIT: **PASS with fixes** (all applied this commit):
+  (1) SHOULD-FIX -- import NH_NAV_TOL_AU into experiments/e3_new_horizons.py and
+      drive the figure-title gate text + main() stdout gate text from the
+      constant (killed the hard-typed "3 au" at the title and the print); test
+      docstring "3 au" literals reworded to name NH_NAV_TOL_AU so nothing goes
+      stale if the golden changes.
+  (2) NICE-TO-HAVE -- store lauer_x60_miss_au (0.351) AND nh_nav_tol_au (3.0) in
+      the npz, so the figure annotation ("Lauer x60 miss 0.351 au; gate < 3 au")
+      is fully regenerable from the saved arrays alone (blessed-results rule).
+      Verified: replot_from_npz on a fresh compute() reproduces the title from
+      npz fields only; miss unchanged 0.3467 au; suite 65 passed.
+- GOVERNANCE FLAG (reviewer caution, answered honestly): the spec reviewer flags
+  that a new golden (NH_NAV_TOL_AU) appeared -- correct to flag. It is SETTLED:
+  override #9 was performed by the MAIN SESSION under the students' standing
+  authorization (same procedure as #6/#7/#8), the build agent never edited
+  golden_numbers.py or settings.json, the deny-lock diff is empty, and the full
+  evidence trail (value, why 3.0, the miss-vs-ellipsoid comment) is in the
+  override-#9 logbook entry above. Pointer, not a re-litigation.
+- pytest immediately pre-commit: 65 passed, 0 skipped. Commit hash back-filled
+  at the next logbook touch (blessed-run entry).
