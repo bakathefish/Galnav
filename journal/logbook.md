@@ -2364,3 +2364,53 @@ wrong.**
 - COMMIT: this entry (logbook-only appendage; no code, no golden, no test edits;
   `tests/golden_numbers.py`, `tests/test_truth_wall.py`, and
   `journal/citations.md` untouched, per item (q) constraints).
+
+## 2026-07-16 - Prior-art dead-leg re-run: Semantic Scholar + Google Scholar closed out; E6 and E5-lite novelty claims SURVIVE
+- WHAT: Re-ran the two search legs that were rate-limited in both earlier
+  prior-art sweeps (2026-07-15 sweep and 2026-07-16 full re-sweep), as the
+  logbook required before the paper's related-work section is drafted.
+  Executed by an isolated research agent driving the paper-search MCP
+  (Semantic Scholar + Google Scholar + fallbacks), directed and verified by
+  the main session — the AI workflow this logbook openly documents.
+  Engine status: Semantic Scholar cleared 3 of 9 queries (its first-ever
+  results for this project: "star catalog aging navigation error", "stellar
+  catalog epoch propagation spacecraft navigation", "catalog aging navigation
+  accuracy star tracker deep space", 10 hits each) then throttled again after
+  serial backoff retries; Google Scholar returned zero results on initial and
+  backoff attempts (captcha-blocked MCP leg, still dead). Every remaining
+  query was re-run with IDENTICAL query strings on OpenAlex (all 8 completed)
+  plus Crossref (2 headline queries) plus an arXiv double-check of the E6
+  aging concept - so no query string is uncovered, but 6/9 Semantic and 8/8
+  Google Scholar queries were closed VIA FALLBACK engines, not natively.
+- WHY: The two open caveats from the earlier sweeps had to be discharged (or
+  produce threats) before related-work drafting; both novelty claims needed a
+  final check against the engineering venues (IEEE/AIAA) that arXiv-centric
+  legs under-cover.
+- FINDINGS: ZERO threats. E6 verdict SURVIVES: no paper computes navigation
+  position error as a function of catalog age; the arXiv double-check
+  returned only proper-motion/astrometry catalog papers, independently
+  re-confirming the null. E5-lite verdict SURVIVES (narrow claim): no paper
+  treats optical-fix-bootstrapped pulsar-comb ambiguity at interstellar
+  range. Four NEW threat-adjacent must-cite/distinguish papers entered the
+  registry - [YucalanPeck19] and [YucalanPeck21] (relativistic interstellar
+  StarNAV with the catalog as a STATIC fixed-epoch error - the closest prior
+  art to E6, no age sweep), [ZhangLiLiu26] (single-epoch plate-model VELOCITY
+  floor, distinct from E6's epoch-parallax POSITION floor and aging map),
+  [Franzese26] (outer-solar-system parallax nav to 250 AU, fixed catalog) -
+  plus [Shemar16] (ESA XNAV, reinforces E5-lite's "solar-system XNAV is
+  established" framing). Supporting candidates recorded here for the paper
+  sitting, full registry entries deferred until used: Mancini & Christian
+  2025 (10.1109/AERO63441.2025.11068651), Runnels & Gebre-Egziabher 2017
+  (hdl:11299/201741, near-Earth photon-association), Lopez-Arreguin &
+  Montenegro 2024 (10.1016/j.rineng.2024.101778), Wiley 2025 optical-nav
+  textbook ch. 5 (10.1002/9781394267743.ch05), Liang Wu 2020 JATIS
+  (10.1117/1.jatis.6.4.044006, guide-star-catalog generation).
+- CAVEAT (recorded, not blocking): a future pass on Semantic Scholar /
+  Google Scholar could still surface engineering hits the fallbacks missed;
+  if either MCP leg comes back alive at paper-drafting time, re-run the 14
+  unclosed engine-query pairs as a courtesy check. Students should sight
+  every new paper (abstract-verified only) before the related-work section
+  is finalized.
+- COMMIT: this entry + the five [YucalanPeck19]/[YucalanPeck21]/
+  [ZhangLiLiu26]/[Franzese26]/[Shemar16] registry entries in
+  journal/citations.md (docs only; no code, golden, or test files touched).

@@ -434,6 +434,67 @@ Navigation of a Spacecraft by the Relativistic Perturbation of Starlight."
   confirmed by students; StarNAV is the Christian-group concept.) Verified:
   title/venue via WebSearch, 2026-07-16.
 
+**[YucalanPeck19]** Yucalan, D., & Peck, M. A. (2019). "A Static Estimation
+Method for Autonomous Navigation of Relativistic Spacecraft." *IEEE Aerospace
+Conference*. doi:10.1109/AERO.2019.8741804
+- Used for: related work bounding E6 — the closest interstellar-StarNAV prior
+  art found by the 2026-07-16 dead-leg re-run (Earth->Proxima at 0.2c, star
+  tracker + spectrometer; "error stems principally from uncertainty in the
+  star catalog"). The catalog is treated as a STATIC fixed-epoch error; no
+  catalog-AGE sweep, no (age x sensor) map, no crossover — which is exactly
+  E6's contribution. MUST cite and distinguish.
+- Where in repo: journal/logbook.md (2026-07-16 dead-leg re-run); future
+  paper related-work. Verified: abstract via OpenAlex, 2026-07-16 (students
+  should sight the paper before related-work is drafted).
+
+**[YucalanPeck21]** Yucalan, D., & Peck, M. A. (2021). "An Optimal Navigation
+Filter for Relativistic Spacecraft." *AIAA SciTech Forum*, AIAA 2021-1868.
+doi:10.2514/6.2021-1868
+- Used for: related work bounding E6 — interstellar EKF by the same group;
+  catalog uncertainty named the dominant error floor, with future astrometry
+  "up to five orders" better. Treats catalog PRECISION at a fixed epoch, not
+  catalog AGE; no aging map. MUST cite and distinguish.
+- Where in repo: journal/logbook.md (2026-07-16 dead-leg re-run); future
+  paper related-work. Verified: abstract via OpenAlex, 2026-07-16 (students
+  should sight before drafting).
+
+**[ZhangLiLiu26]** Zhang, D.-D., Li, M., & Liu, N. (2026). "Astrometric
+Systematic Errors as a Limiting Factor in Stellar-Aberration-Based Autonomous
+Navigation." *Universe*, 12(7), 197. doi:10.3390/universe12070197
+- Used for: related work bounding E6 — propagates Gaia DR3 covariance and
+  plate-model systematics to a SINGLE epoch (J2026.0) and derives a VELOCITY
+  floor (0.9-2.5 m/s) for aberration-based navigation. Distinct twice over:
+  single-epoch (no age sweep, no crossover) and a velocity floor from plate
+  systematics, not E6's epoch-parallax POSITION floor. MUST cite and
+  distinguish — closest published "systematics floor" result to E6's.
+- Where in repo: journal/logbook.md (2026-07-16 dead-leg re-run); future
+  paper related-work. Verified: abstract via Semantic Scholar, 2026-07-16
+  (students should sight before drafting).
+
+**[Franzese26]** Franzese, V. (2026). "Star-based Navigation in the Outer
+Solar System." *Journal of Guidance, Control, and Dynamics*.
+doi:10.2514/1.g009764. arXiv:2603.06247
+- Used for: related work for the starlight leg — parallax-shift navigation
+  demonstrated to 250 AU (Voyager/Pioneer/New Horizons regime), sub-au
+  accuracy, FIXED catalog. Bounds E6/E1 from the near side: outer solar
+  system, not interstellar, and no catalog aging. Cite and distinguish the
+  range regime.
+- Where in repo: journal/logbook.md (2026-07-16 dead-leg re-run); future
+  paper related-work. Verified: abstract via Semantic Scholar, 2026-07-16
+  (students should sight before drafting).
+
+**[Shemar16]** Shemar, S., et al. (2016). "Towards practical autonomous
+deep-space navigation using X-ray pulsar timing." *Experimental Astronomy*,
+42, 101. doi:10.1007/s10686-016-9496-z
+- Used for: related work bounding E5-lite — the ESA XNAV study (B1937+21,
+  ~2-5 km position to 30 AU) reinforcing that solar-system pulsar navigation
+  is ESTABLISHED. E5-lite's narrow claim starts where this ends: at
+  interstellar range a ~1 au starlight fix cannot bootstrap the comb integer
+  (4+ orders vs the packing radius). Strengthens the required narrow framing.
+- Where in repo: journal/logbook.md (2026-07-16 dead-leg re-run);
+  journal/spec-e5-pulsar-lattice.md related work; future paper. Verified:
+  abstract via OpenAlex, 2026-07-16 (students should sight before drafting).
+
 ## Learning resources consulted (log for the ISEF logbook, not paper refs)
 
 - Khan Academy, "Defining the angle between vectors."
