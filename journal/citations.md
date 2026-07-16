@@ -180,9 +180,15 @@ Astronomical Journal*, 129, 1993. https://www.atnf.csiro.au/research/pulsar/psrc
 - Used for: pulsar spin periods behind the six comb spacings (Crab 33.6 ms,
   B1937+21 1.558 ms, J0218+4232 2.323 ms, B1821-24 3.054 ms,
   J0030+0451 4.865 ms, J0437-4715 5.757 ms).
-- Where in repo: `tests/golden_numbers.py` (COMB_KM).
+- Where in repo: `tests/golden_numbers.py` (COMB_KM); `galnav/pulsar.py`
+  (PULSAR_PERIODS_S, the six periods used by comb_spacing_km);
+  `tests/test_e5_pulsar.py`; `journal/spec-e5-pulsar-lattice.md`.
 - Note: periods rounded to the digits shown; comb values verified to agree
-  with c x P within 1 km (recomputed 2026-07-14).
+  with c x P within 1 km (recomputed 2026-07-14; re-verified 2026-07-16 for
+  the E5-lite card). Sub-km flag for ratification: J0030+0451's frozen COMB_KM
+  1459 km rounds up from c x P = 1458.49 km (nearest integer 1458); the 0.51 km
+  gap is inside Spec 8's 1 km spec but the frozen value is the non-nearest
+  integer — recorded, not changed (golden file is frozen).
 
 **[GaiaDR3]** Gaia Collaboration, Vallenari, A., et al. (2023). "Gaia Data
 Release 3: Summary of the content and survey properties." *Astronomy &
@@ -331,6 +337,25 @@ https://numpy.org/doc/stable/reference/random/compatibility.html
 - Verified: both pages checked on 2026-07-15 (policy wording: the
   same-build / same-environment / same-machine guarantee; cross-version
   stream changes allowed "with caution").
+
+**[LAMBDA]** Teunissen, P. J. G. (1995). "The least-squares ambiguity
+decorrelation adjustment: a method for fast GPS integer ambiguity
+estimation." *Journal of Geodesy*, 70, 65-82.
+- Fact/method used: the phase-comb navigation ambiguity is an INTEGER
+  least-squares problem on a lattice (the same structure as GPS carrier-phase
+  ambiguity resolution). The largest prior position uncertainty for which the
+  correct integer set is still unambiguous is the packing radius rho =
+  lambda_1 / 2 (half the shortest lattice vector). E5-lite uses only this
+  packing-radius criterion — it does NOT run the LAMBDA decorrelation/search
+  itself; the full closest-vector integer solver (LAMBDA / LLL, optionally via
+  `fpylll`) is the deferred follow-up card.
+- Where in repo: `galnav/pulsar.py` (ambiguity_lattice_generator,
+  shortest_vector_km, packing_radius_km); `tests/test_e5_pulsar.py`;
+  `journal/spec-e5-pulsar-lattice.md`. The plan's E5-lite run-book (section 7)
+  is the internal source that establishes this framing and the GPS analogy.
+- Verified against the project plan's own citation; students should sight the
+  Teunissen original before the paper's methods section (WebFetch unavailable
+  in the build session, 2026-07-16).
 
 ## Learning resources consulted (log for the ISEF logbook, not paper refs)
 

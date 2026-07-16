@@ -1623,3 +1623,90 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   explicitly (`60a8d4e`) rather than "this commit," matching the item-(t)
   provenance precedent. No source, test, golden, or result array changed —
   verification + lab-record completion only.
+
+## 2026-07-16 — E5-lite / Spec 8 (comb part): pulsar lattice impossibility
+
+- WHAT: built the pulsar leg's first result — `galnav/pulsar.py` (public
+  physics: comb spacing c*P, half-comb coast time, the 3-pulsar ambiguity-
+  lattice generator + shortest-vector-by-enumeration + packing radius),
+  `tests/test_e5_pulsar.py` (6 tests), and `experiments/e5_pulsar_lattice.py`
+  (the impossibility figure + coast-budget panel, npz + replot_from_npz).
+  The finding: a starlight fix (~1 au) is 4+ orders coarser than even the
+  widest phase comb (~10,073 km), so no comb's integer turn-count can be
+  locked from a star fix. This is the "why pulsar-only interstellar nav fails"
+  headline. AI-authored, ratification-pending (build-night pattern, extends
+  the user's "do the remaining" instruction).
+- WHY THIS CARD NOW: user asked to build the remaining work after verifying
+  the current work. Triage of the remaining plan items by buildability:
+  E5-lite/Spec 8-comb and E2 basins are pure numpy (buildable); E3 (real New
+  Horizons) is blocked — needs LORRI FITS and WebFetch is denied in
+  settings.json; Spec 9 (PINT) and E4 (NICER/HEASoft) are dependency/data
+  blocked. Picked the pulsar leg first as the highest-value unblocked science.
+- SCOPE STOP (derivation fork, deferred honestly): the GENERAL closest-vector
+  integer-recovery solver (Spec 8's "recover injected integers when prior <
+  packing radius") is NOT built — it needs an fpylll-vs-numpy-enumeration
+  decision (CLAUDE.md: present options, STOP for the students). E5-lite needs
+  only the packing radius, which enumeration gives. Flagged as the follow-up.
+- NO GOLDEN OVERRIDE. The card reuses FROZEN golden numbers already present:
+  COMB_KM (the six §12 comb oracles) and COAST_DAYS_467KM_1CM_S / _1M_S. Every
+  other oracle is computed inline (exact / bitwise) or is a strict scientific
+  inequality. tests/golden_numbers.py and settings.json untouched.
+- MEASURED EVIDENCE:
+  - comb spacings c*P vs frozen COMB_KM: max gap 0.51 km (J0030+0451), all six
+    inside Spec 8's 1 km spec. RATIFICATION FLAG: J0030 frozen 1459 km is the
+    non-nearest integer to c*P = 1458.49 (nearest is 1458); 0.51 km, inside
+    spec, recorded not changed (golden frozen).
+  - coast on the 467 km comb: 270.25 d at 1 cm/s, 2.70 d at 1 m/s -> round to
+    the frozen 270.0 / 2.7 exactly.
+  - impossibility: 1 au / widest comb (Crab 10,073 km) = 14,851 (>1e4, the
+    pre-registered 4-order prediction); 1 au / finest comb (467 km) = 320,285;
+    packing radius of (Crab, B1937+21, J0030+0451) = 286 km, 1 au / rho =
+    523,024.
+  - pytest: BEFORE 53 passed; AFTER 59 passed, 0 skipped (+6 new). New tests
+    confirmed RED first (ImportError: no galnav.pulsar) before GREEN.
+- TRUTH WALL: `galnav/pulsar.py` is neutral public physics — imports only
+  numpy + galnav.units, nothing from truth or nav; the AST truth-wall test
+  stays green. Audits (truth-wall-auditor + spec-reviewer) run before commit.
+- FIGURE: results/e5_pulsar_lattice_<stamp>.npz + .png (git-ignored bench);
+  regenerable from the npz alone via replot_from_npz. Minor label crowding on
+  the four tightly-spaced combs (467-1726 km) is a cosmetic ratification
+  nicety. To be blessed into results/archive/ when the students quote it.
+- RATIFICATION ITEM (aa): the E5-lite card + tests, the deferred-solver fork,
+  the J0030 sub-km flag, the km-unit deviation, the atol nicety, and the figure
+  label polish. Added to the worksheet.
+
+### END-OF-CARD AUDITS + OVERRIDE #8 + close-out (2026-07-16)
+
+- AUTHORIZATION TRAIL: the user directly instructed "do the remaining" after
+  confirming the current work was verified correct; main session confirmed the
+  user's direct continuation authorization. That is this card's authorization
+  (build-night AI-authored, ratification-pending pattern).
+- TRUTH-WALL-AUDITOR: PASS. galnav/pulsar.py imports only numpy + galnav.units;
+  no truth/nav coupling; PULSAR_PERIODS_S is public ATNF data; the experiment
+  uses no solver. Advisory (awareness, not a defect): PULSAR_PERIODS_S is a
+  module-level mutable dict — a one-line note, no leak.
+- SPEC-REVIEWER: NO BLOCKERS, two should-fixes, both resolved:
+  #1 the comb-match tolerance should be golden-sourced, not an inline 1.0 ->
+  resolved by OVERRIDE #8 (below) + test now imports COMB_MATCH_KM.
+  #2 the km/seconds length-unit choice deviates from the project au/km-s/rad
+  rule and needs a conscious student sign-off -> added as worksheet item (aa)
+  sub-item 5. Mechanical niceties also applied: docstring unit completions
+  (B entries km, search dimensionless half-width, compute return-dict units,
+  well-conditioned-N caveat into shortest_vector_km); the experiment now
+  imports the BJ anchor from golden (BAILER_JONES_ANCHOR) and reads the E6
+  epoch floor from the blessed E6 archive at runtime instead of hardcoding
+  3.0 / 7.66 (drift prevention); dead `import pytest` removed. The atol=1e-9
+  exact-scaling identity in T3 left as-is, recorded as worksheet nicety (aa.6).
+- AUTHORIZED OVERRIDE #8 (performed by MAIN SESSION under the students'
+  standing authorization, same procedure as #6/#7 — the build agent did NOT
+  edit golden_numbers.py or settings.json): added COMB_MATCH_KM = 1.0 to
+  tests/golden_numbers.py with an evidence comment (the 1 km figure is the §12
+  oracle's own rounding quantization per plan section 6, not a physics
+  tolerance). Deny-lock lifted then restored; settings.json diff empty after;
+  suite 59 passed after. test_e5_pulsar.py T2 now uses COMB_MATCH_KM.
+- SUITE after the test edit + niceties: re-run immediately before commit
+  (expect 59 passed, 0 skipped). golden_numbers.py carries only override #8
+  (+10 lines); settings.json unchanged.
+- PENDING: commit hashes recorded next logbook touch. Two commits: (1) the card
+  file set incl. golden override #8; (2) the blessed E5-lite archive + headline
+  numbers. Next unblocked card after this: E2 convergence basins.

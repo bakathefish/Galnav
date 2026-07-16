@@ -269,3 +269,13 @@ SPEC10_DRIFT_REL_TOL = 1e-3
 # flank from above (at 60 arcsec, 5 yr of aging must NOT reach it).
 # Measured evidence recorded in journal/spec-e6b-aging-experiment.md.
 E6_AGING_SMOKE_MIN_FACTOR = 1.5
+
+# Spec 8 / E5-lite comb-spacing match gate: the code's c*P comb spacing
+# must land within this many km of the frozen COMB_KM oracles above.
+# Why exactly 1.0 km: the plan (section 6, Spec 8) states the published
+# match figure as "to 1 km" -- the oracles themselves are rounded to the
+# nearest km (e.g. B1937+21: 467 km from P = 1.558 ms), so 1 km IS the
+# oracle's own quantization, not a physics tolerance. The computed
+# values sit well inside (derivation exact: c exact by definition, P
+# from the ATNF catalogue values cited in journal/citations.md).
+COMB_MATCH_KM = 1.0

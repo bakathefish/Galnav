@@ -528,8 +528,58 @@ figure, then the smaller test/tooling/doc cards.)*
 
 ---
 
-*End of worksheet. Twenty-five open items consolidated from `journal/logbook.md`
-(Spec 7 entry items a–i, velocity+aberration entry items j–o, Session 5
-skeptic-sweep items p–r, triple-verification items s–t, plus two legacy test
-items and three new-card items). AI-drafted 2026-07-15 as a decision aid; all
-rulings pending student sign-off; the logbook remains authoritative.*
+## Item (aa) — E5-lite / Spec 8 (comb part): pulsar lattice impossibility card
+
+- **What:** the AI-authored E5-lite card, its module `galnav/pulsar.py`, tests
+  `tests/test_e5_pulsar.py`, and experiment `experiments/e5_pulsar_lattice.py`
+  (built 2026-07-16 under the build-night pattern). The result: a starlight
+  fix (~1 au) is 4+ orders coarser than even the widest pulsar comb
+  (~10,073 km), so pulsar-comb navigation cannot be bootstrapped from a star
+  fix at interstellar range.
+- **Where recorded:** logbook 2026-07-16 (E5-lite entry);
+  `journal/spec-e5-pulsar-lattice.md`; citations [ATNF], [LAMBDA].
+- **Evidence:** pytest 53 -> 59; comb spacings match frozen COMB_KM within
+  0.51 km; coast on 467 km comb 270.25 d @1cm/s, 2.70 d @1m/s (== frozen
+  270.0/2.7); 1 au / widest comb = 14,851; packing radius of (Crab, B1937+21,
+  J0030+0451) = 286 km. No golden override (reused frozen COMB_KM and
+  COAST_DAYS_*).
+- **Sub-items to rule on:**
+  1. The card + tests themselves (own every assertion).
+  2. The DEFERRED-SOLVER fork: the general closest-vector integer-recovery
+     solver needs an `fpylll`-vs-numpy-enumeration decision before it is built.
+  3. The J0030+0451 sub-km flag: frozen COMB_KM 1459 km is the non-nearest
+     integer to c*P = 1458.49 km (nearest 1458); 0.51 km, inside Spec 8's 1 km
+     spec; recorded, not changed. Confirm you accept the frozen value.
+  4. Figure label polish: the four tightly-spaced combs (467-1726 km) crowd
+     their labels — a cosmetic fix before the figure is quoted/blessed.
+  5. UNIT DEVIATION (rule-4 conscious sign-off, spec-reviewer should-fix #2):
+     `galnav/pulsar.py` works in KILOMETRES for lengths (comb spacings,
+     lattice, packing radius) and SECONDS/DAYS for time — NOT the project's
+     internal au / km-s / rad. Km is the natural unit for comb navigation
+     (combs are ~10^2-10^4 km; in au every number would be ~10^-6). Confirm you
+     accept km/seconds/days as a documented LOCAL convention isolated to the
+     pulsar module, converting to au only where it meets the starlight numbers
+     (the experiment's star-fix band uses AU_KM).
+  6. NICETY (spec-reviewer): test T3's exact 100x coast-ratio check uses a bare
+     `atol=1e-9`. It is an exactness identity, not a physics tolerance; left
+     as-is per main-session close-out. Rule whether to keep it inline or
+     promote it to a golden constant.
+- **AI-recommended ruling:** accept the card and the impossibility result;
+  defer the full integer solver as its own card; keep the frozen J0030 value
+  (inside spec) with the flag noted; accept km/s/days as the pulsar module's
+  documented local unit convention; keep the atol inline; polish the figure
+  labels before blessing.
+- **STUDENT RULING:** ____________
+- **Date/initials:** ____________
+
+---
+
+*End of worksheet. Original 2026-07-15 draft consolidated twenty-five items
+from `journal/logbook.md` (Spec 7 items a–i, velocity+aberration items j–o,
+Session 5 skeptic-sweep items p–r, triple-verification items s–t, plus two
+legacy test items and three new-card items). Build-night additions appended
+after that draft: items u (E1 catalog swap), v/vi (Spec 10 propagator),
+w (E6a sampled sky), x/y/z (E6b aging experiment), and aa (E5-lite pulsar
+lattice) — see their logbook entries for the full evidence. AI-drafted as a
+decision aid; all rulings pending student sign-off; the logbook remains
+authoritative.*
