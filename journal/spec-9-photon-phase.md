@@ -92,19 +92,24 @@ and are preserved here.
 **Lesson 1 — never recombine a split phase (the 2⁻²⁹ bug).** Our first
 Route B summed PINT's (integer turns, fraction) pair into one longdouble
 "total phase" before re-splitting. A longdouble carries 64 mantissa bits;
-at 3.4×10¹⁰ (≈2³⁵) turns its representable grid is 2³⁵⁻⁶³ = 2⁻²⁸ turns, so
-the summation quantized every fraction at half that grid — and T1 failed
-with max |Δφ| = 1.862645149230957×10⁻⁹, which is EXACTLY 2⁻²⁹, constant
-across all photons. That number is a fingerprint: not physics, not noise —
-pure floating-point representation. The fix (`_floor_split_pair`) never
+our turn counts (33,846,551,371 → 33,864,120,872) all sit in the 2³⁴
+binade (2³⁵ = 34,359,738,368 lies just above), so the summed total's
+representable grid is 2³⁴⁻⁶³ = 2⁻²⁹ ≈ 1.86×10⁻⁹ turns — and T1 failed by
+exactly ONE grid step: max |Δφ| = 1.862645149230957×10⁻⁹ = 2⁻²⁹, constant
+across all photons (the re-split rounding alone contributes ≤ 2⁻³⁰;
+binade re-verified by the 2026-07-16 doubt-everything sweep, which
+corrected this paragraph's original off-by-one-binade "2⁻²⁸ grid"
+wording). That number is a fingerprint: not physics, not noise — pure
+floating-point representation. The fix (`_floor_split_pair`) never
 sums the pair; it is precisely why PINT's Phase type is a two-component
 number.
 
 **Lesson 2 — a barycentric MJD cannot carry the gate (the T2 amendment).**
 The first T2 draft asked for phases from "barycentric times" as longdouble
-MJDs. At MJD ≈ 58137 (≈2¹⁶ days) a longdouble's grid is 2¹⁶⁻⁶³ day ≈
-0.24 ns — times F0, that is ≈5×10⁻⁸ turns, fifty times coarser than the
-gate. No implementation could pass; the TEST was wrong, for representation
+MJDs. MJD 58137 sits in the 2¹⁵ binade, so a longdouble's grid there is
+2¹⁵⁻⁶³ = 2⁻⁴⁸ day ≈ 0.31 ns — times F0, that is ≈6.3×10⁻⁸ turns, about
+63× coarser than the gate (binade and numbers corrected by the 2026-07-16
+doubt-everything sweep from the original "2⁻⁴⁷/0.24 ns/5×10⁻⁸" wording). No implementation could pass; the TEST was wrong, for representation
 reasons, not physics. Because the card is AI-authored and pre-ratification,
 T2 was amended BEFORE the green run (the approved-with-amendments pattern,
 recorded in the test's docstring and worksheet item hh) to use PINT's own

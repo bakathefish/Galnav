@@ -2657,3 +2657,61 @@ wrong.**
   the worksheet item. Workflow note (openly disclosed, as this logbook
   does): built by the main session directly with background compute jobs;
   scouts/implementer agents contributed earlier stages this same day.
+
+## 2026-07-17 - DOUBT-EVERYTHING SWEEP (interim): 12 of 29 legs in - 4 findings bitwise-confirmed, 14 discrepancies ALL documentation-level, ALL FIXED
+- WHAT: a 30-agent adversarial verification sweep (user-ordered "doubt
+  everything including absolute truths") targeting the new findings
+  compilation (journal/findings-compilation.md, uncommitted until the
+  sweep clears): 10 claim legs, 6 physics re-derivation legs, 5 citation
+  legs, 4 reproduction legs, 4 red-team legs, 1 synthesis. First pass
+  completed 12 legs (107 verdicts) before the agent pool hit its session
+  limit; the remaining 17 + synthesis are re-running (cached legs replay).
+  THIS ENTRY records the corrections from the completed legs, applied
+  immediately.
+- CONFIRMED BITWISE by independent legs: F3 (E3 real NH, all six claims,
+  live-source checked), F4 (E6 headline - every number reproduced from the
+  blessed npz, fresh 100-cell re-run max|diff| = 0.0), F7/F8 (E7+E2
+  regenerate bit-for-bit at seed 42), F10 core (E4 archive numbers).
+- CORRECTED (all documentation/citation-level; ZERO computed values, ZERO
+  golden values, ZERO test assertions changed):
+  (1) BINADE ERRORS in the Spec 9 precision lessons (the sweep out-pedanted
+  the pedantry lesson): turn counts ~3.39e10 sit in the 2^34 binade, so
+  the summed-total grid is 2^-29 (not 2^-28) and T1's failure was exactly
+  ONE grid step (re-split rounding <= 2^-30); MJD 58137 sits in the 2^15
+  binade, so the bary-MJD grid is 2^-48 day ~ 0.31 ns ~ 6.3e-8 turns
+  (~63x the gate), not 2^-47/0.24 ns/5e-8. Fixed in
+  journal/spec-9-photon-phase.md, _pint_routes.py docstrings,
+  test_spec9_photonphase.py T2 docstring, findings-compilation F9.
+  (2) CITATION MISATTRIBUTION: p ~ exp(-0.4 H) is de Jager & Buesching
+  2010 (A&A 517, L9; arXiv:1005.4867), not deJager89 (which owns the H
+  DEFINITION). [deJagerBusching10] added; [deJager89] usage note
+  corrected; _e4_fold.py htest docstring fixed.
+  (3) STALE DOCSTRING NUMBERS in test_e4_injection.py module header
+  (band 100-700 -> 120-400; 30 km -> 100 km - leftovers from pre-scan
+  drafts; the executed config was always correct).
+  (4) ROUNDING: E5 packing radius reads 286.02 km (archive 286.024866;
+  "286.03" was a mis-round in the compilation + E4-era text); E4 journal
+  injection-2 error cell 76.16 -> 76.15 (archive 76.1549).
+  (5) WORDING: F1's "1.045-1.064" conflated two scopes (96-cell grid
+  worst = 1.064; four-cell CI harness worst = 1.045) - now stated
+  separately; F11's "13 numbered overrides" -> 13 authorized overrides,
+  12 carrying explicit #2-#13 labels (no #1 label exists).
+  (6) ATTRIBUTION NUANCE: data/e4_nicer/README.md now states plainly that
+  the FITS-header verification was done with astropy at acquisition (and
+  independently reproduced by the sweep); fetch_e4_data.py verifies
+  bytes/gzip/sha256 only.
+  (7) STATISTICAL FRAMING SHARPENED: E4 journal section 5 now states the
+  three injections are three SIGNAL tests but effectively ONE noise trial
+  (measured-minus-predicted offsets frozen across injections to ~1e-5
+  turns, verified from the archive).
+- WHY: this is the point of the sweep - catch every mis-rounding,
+  mis-binade, and mis-attribution BEFORE a judge or referee does. Note
+  the meta-result: the four deepest physics/claims legs found NOTHING
+  wrong with any computed number; every discrepancy lived in prose.
+- EVIDENCE: sweep journal (12 structured verdict sets, 107 verdicts:
+  90 CONFIRMED, 14 DISCREPANCY -> fixed above, 3 UNVERIFIABLE-in-leg, of
+  which the J0030-par byte-match was already verified in-session with the
+  tarball on disk). Suites unaffected by these edits (comment/doc-only):
+  spine re-verified 84 passed after the edits.
+- COMMIT: this commit. Remaining 17 legs + synthesis re-running; their
+  results will be recorded when they land.

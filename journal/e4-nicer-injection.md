@@ -121,7 +121,7 @@ folds each:
 | injection | \|dr_true\| | \|recovery error\| | worst component |
 |---|---|---|---|
 | 1 | 100.0 km | 76.15 km | 1.84 σ |
-| 2 | 100.0 km | 76.16 km | 1.88 σ |
+| 2 | 100.0 km | 76.15 km | 1.88 σ |
 | 3 | 100.0 km | 76.15 km | 1.85 σ |
 
 **PASS — every component of every injection within 2σ** (the compass's own
@@ -141,8 +141,11 @@ a one-draw template excursion. Three consequences worth reading aloud:
    was lucky — an underestimated σ would have failed all three rows.
 2. The three injections independently test the SIGNAL chain (three
    different dr directions, nine different predicted shifts, all
-   recovered) but share one template-noise realization — disclosed in the
-   machinery docstring and here.
+   recovered) but share one template-noise realization — statistically
+   they are three signal tests and effectively ONE noise trial (the
+   measured-minus-predicted offsets agree across injections to ~1×10⁻⁵
+   turns, verified from the blessed archive by the doubt-everything
+   sweep). Disclosed in the machinery docstring and here.
 3. The mission lesson: the TEMPLATE, not the measurement, is this
    experiment's noise floor. σ_template ∝ 1/√N ⇒ a 16× deeper template
    campaign (~470 ks per pulsar instead of ~29 ks) would pull the shared

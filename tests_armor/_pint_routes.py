@@ -25,11 +25,13 @@ journal/spec-9-photon-phase.md):
      F1*(t-PEPOCH)^2/2 (+ F2/6 ...), with F0 ~ 205.53 Hz for J0030+0451.
 
 THE PRECISION LESSON this module is built around (measured while making T1
-and T2 pass; full story in the journal): our data sit ~3.4e10 turns past
-PEPOCH. A number that large carries an 80-bit-longdouble grid of
-2^-28 ~ 3.7e-9 turns -- and a barycentric epoch written as ONE longdouble
-MJD (~58137 days) is even coarser, ~2^-47 day ~ 0.24 ns ~ 5e-8 turns of
-J0030 phase. NO independent re-computation that recombines whole turns
+and T2 pass; full story in the journal; binades re-verified by the
+2026-07-16 doubt-everything sweep): our data sit ~3.39e10 turns past
+PEPOCH -- inside the 2^34 binade (2^35 = 34,359,738,368 sits just above) --
+so a single longdouble total-phase carries a grid of 2^(34-63) = 2^-29 ~
+1.86e-9 turns; and a barycentric epoch written as ONE longdouble MJD
+(58137 days, the 2^15 binade) is far coarser still, 2^-48 day ~ 0.31 ns ~
+6.3e-8 turns of J0030 phase. NO independent re-computation that recombines whole turns
 with the fraction, or that round-trips through a bary-MJD, can agree with
 another to 1e-9 turns. PINT therefore (a) keeps phases as an (integer
 turns, fraction) PAIR and (b) keeps time as (tdbld - PEPOCH) and the delay
@@ -63,9 +65,10 @@ def _floor_split_pair(int_ld, frac_ld):
     """Re-express PINT's (int, frac in [-0.5,0.5)) pair as floor convention.
 
     n = whole turns (int64), f = fraction in [0, 1) (float64), computed
-    WITHOUT ever summing the pair into one longdouble (summing would
-    quantize the fraction at the total's ~2^-28 grid -- measured as a
-    constant 2^-29 T1 failure before this function existed).
+    WITHOUT ever summing the pair into one longdouble (summing quantizes
+    the fraction at the total's longdouble grid -- 2^-29 at these ~3.39e10
+    turn counts -- measured as a constant one-grid-step 2^-29 T1 failure
+    before this function existed; the re-split rounding itself is <= 2^-30).
 
     int_ld/frac_ld: longdouble arrays (PINT Phase .int/.frac values).
     Returns: (int64 turns, float64 fraction in [0, 1)).

@@ -306,12 +306,14 @@ The first stellar parallax measurement in history — of 61 Cygni.
 **[deJager89]** de Jager, O. C., Raubenheimer, B. C., & Swanepoel, J. W. H.
 (1989). "A powerful test for weak periodic signals with unknown light curve
 shape in sparse data." *Astronomy & Astrophysics*, 221, 180.
-- Fact/method used: the H-test statistic for pulsation significance,
+- Fact/method used: the H-test STATISTIC for pulsation significance,
   H = max_{m<=20} (Z^2_m - 4m + 4) with Z^2_m the Rayleigh power summed
-  over the first m harmonics, and the significance approximation
-  p ~ exp(-0.4 H). E4 uses it as the fold-cleanliness gate (frozen
-  E4_HTEST_MIN, override #13) and it is the method the compass section-11
-  budget row itself names ("H-test / template").
+  over the first m harmonics. E4 uses it as the fold-cleanliness gate
+  (frozen E4_HTEST_MIN, override #13) and it is the method the compass
+  section-11 budget row itself names ("H-test / template"). The
+  significance SHORTHAND p ~ exp(-0.4 H) is NOT from this paper — it is
+  the later calibration of [deJagerBusching10]; the attribution was
+  corrected by the 2026-07-16 doubt-everything sweep.
 - Where in repo: `tests_armor/_e4_fold.py` (htest);
   `tests_armor/test_e4_injection.py` (T2); `tests/golden_numbers.py`
   (E4_HTEST_MIN comment); `journal/e4-nicer-injection.md`.
@@ -319,6 +321,22 @@ shape in sparse data." *Astronomy & Astrophysics*, 221, 180.
   test in pint.eventstats, cross-checked at Spec 9: hm() on the J0030
   fold matched our implementation's H = 77.4); students should sight the
   original before the paper's reference list is finalized.
+
+**[deJagerBusching10]** de Jager, O. C., & Büsching, I. (2010). "The
+H-test probability distribution revisited: improved sensitivity."
+*Astronomy & Astrophysics*, 517, L9. arXiv:1005.4867.
+- Fact/method used: the exponential false-alarm calibration of the H-test,
+  p ~ exp(-0.4 H), valid over the full useful range — the form quoted in
+  tests_armor/_e4_fold.py's htest docstring, the E4_HTEST_MIN golden
+  comment's p-values, and the E4 journal tables (e.g. H = 20 -> p ~ 3e-4;
+  H = 77.4 -> p ~ 4e-14).
+- Where in repo: `tests_armor/_e4_fold.py` (htest);
+  `journal/e4-nicer-injection.md`; `tests/golden_numbers.py`
+  (E4_HTEST_MIN comment context).
+- Verified: identified live by the 2026-07-16 doubt-everything sweep
+  (arXiv:1005.4867), which caught the p-form's earlier misattribution to
+  [deJager89]; students should sight the A&A letter before the reference
+  list is finalized.
 
 ## Standard mathematics (textbook results, not original to any paper)
 

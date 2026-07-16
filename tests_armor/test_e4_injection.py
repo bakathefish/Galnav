@@ -21,10 +21,10 @@ ratification items):
   observation folds at H = 5.1 unfiltered -- 93% of its events are
   background above 1.5 keV -- and at high significance in its soft band).
   Soft band PI 30-150 (0.3-1.5 keV) for the thermal pulsars J0030/J0437;
-  hard band PI 100-700 (1-7 keV) for non-thermal B1937. Bands are
-  documented stimulus parameters (like the injected 30 km), not
-  tolerances; chosen values follow standard NICER practice and the
-  measured H tables in the journal.
+  hard band PI 120-400 (1.2-4 keV) for non-thermal B1937, chosen by the
+  measured band scan on template data. Bands are documented stimulus
+  parameters (like the injected 100 km), not tolerances; chosen values
+  follow standard NICER practice and the measured H tables in the journal.
 - TEMPLATE FROM A DIFFERENT OBSERVATION: each pulsar's reference peak
   comes from its OTHER ObsID (independent photons), so the measured
   shift's error bar is real photon statistics. Phase-connection across

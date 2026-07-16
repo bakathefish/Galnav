@@ -135,10 +135,12 @@ def htest(frac):
     """The de Jager H-test statistic for pulsation significance.
 
     Z^2_m = (2/N) * sum_{k=1..m} [ (sum cos k*ang)^2 + (sum sin k*ang)^2 ]
-    and H = max over m = 1..20 of ( Z^2_m - 4m + 4 ); p ~ exp(-0.4 H)
-    (de Jager, Raubenheimer & Swanepoel 1989). Bigger = the fold is more
-    obviously a pulse and not noise. Used by the fold-cleanliness gate
-    (the compass's Sep-5 criterion) via the frozen E4_HTEST_MIN.
+    and H = max over m = 1..20 of ( Z^2_m - 4m + 4 ) -- the statistic of
+    de Jager, Raubenheimer & Swanepoel (1989). The significance shorthand
+    p ~ exp(-0.4 H) is the later calibration of de Jager & Buesching
+    (2010) [deJagerBusching10]. Bigger = the fold is more obviously a
+    pulse and not noise. Used by the fold-cleanliness gate (the compass's
+    Sep-5 criterion) via the frozen E4_HTEST_MIN.
 
     frac: float64 array of photon phases in [0, 1).
     Returns: float64 scalar H.

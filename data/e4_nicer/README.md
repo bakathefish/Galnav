@@ -170,3 +170,10 @@ verification recorded above.
 
 F0 cross-checks vs the frozen comb table: B1937 641.928 Hz -> P = 1.5578 ms
 (table: 1.558 ms); J0437 173.688 Hz -> P = 5.7575 ms (table: 5.757 ms).
+
+Clarification (2026-07-16 doubt-everything sweep): the FITS header
+verification recorded in the provenance section above was performed at
+acquisition time with astropy by the acquiring session, and re-reproduced
+independently by the verification sweep; `fetch_e4_data.py` itself verifies
+bytes (Content-Length), gzip integrity, and sha256 -- it does not open FITS
+headers.

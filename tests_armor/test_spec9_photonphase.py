@@ -106,8 +106,9 @@ def test_t2_longdouble_spindown_reference():
     AMENDED PRE-GREEN (2026-07-16, ratification worksheet item hh): the
     first draft routed the comparison through barycentric MJDs as single
     longdoubles. That representation cannot carry the gate -- at MJD
-    ~58137 a longdouble's grid is ~2^-47 day ~ 0.24 ns ~ 5e-8 turns of
-    J0030 phase -- so the draft test was IMPOSSIBLE to pass for reasons of
+    58137 (the 2^15 binade) a longdouble's grid is 2^-48 day ~ 0.31 ns ~
+    6.3e-8 turns of J0030 phase, ~63x the gate -- so the draft test was
+    IMPOSSIBLE to pass for reasons of
     number representation, not physics. The amended chain uses PINT's own
     decomposition (dt = (tdbld - PEPOCH) - delay, kept apart from any
     absolute epoch; see pulsar_frame_dt_seconds), which is exactly the
