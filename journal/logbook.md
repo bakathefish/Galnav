@@ -1777,3 +1777,16 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   (ii) adopt the two precise novelty framings above; (iii) fold [Deng13]/
   [Becker13] into the E5-lite journal's related-work paragraph. Ratification
   item (cc): the E5-lite framing narrowing.
+- ENGINEERING-VENUE PASS (same day, WebSearch into IEEE/AIAA/JAS/MDPI): the
+  star-tracker community explicitly knows catalog obsolescence (Hipparcos
+  positions degrade to ~9 mas after 30 yr from PM error) — reinforces "aging is
+  known." CLOSEST COMPETITOR found: [DSNcompare21] "Comparison of Deep Space
+  Navigation Using Optical Imaging, Pulsar TOA Tracking, and/or Radiometric
+  Tracking" (J. Astronautical Sciences 2021) — compares the SAME three
+  modalities this project spans, but SOLAR-SYSTEM and with no catalog-age trade
+  study; must be cited and distinguished. [StarNAV19] (Christian 2019) added for
+  the starlight leg. NOVELTY CONFIDENCE now HIGH for E6: the search engines
+  themselves concluded the literature treats catalog aging and navigation
+  SEPARATELY, with "no formal trade study comparing accuracy versus star catalog
+  age/epoch." E6's (age x sensor) map + crossover + floor remains unpublished.
+  Committed in a second sweep increment.

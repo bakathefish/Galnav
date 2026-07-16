@@ -393,6 +393,27 @@ astrometry in the next 50 years." arXiv:1408.2190. https://arxiv.org/abs/1408.21
   paper related-work. Verified: via WebSearch summary, 2026-07-16 (students
   should sight the paper before the paper's methods; WebFetch was denied).
 
+**[DSNcompare21]** "Comparison of Deep Space Navigation Using Optical Imaging,
+Pulsar Time-of-Arrival Tracking, and/or Radiometric Tracking." *The Journal of
+the Astronautical Sciences* (2021). doi:10.1007/s40295-021-00290-z
+- Used for: THE closest related work to the project's overall framing — it
+  compares the same three modalities (optical / pulsar / radiometric) this
+  project spans. MUST be cited and distinguished: it is a SOLAR-SYSTEM
+  deep-space comparison, not an INTERSTELLAR catalog-aging trade study, and it
+  does not map navigation error over (catalog age x sensor precision) or give
+  the crossover. Students: retrieve authors + exact result and distinguish
+  explicitly in related work. Verified: title/venue/doi via WebSearch,
+  2026-07-16 (WebFetch denied; sight the paper before drafting).
+
+**[StarNAV19]** Christian, J. A. (2019). "StarNAV: Autonomous Optical
+Navigation of a Spacecraft by the Relativistic Perturbation of Starlight."
+*Sensors*, 19(19), 4064. https://www.mdpi.com/1424-8220/19/19/4064
+- Used for: related work for the STARLIGHT leg — autonomous optical navigation
+  by starlight aberration/relativistic perturbation. Adjacent method; does not
+  address catalog aging or the fused-bootstrap pulsar limit. (Author to be
+  confirmed by students; StarNAV is the Christian-group concept.) Verified:
+  title/venue via WebSearch, 2026-07-16.
+
 ## Learning resources consulted (log for the ISEF logbook, not paper refs)
 
 - Khan Academy, "Defining the angle between vectors."
