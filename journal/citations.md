@@ -77,7 +77,24 @@ https://arxiv.org/abs/2506.21666
 - Verified: 32.4/15.7 values cross-checked against NASA press material on
   2026-07-14 (see [NASA20]); the "non-relativistic observer velocity,
   v << c" framing of Eq. 1 verified verbatim against the arXiv full text
-  on 2026-07-15.
+  on 2026-07-15. Peer-reviewed venue confirmed 2026-07-16: AJ 170, 1
+  (2025); the 0.44 au result is a 0.441 x 0.233 x 0.206 au error ellipsoid
+  vs JPL (notebook cell, 2026-07-16).
+
+**[Lauer25-data]** Lauer, T. R., et al. (2025). "Computational Notebook for
+'A Demonstration of Interstellar Navigation Using New Horizons'." Zenodo.
+**doi:10.5281/zenodo.15359866** (MIT license).
+- Used for: the E3 REAL DATA — 12 New Horizons LORRI FITS images (Proxima Cen
+  + Wolf 359, 2020-04-23, 47.1 au), 2 Earth-based FITS, `nearby100.txt` (100
+  nearest stars, SIMBAD), `nhjpl_traj.txt` (JPL Horizons NH ephemeris = ground
+  truth), and `nhparallax.ipynb` (the `n_star_solve` line-of-position
+  triangulation and the recalibrated measured star directions). Delivered as a
+  git bundle inside the deposit.
+- Where in repo: `data/e3_new_horizons/` (git-ignored raw data + provenance
+  README + `fetch_e3_data.py`); `journal/logbook.md` (2026-07-16 E3 data
+  acquisition); Experiment E3 (to be built). Verified: fetched and the git
+  bundle verified 2026-07-16; NH distance 47.12 au and parallaxes 32.4/15.7"
+  match the golden NH_* constants.
 
 **[SR-ABER]** Special-relativistic aberration of light,
 tan(phi) = sin(theta) / (gamma (beta + cos(theta))) with

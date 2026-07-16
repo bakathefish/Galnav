@@ -5,4 +5,10 @@ node_modules/
 results/*
 !results/.gitkeep
 !results/archive/
+
+# E3 raw data (147 MB) is re-fetchable from Zenodo doi:10.5281/zenodo.15359866;
+# vendor only the provenance README + fetch script, not the download.
+data/e3_new_horizons/*
+!data/e3_new_horizons/README.md
+!data/e3_new_horizons/fetch_e3_data.py
 .planning/
