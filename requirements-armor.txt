@@ -18,3 +18,8 @@
 pint-pulsar==1.1.4
 numpy==2.4.1
 matplotlib
+# pytest runs the armor test suite (tests_armor/) inside WSL. It is on the
+# the project rulebook allowed list; omitted at first build 2026-07-16, added the same
+# day when Spec 9's TDD loop needed its runner (resolved version recorded in
+# journal/environment-armor.md).
+pytest

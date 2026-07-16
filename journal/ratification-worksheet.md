@@ -960,6 +960,73 @@ documentation clean-ups for the students to accept or action.
 
 ---
 
+## Item (hh) — Spec 9: PINT photon phase (armor; first card in tests_armor/)
+
+- **What:** the AI-authored armor card — `tests_armor/_pint_routes.py`
+  (photon->phase machinery, two independent routes), `tests_armor/
+  test_spec9_photonphase.py` (T1-T4), `pytest.ini`, the committed NANOGrav
+  15-yr par for J0030+0451, and golden override #12. Proves our use of
+  PINT to < 1e-9 turns on 152,107 real NICER photons. Journal:
+  `journal/spec-9-photon-phase.md`; logbook 2026-07-16 (Spec 9 entry).
+- **Evidence:** armor suite 4 passed (204.6 s); T1 CLI-vs-library
+  BIT-IDENTICAL (max dPhi = 0.0, all photons); T2 hand-rolled longdouble
+  polynomial BIT-IDENTICAL to PINT incl. all ~3.39e10 turn integers; T3
+  offline-subprocess sha256 match; T4 ISS band 6775-6788 km, sightline
+  swing 13.16 ms. Windows spine unaffected: 84 passed, 0 skipped. Fold
+  H-test 77.4.
+- **Sub-items to rule on:**
+  1. The card + tests themselves (own every assertion and the [0,1) phase
+     convention mirroring photonphase's PULSE_PHASE).
+  2. PYTEST.INI (testpaths = tests): the no-arg spine `pytest -q` on
+     Windows now, by configuration, never collects tests_armor/ (which
+     would import PINT and fail there). One suite per environment, each
+     zero-skip green where it lives. Confirm.
+  3. THE COMMITTED PAR + DEFERRED BYTE-CHECK: pars/ is committed (KB-scale
+     oracle-pinning text, gitignore exception) with NG15 fingerprint +
+     F0-vs-comb-table cross-check (0.002%) as today's evidence; byte-level
+     extraction check vs the 638.7 MB Zenodo tarball (md5 recorded) is
+     DEFERRED to the sitting — one command, sha256 already recorded.
+     Confirm the deferral.
+  4. OVERRIDE #12 (SPEC9_PHASE_AGREEMENT = 1e-9): the plan's own verbatim
+     gate, frozen into golden_numbers.py; measured agreement is 0.0 so the
+     gate is a pure regression tripwire. Confirm.
+  5. INCLUDE_BIPM=FALSE MIRROR (measured tool finding): photonphase skips
+     the TT(BIPM2019) refinement (--use_bipm defaults OFF); Route B
+     mirrors the tool. Confirm you accept mirroring the tool's actual
+     behavior over the par's radio-timing CLOCK line.
+  6. THE T2 PRE-GREEN AMENDMENT (precision lesson 2): the first T2 draft
+     routed through barycentric MJDs, which longdouble cannot carry at
+     1e-9 turns (grid ~0.24 ns ~ 5e-8 turns at MJD 58137) — amended before
+     the green run to PINT's (tdbld - PEPOCH) - delay decomposition,
+     documented in the test docstring and journal §4. Confirm the
+     amendment and own the lesson (with lesson 1, the 2^-29 recombination
+     fingerprint).
+  7. SEP-5 GATE CALL: fold H-test 77.4 (p ~ 4e-14) on real data satisfies
+     "NICER fold clean" seven weeks early — E4 proceeds on REAL data, not
+     simulation-only. Confirm this reading of the gate.
+  8. SHARED-TOOLBOX PATTERN: E4's experiment imports
+     tests_armor/_pint_routes.py (armor test root doubles as the armor
+     toolbox; galnav/ stays spine-pure with no PINT import). Confirm.
+- **Audit results (pre-commit):** truth-wall-auditor PASS (galnav/
+  untouched; tests_armor imports neither truth nor nav; no side channels;
+  golden change isolated at EOF; AST test intact). spec-reviewer PASS on
+  all 8 code rules (its two notes are sub-items 4/5-adjacent student
+  rulings: PINT-native km/s units in the armor tier, and pint-pulsar as
+  the Spec-9-card-gated dependency). The truth-wall auditor also flagged
+  two PRE-EXISTING non-breaching observations for the record: (a) E7
+  seeds solve_state from a truth-derived start (a prior, not a
+  measurement; defensible since E7 draws random truths — no plan exists
+  to seed from); (b) E1/E2 select_pairs on truth positions (indices only;
+  already item ee.2). Neither is Spec 9's.
+- **AI-recommended ruling:** accept all eight — the two zeros are the
+  strongest agreement evidence the card could produce, the amendment is a
+  representation-theory necessity, and the gate call is measured, not
+  hoped.
+- **STUDENT RULING:** ____________
+- **Date/initials:** ____________
+
+---
+
 *End of worksheet. Original 2026-07-15 draft consolidated twenty-five items
 from `journal/logbook.md` (Spec 7 items a–i, velocity+aberration items j–o,
 Session 5 skeptic-sweep items p–r, triple-verification items s–t, plus two
@@ -969,7 +1036,8 @@ w (E6a sampled sky), x/y/z (E6b aging experiment), aa (E5-lite pulsar
 lattice), bb (E3 New Horizons real-data anchor), cc (E2 convergence basins +
 the option-A failure-handling ruling), dd (E7 relativistic aberration at
 0.1c), ee (maximum-correctness sweep hardening niceties), ff (Spec 8b
-closest-lattice-point CVP solver), and gg (the WSL2 armor environment for
-Spec 9/E4) — see their logbook entries for the full evidence. AI-drafted as a
+closest-lattice-point CVP solver), gg (the WSL2 armor environment for
+Spec 9/E4), and hh (Spec 9 PINT photon phase) — see their logbook entries
+for the full evidence. AI-drafted as a
 decision aid; all rulings pending student sign-off; the logbook remains
 authoritative.*

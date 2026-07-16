@@ -268,6 +268,24 @@ Neutron star Interior Composition Explorer (NICER): design and development."
 - Verified: standard NICER instrument reference; students should sight the
   SPIE page before the paper's reference list is finalized.
 
+**[NG15]** Agazie, G., et al. (NANOGrav Collaboration) (2023). "The
+NANOGrav 15 yr Data Set: Observations and Timing of 68 Millisecond
+Pulsars." *The Astrophysical Journal Letters*, 951, L9. Data release:
+Zenodo, doi:10.5281/zenodo.16051178 (v2.1.0, 2025-07).
+- Used for: the PSR J0030+0451 narrowband timing model
+  (`data/e4_nicer/pars/J0030+0451_PINT_20220302.nb.par`, sha256 in
+  data/e4_nicer/README.md) that anchors Spec 9's photon-phase tests and
+  E4's folds. Internal NG15 processing fingerprint verified; physics
+  cross-check F0 -> P = 4.86545 ms vs the frozen comb table's untruncated
+  4.8654 ms (0.002%). Byte-verification against the 638.7 MB release
+  tarball DEFERRED (recorded md5 557d42dd8486a5f8272d90dec9b228a8; one
+  command at the ratification sitting).
+- Where in repo: `data/e4_nicer/pars/`; `tests_armor/`;
+  `journal/spec-9-photon-phase.md`; worksheet item (hh).
+- Verified: Zenodo record fetched live 2026-07-16 (doi + tarball
+  manifest); the ApJL bibliographic details should be sighted by the
+  students before the paper's reference list is finalized.
+
 ## Historical
 
 **[Gauss1809]** Gauss, C. F. (1809). *Theoria Motus Corporum Coelestium*.
@@ -385,6 +403,19 @@ https://numpy.org/doc/stable/reference/random/compatibility.html
 - Verified: both pages checked on 2026-07-15 (policy wording: the
   same-build / same-environment / same-machine guarantee; cross-version
   stream changes allowed "with caution").
+
+**[PINT]** Luo, J., Ransom, S., Demorest, P., Ray, P. S., et al. (2021).
+"PINT: A Modern Software Package for Pulsar Timing." *The Astrophysical
+Journal*, 911, 45. doi:10.3847/1538-4357/abe62f
+- Used for: ALL armor-tier photon-phase computation (Spec 9 and E4) —
+  satellite barycentering from the ISS orbit file, the clock chain, and
+  the spin-down phase (pint-pulsar==1.1.4; environment in
+  journal/environment-armor.md). Cite in the paper's methods alongside
+  [NumPy]/[Astropy].
+- Where in repo: `tests_armor/_pint_routes.py`;
+  `journal/spec-9-photon-phase.md`; `requirements-armor.txt`.
+- Verified: citation confirmed against the IOPscience article page,
+  2026-07-16 (ApJ 911, 45; doi:10.3847/1538-4357/abe62f).
 
 **[LAMBDA]** Teunissen, P. J. G. (1995). "The least-squares ambiguity
 decorrelation adjustment: a method for fast GPS integer ambiguity

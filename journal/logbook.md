@@ -2537,3 +2537,63 @@ wrong.**
   .gitignore + the two citation entries. Scout + fetch executed by isolated
   agents, verified and committed by the main session -- the AI workflow
   this logbook openly documents.
+
+## 2026-07-16 - SPEC 9 DONE: PINT photon phase proven to the billionth of a turn on real NICER data (armor)
+- WHAT: built the armor tier's photon->phase machinery and its acceptance
+  suite: tests_armor/_pint_routes.py (Route A = the photonphase CLI run
+  end-to-end; Route B = our independent composition of PINT's library API;
+  a 20-digit longdouble par parser; the students' spin-down polynomial
+  mirrored operation-by-operation onto PINT's evaluation order; orbit/
+  geocentre exports), tests_armor/test_spec9_photonphase.py (T1 two-route
+  agreement, T2 longdouble reference, T3 determinism+offline, T4
+  orbit-is-load-bearing), pytest.ini (testpaths=tests, so the spine's
+  no-arg pytest never collects armor tests on Windows), the committed
+  NANOGrav 15-yr par for J0030+0451 (pars/ gitignore exception; provenance
+  + deferred byte-check in data/e4_nicer/README.md), and golden override
+  #12 (SPEC9_PHASE_AGREEMENT = 1e-9, the plan's own verbatim gate).
+  Journal: journal/spec-9-photon-phase.md. Citations: [NG15], [PINT].
+- WHY: Spec 9 is the gate between "we trust PINT" and "we have PROVEN our
+  use of PINT" -- E4 folds these phases into arrival-time measurements and
+  recovers an injected orbit bias, so every step (orbit spline, ephemeris,
+  clock chain, TZR, longdouble discipline) must be demonstrably understood
+  first. Strict TDD: RED captured (4 failures, NotImplementedError stubs;
+  then a REAL intermediate failure -- see lessons), then minimal code to
+  GREEN.
+- EVIDENCE (measured 2026-07-16, ObsID 1060020263, 152,107 photons):
+  armor suite 4 passed in 204.6 s; T1 max|dPhi| = 0.0 -- CLI and library
+  BIT-IDENTICAL on every photon; T2 max|dPhi| = 0.0 with all ~3.39e10
+  integer turn counts np.array_equal (measured turns 33,846,551,371 ->
+  33,864,120,872); T3 offline-subprocess sha256 == in-process sha256
+  (proxy-poisoned env; caches suffice, runtime-download landmine defused);
+  T4 |r_geo| 6775.3-6788.1 km (inside the derived 6600-6900 LEO band),
+  sightline light-time 7.14 -> 20.31 ms, swing 13.16 ms > 5 ms. Windows
+  spine re-verified: 84 passed, 0 skipped (pytest.ini proof). BONUS
+  MEASURED FACT: the J0030 fold's H-test = 77.4 (p ~ 4e-14) -- the
+  compass's Sep-5 gate condition "NICER fold clean" is SATISFIED with
+  evidence seven weeks early; risk #7 (fold unclean -> E4 sim-only) is
+  retired and E4 proceeds on real data.
+- THE TWO PRECISION LESSONS (preserved in the journal, worksheet item hh):
+  (1) summing PINT's (int, frac) phase pair into one longdouble quantized
+  fractions at the 3.4e10-turn grid -- T1 failed by EXACTLY 2^-29
+  (1.862645149230957e-9), constant across all photons, a pure
+  representation fingerprint; fixed by never recombining (why PINT's
+  Phase type exists). (2) the original T2 draft routed through barycentric
+  MJDs, whose longdouble grid at MJD 58137 is ~0.24 ns ~ 5e-8 turns --
+  IMPOSSIBLE to pass for representation reasons; T2 was amended PRE-GREEN
+  (approved-with-amendments pattern, documented in the test docstring) to
+  PINT's own (tdbld - PEPOCH) - delay decomposition.
+- MEASURED TOOL FINDING: photonphase builds TOAs with include_bipm=False
+  (--use_bipm defaults OFF; pint 1.1.4 photonphase.py:189-196) -- the
+  par's CLOCK TT(BIPM2019) is a radio-timing refinement the photon
+  pipeline skips; Route B mirrors it, recorded in module + journal.
+- WORKFLOW NOTE (AI disclosure, as this logbook documents openly): the
+  Opus build agent completed baseline + par acquisition, then hit the
+  account session limit; the main session (Fable) resumed and finished the
+  card directly -- same TDD discipline, RED and GREEN evidence captured on
+  both sides of the handoff. pytest was added to the armor env via
+  requirements-armor.txt when the TDD loop needed its runner (in-policy:
+  CLAUDE.md allowed list; recorded in environment-armor.md amendment).
+- COMMIT: this commit (tests_armor/ module + tests + pytest.ini + par +
+  README/gitignore updates + golden override #12 + [NG15]/[PINT] citations
+  + journal entry + worksheet item hh). Audits: truth-wall + spec-review
+  run before commit; results recorded in the worksheet item.

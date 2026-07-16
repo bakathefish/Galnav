@@ -134,3 +134,23 @@ this README + `fetch_e4_data.py`. E4 is *armor*, so if HEASARC is unreachable at
 run time the whole experiment is deferred anyway (per the Sep-5 gate in the
 schedule, an unclean NICER fold sends E4 simulation-only). No small text inputs
 here worth committing, so the refetch default is cleaner than for E3.
+
+## Timing models (`pars/`, committed)
+
+| file | pulsar | source | sha256 |
+|---|---|---|---|
+| `J0030+0451_PINT_20220302.nb.par` | PSR J0030+0451 | NANOGrav 15-yr data set, narrowband PINT par (release header: created 2022-03-02, PINT 0.8.4, WVU HPC) | c39900cc038a6be9431539d6ca5eb71224268f276625d7fe283748eabaea53a8 |
+
+Provenance and verification status (2026-07-16): the file carries the NG15
+processing fingerprint verbatim in its header and passes the physics
+cross-check F0 = 205.53069907954086655 Hz -> P = 4.86545 ms against the
+frozen comb table's untruncated 4.8654 ms (0.002%). The canonical archive
+is the NANOGrav 15-Year Data Set on Zenodo, doi:10.5281/zenodo.16051178
+(v2.1.0, single 638.7 MB tarball `NANOGrav15yr_PulsarTiming_v2.1.0.tar.gz`,
+md5 557d42dd8486a5f8272d90dec9b228a8); a byte-level extraction check of
+this par against that tarball is DEFERRED (disproportionate download for a
+46 KB text file today) and flagged on the ratification worksheet -- the
+recorded sha256 above makes it a one-command check at the sitting. Note:
+both Spec 9 test routes share this par, so the Spec 9 gate is insensitive
+to par authenticity; authenticity matters for E4's folds and the paper's
+citation ([NG15] in journal/citations.md).

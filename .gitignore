@@ -19,3 +19,9 @@ data/e4_nicer/*
 !data/e4_nicer/README.md
 !data/e4_nicer/fetch_e4_data.py
 .planning/
+
+# Timing models (pars/) are COMMITTED, unlike the bulky re-fetchable FITS:
+# they are KB-scale text that pins the armor tests' oracle (like golden
+# numbers), with provenance + sha256 recorded in data/e4_nicer/README.md.
+!data/e4_nicer/pars/
+!data/e4_nicer/pars/**

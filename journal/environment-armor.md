@@ -67,6 +67,7 @@ corner==2.3.0
 cycler==0.12.1
 emcee==3.1.6
 fonttools==4.63.0
+iniconfig==2.3.0
 jplephem==2.24
 kiwisolver==1.5.0
 loguru==0.7.3
@@ -77,8 +78,10 @@ numpy==2.4.1
 packaging==26.2
 pillow==12.3.0
 pint-pulsar==1.1.4
+pluggy==1.6.0
 pyerfa==2.0.1.5
 pyparsing==3.3.2
+pytest==9.1.1
 python-dateutil==2.9.0.post0
 scipy==1.18.0
 six==1.17.0
@@ -87,6 +90,14 @@ uncertainties==3.2.3
 
 (`pint-pulsar==1.1.4` is current as of 2026-07-16; the compass §5's 1.1.2
 pin predates it and is superseded here — recorded, ratification item gg.)
+
+**Amendment, same day (2026-07-16):** `pytest` was omitted from the first
+build and added via `requirements-armor.txt` the moment Spec 9's TDD loop
+needed its runner — resolved `pytest==9.1.1` (plus its two small
+dependencies `pluggy==1.6.0`, `iniconfig==2.3.0`), already reflected in the
+freeze above. pytest is on the the project rulebook allowed list verbatim; as a pure
+test runner it touches no computed number, so its version is not
+load-bearing.
 
 ## 3. Ephemeris determinism (the runtime-download landmine)
 

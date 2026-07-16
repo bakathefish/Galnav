@@ -309,3 +309,20 @@ E2_ISOTROPY_M4_TOL = 0.01
 # values sit well inside (derivation exact: c exact by definition, P
 # from the ATNF catalogue values cited in journal/citations.md).
 COMB_MATCH_KM = 1.0
+
+# Spec 9 photon-phase agreement gate (ARMOR suite: tests_armor/, which runs
+# ONLY inside the WSL2 longdouble environment recorded in
+# journal/environment-armor.md -- native Windows cannot represent phases at
+# this precision, measured np.longdouble eps 2.22e-16 vs the armor env's
+# float128 eps 1.08e-19). The plan (section 6, Spec 9) states the gate
+# verbatim: "PINT `photonphase` agreement with reference to `< 1e-9` in
+# phase." Phase is dimensionless (fraction of one pulsar turn), so 1e-9 is
+# one part in 10^9 of a turn -- for PSR J0030+0451 (P = 4.865 ms) that is
+# ~4.9 picoseconds of equivalent timing, far below every physical term in
+# the photon pipeline; two computations that agree this closely must be
+# implementing the SAME physics end to end. Used by
+# tests_armor/test_spec9_photonphase.py (T1 two-route agreement, T2
+# longdouble spin-down reference). The value is the plan's own
+# pre-registered gate (authorized override #12, 2026-07-16), not a measured
+# tolerance.
+SPEC9_PHASE_AGREEMENT = 1e-9
