@@ -263,7 +263,7 @@ SPEC10_DRIFT_REL_TOL = 1e-3
 # design-review probes measured the full-scale ratio at 100 yr as 2.03
 # (aging term ~14.7 au in quadrature over the ~8.3 au age-zero parallax
 # floor at 1 pc / 20 nearest stars, 5 of which lack Gaia RVs), and the
-# smoke-scale (40-trial) ratio spanned 1.9-2.9 over 6 seeds -- so 1.5
+# smoke-scale (40-trial) ratio spanned 2.01-2.72 over 6 seeds -- so 1.5
 # sits below the observed seed minimum with margin while staying far
 # above the no-op ratio ~1.0. The same factor bounds the SENSOR-limited
 # flank from above (at 60 arcsec, 5 yr of aging must NOT reach it).
@@ -275,7 +275,7 @@ E6_AGING_SMOKE_MIN_FACTOR = 1.5
 # by source_id -> propagate J2016.0 to the mean image epoch (~J2020.31)
 # -> n_star_solve on Lauer's published measured directions -- must land
 # within this many au of the JPL Horizons ground-truth state. The 3 au
-# is the plan's own pre-registered gate. Measured miss ~0.345 au (~8.7x
+# is the plan's own pre-registered gate. Measured miss ~0.347 au (~8.7x
 # inside). For the record (both numbers live in the Lauer 2025 deposit
 # and are easy to conflate): the Lauer team's actual miss vs JPL is
 # 0.351 au; their published "0.441 au" is the error ellipsoid's LARGEST

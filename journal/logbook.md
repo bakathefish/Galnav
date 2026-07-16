@@ -1870,7 +1870,7 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   EXACTLY at SOLVER_RECOVERY_TOL_AU (reused). The real-data GATE is T3 only:
   full galnav pipeline (CSV -> select by source_id -> propagate J2016->image
   epoch -> n_star_solve on the measured directions) miss vs JPL <
-  NH_NAV_TOL_AU=3.0 (measured ~0.345 au, ~8.7x inside). The notebook-x2
+  NH_NAV_TOL_AU=3.0 (measured ~0.347 au, ~8.7x inside). The notebook-x2
   identity is a REPORTED cross-check (~0.006 au = 8-digit fixture rounding, not
   1e-8; documented choice — feeding full-precision fixtures would make it
   exact, but T1/T2 already carry the exact proof, so it is not gated). Miss and
@@ -1886,7 +1886,7 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   + figure + npz + replot) and tests T3/T6. Suite 63 -> 65.
 - HEADLINE (measured): OUR FULL INDEPENDENT PIPELINE recovers the real New
   Horizons position to **0.347 au** vs the JPL ephemeris — inside the plan's
-  3 au gate by ~8.6x, on real spacecraft photographs of two stars. Pipeline =
+  3 au gate by ~8.7x, on real spacecraft photographs of two stars. Pipeline =
   our Gaia DR3 catalogue -> select Proxima + Wolf 359 by source_id -> propagate
   J2016.0 to the image epoch (age 4.3087 yr, PM+RV, MANDATORY: unpropagated the
   miss is ~30 au) -> n_star_solve on Lauer's measured directions -> miss vs JPL.
@@ -2222,3 +2222,58 @@ E3, E5-lite, E6, E2, and E7 are all built, blessed, and journaled; the suite is
 - LESSON (added to journal/README.md's end-of-card / post-crash checklist):
   post-crash cleanup MUST include `git stash list` -- worktrees, backups, and
   litter files are not the only place a crash hides a mutant.
+
+## 2026-07-16 — Record corrections from the full-verification fact-check
+
+- Part of the user-authorized "maximum science correctness" sweep. A fresh
+  independent journal/citations fact-check found 3 CRITICAL record defects + 2
+  minors -- ALL documentation staleness, ZERO science errors (every computed
+  result reproduces bitwise vs its archive; see the reproduction checks below).
+- C1 (E6 journal led with stale probe numbers): journal/spec-e6b-aging-experiment
+  .md replaced its headline block with the BLESSED full-grid numbers (floor
+  ~7.66 au / 7.70 at 10 mas [npz 7.696]; 7.70->17.07->31.90; ratios 2.22x/4.14x;
+  crossover 44.8 yr rising to 161.9 yr @60"; knee ~15.9 arcsec) under an
+  E2-style SUPERSEDED banner over the pre-run single-cell probe; sensor-axis
+  paragraph, evidence table (now "PRE-RUN PROBE ... superseded" + a BLESSED
+  column), and quadrature line all corrected. Every blessed number re-verified
+  straight from the archive npz e6_catalog_aging_20260715T231348Z.
+- C2 (false "no override" claims): override #8 (COMB_MATCH_KM = 1.0) now stated
+  plainly in the two places that denied it -- spec-e5-pulsar-lattice.md line 125
+  and worksheet item (aa) -- each with an honest note that the claim survived
+  because the text predated the override and was never updated.
+- C3 (worksheet missing items its own closing paragraph claimed): added full
+  sections for (u) E1 catalog swap, (v)/(vi) Spec 10 propagator (+override #6),
+  (w) E6a sampled sky, (x)/(y)/(z) E6b experiment (+override #7), pulled from
+  the logbook; the closing paragraph is now true.
+- M1 (E3 rounding): journal 0.345->0.347, the 0.3547 digit-transposition->0.346
+  (=0.34570), 8.6x->8.7x; the two logbook occurrences (0.345->0.347, 8.6x->8.7x)
+  normalized IN PLACE -- a pure rounding-display fix of the same underlying
+  0.34665 (no conclusion changed), recorded here for the append-only trail; the
+  logbook's "0.3457" (line ~1955) was already correct and left as-is.
+- M2 / AUTHORIZED OVERRIDE #11 (main session, COMMENT-ONLY, #2/#3 precedent):
+  tests/golden_numbers.py -- NH_NAV_TOL_AU comment "~0.345 au"->"~0.347 au" and
+  E6_AGING_SMOKE_MIN_FACTOR comment "spanned 1.9-2.9"->"spanned 2.01-2.72";
+  VALUES UNTOUCHED (diff = only the two comment lines; deny-lock lifted+restored,
+  settings diff empty; AST/value-unchanged verified).
+- M3 (E2, NOT a defect -- the contrast that exposed C1): the E2 journal's probe
+  numbers 1.9/3.9/6.3/9.8/11.5 pc are explicitly labeled "reduced-trial probe,
+  seed 42" pointing to the blessed values 2.00/3.94/6.33/9.79/11.57 -- the
+  caveat pattern E6's journal lacked and now has.
+- OK-VERIFIED (fact-check spot-checks matching across journal/archive-README/
+  logbook/npz): E1 worst factor 1.064 (blessed) + 1.052 (first run), anchor cell
+  0.4219 au; E7 full set (1356.47 au / 1200.91 km/s / 401.7 arcsec, peaks
+  95.74/92.87, gap 26", recovery 1.20e-9 au, linearized 1195.6, three maxima
+  5.730/5.739/5.746 never conflated); E5 combs match COMB_KM (worst 0.51 km
+  J0030, flagged), packing 286.0 km, 1au/rho 523,024, gaps 14,851x/320,285x,
+  coast 270.3 d / 2.70 d, e6_floor 7.6964 read live; E3 full set (0.3467 /
+  0.0065 / 0.3457, ellipsoids 1.08/0.57/0.50 ours vs 0.441/0.233/0.206 Lauer,
+  miss 0.351 kept DISTINCT from the ellipsoid, age 4.3087 yr); E2 fifty-pc grid
+  == archive; overrides #6/#7/#9/#10 each consistent across golden+logbook+
+  journal; all 13 checked citations complete with Used-for + verification dates.
+- Independent reproduction (this sweep, my own checks): every deterministic
+  archive regenerates BITWISE -- E3 miss 0.346650, E7 bias 1356.4678 +
+  exact-max 5.746382, E2 capture-fraction grid bit-identical; every archive
+  replots from arrays alone (E1 lacks a standalone replot -- known item; E6's
+  replot returns a Figure not a Path -- API-uniformity nicety, both flagged).
+  Suite 80/80, tree clean, all commits bakathefish, zero AI attribution across
+  history, deny-locks intact, env 3.13.3/2.4.1/1.17.0 matches environment.md.

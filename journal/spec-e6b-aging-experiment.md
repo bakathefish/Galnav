@@ -6,15 +6,25 @@ E6 answers the flagship question: **how does navigation accuracy decay as the
 star catalog ages?** It maps the Monte Carlo navigation error over a grid of
 (catalog age × sensor precision) and shows three regions:
 
+> **Numbers below are the BLESSED FULL-GRID run** (npz
+> `e6_catalog_aging_20260715T231348Z`, seed 42, produced by commit `4f80687`,
+> archived `60a8d4e`). They SUPERSEDE the pre-run single-cell probe estimates
+> (floor 8.29 au, 8.29→17.81→32.11, 2.15×/3.88×, crossover ~51 yr, knee ~19–20″)
+> that an earlier draft of this entry led with; the difference is the child-stream
+> rng between a one-cell probe and the full grid (same as the E2 journal's
+> honest reconciliation). The npz is authoritative.
+
 - an **epoch parallax floor** — even at age 0 the sampled catalog is imperfect,
-  so navigation bottoms out at **~8.3 au** (measured 8.29 au at 1 pc, 20 nearest
-  stars, finest sensor). This is the age-0-with-catalog-covariance baseline,
-  realized *empirically* by E6a's parallax scatter — not a CRLB formula.
+  so navigation bottoms out at **~7.66 au** (the sub-10-mas asymptote; at the
+  10 mas sensor the age-0 error is **7.70 au**, npz 7.696, at 1 pc, 20 nearest
+  stars). This is the age-0-with-catalog-covariance baseline, realized
+  *empirically* by E6a's parallax scatter — not a CRLB formula.
 - an **aging-dominated region** at fine sensors, where the catalog's age, not
-  the camera, sets the error. Measured at 10 mas: error grows 8.29 au → 17.81 au
-  → 32.11 au at age 0 / 100 / 200 yr (**ratio 2.15× at 100 yr, 3.88× at 200 yr**).
-- the **crossover** between them, **~51 years** at the 10 mas sensor (measured;
-  design-review estimate ~55 yr).
+  the camera, sets the error. Measured at 10 mas: error grows 7.70 au → 17.07 au
+  → 31.90 au at age 0 / 100 / 200 yr (**ratio 2.22× at 100 yr, 4.14× at 200 yr**).
+- the **crossover** between them, **~44.8 years** at the 10 mas (finest) sensor,
+  rising with sensor noise to ~161.9 yr at 60″ (all uncensored); the camera-noise
+  knee (camera ≈ floor) is at **~15.9 arcsec**.
 
 The driver is the 554 stars (5 of the 20 nearest) with no catalog radial
 velocity: their unmodeled ~30 km/s motion drifts them over decades, and the
@@ -65,10 +75,12 @@ what makes the decay curve honest rather than an artifact.
 ## The student's in-session headline ruling (recorded)
 
 The plan's sensor axis stopped at 10 arcsec. But the epoch parallax floor is
-~8.3 au, and camera noise only *equals* that floor around **~19–20 arcsec**
-(measured: age-0 error 9.14 au at 10″, 11.18 au at 19″, 11.46 au at 20″, 16.27 au
-at 35″). So the sensor-limited region the figure needs to show lives ABOVE the
-plan's original ceiling. The student ruled in-session (2026-07-16) to
+~7.66 au (blessed grid; the pre-run probe read ~8.3 au), and camera noise only
+*equals* that floor at the knee — **~15.9 arcsec** on the blessed grid (the
+pre-run probe estimated ~19–20″ from the single-cell reads 9.14 au at 10″,
+11.18 au at 19″, 11.46 au at 20″, 16.27 au at 35″). So the sensor-limited region
+the figure needs to show lives ABOVE the plan's original ceiling. The student
+ruled in-session (2026-07-16) to
 **(A) extend the sensor axis to 60 arcsec** and **(B) annotate the epoch parallax
 floor** on the figure. Both are applied; the grid runs 0.01″–60″, and the figure
 labels the floor and the catalog-limited vs sensor-limited regions.
@@ -76,16 +88,21 @@ labels the floor and the catalog-limited vs sensor-limited regions.
 The age grid also gained 40 and 70 yr (design-review amendment): the knee is near
 ~55 yr and the plan's 50→100 gap was too coarse to resolve it.
 
-## Measured evidence (mine, corroborating the design-review tables)
+## Measured evidence — PRE-RUN PROBE (single-cell), superseded by the blessed grid
 
-| quantity | measured (this session) | design review |
-|---|---|---|
-| epoch parallax floor (1 pc, 20 stars, finest sensor) | 8.29 au | ~8.3 au |
-| aging ratio at 100 yr (10 mas) | 2.15× | ~2.0× |
-| aging ratio at 200 yr (10 mas) | 3.88× | ~3.8× |
-| crossover age (10 mas) | 51 yr | ~55 yr |
-| camera noise ≈ floor | ~19–20 arcsec | ~19 arcsec |
-| nearest-20 stars lacking RV | 5 of 20 | 5 of 20 |
+The table below is the pre-run single-cell PROBE. It is SUPERSEDED by the
+blessed full-grid run (see the banner at the top); it is kept as the honest
+record of what the probe read and why the design proceeded. The blessed column
+is the archive-authoritative value (npz `e6_catalog_aging_20260715T231348Z`).
+
+| quantity | pre-run probe | design review | **BLESSED grid (authoritative)** |
+|---|---|---|---|
+| epoch parallax floor (1 pc, 20 stars, finest sensor) | 8.29 au | ~8.3 au | **7.70 au (7.696); ~7.66 sub-10mas** |
+| aging ratio at 100 yr (10 mas) | 2.15× | ~2.0× | **2.22×** |
+| aging ratio at 200 yr (10 mas) | 3.88× | ~3.8× | **4.14×** |
+| crossover age (10 mas) | 51 yr | ~55 yr | **44.8 yr** |
+| camera noise ≈ floor (knee) | ~19–20 arcsec | ~19 arcsec | **~15.9 arcsec** |
+| nearest-20 stars lacking RV | 5 of 20 | 5 of 20 | 5 of 20 |
 
 Smoke-scale (T2, 40 trials) aging ratio at 100 yr over 6 seeds: **2.01, 2.03,
 2.72, 2.23, 2.03, 2.26** (min 2.01); seed-42 ratio 2.17 (rms 7.52 → 16.27 au).
@@ -94,8 +111,9 @@ STOP condition (measured ratio ≤ 1.5) never triggered.
 
 The 100-yr aging term is NOT the raw 633 au single-star drift: that motion is
 mostly radial, and only the transverse fraction (~D/d ≈ 0.26–0.42 at 1 pc) shows
-up as a position error, fused across 20 stars — an induced ~14.7 au aging term
-that adds in quadrature over the ~8.3 au floor to give the ~2× ratio. (This is
+up as a position error, fused across 20 stars — an induced ~15 au aging term
+that adds in quadrature over the ~7.70 au blessed floor to give the 2.22× ratio
+(sqrt(7.70² + 15.2²) = 17.07 au = the blessed age-100/10-mas value). (This is
 exactly the correction that sank the first draft; see below.)
 
 ## Every tolerance, and why

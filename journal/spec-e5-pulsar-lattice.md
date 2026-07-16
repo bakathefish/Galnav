@@ -122,7 +122,12 @@ impossibility margin is 4+ orders regardless).
 
 ## Tolerances touched — and why each is exactly what it is
 
-No NEW tolerance was introduced; `tests/golden_numbers.py` is untouched. Every
+One golden WAS added — **authorized override #8: `COMB_MATCH_KM = 1.0`** (the
+1 km comb-match gate that T2 uses, described just below). (Correction, 2026-07-16:
+an earlier draft of this section wrongly read "No NEW tolerance was introduced;
+`tests/golden_numbers.py` is untouched." That draft was written before the
+override landed and was never updated; override #8 is real, is recorded in the
+logbook, and gates T2. Value = 1.0, evidence in its golden comment.) Every other
 oracle is either computed inline (exact) or read from the frozen golden file:
 
 - **`COMB_KM` (frozen)** — the students' hand-derived §12 comb spacings. Test T2

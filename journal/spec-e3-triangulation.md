@@ -92,8 +92,8 @@ The real-data test lives in part 2 and needs ONE new golden,
 gate). It gates the full-pipeline miss: our galnav path (CSV -> select stars by
 source_id -> propagate J2016 -> image epoch -> `n_star_solve` on the measured
 directions) must land within `NH_NAV_TOL_AU` of the JPL truth (measured miss
-~0.345 au, comfortably inside 3 au). REPORTED but NOT gated (journal + figure):
-the miss distances (0.345 ours / 0.3547 our-propagation / 0.351 Lauer x60), the
+~0.347 au, comfortably inside 3 au). REPORTED but NOT gated (journal + figure):
+the miss distances (0.347 ours / 0.346 our-propagation / 0.351 Lauer x60), the
 1-sigma error ellipsoid (0.441 x 0.233 x 0.206 au), and the astrometric sigma
 rmssig = 0.44". A separate cross-check reproduces the notebook's published `x2`
 by feeding our solver Lauer's own inputs — it matches to ~0.006 au (that
@@ -136,7 +136,7 @@ Design-reviewed and APPROVED WITH AMENDMENTS; all amendments folded in.
   (JD 2458962.25, age **4.3087 yr**) with `galnav/nav/catalog.py`
   `star_velocities_kms` + `propagate_positions_au` (MANDATORY — unpropagated
   the miss is ~30 au), then triangulate on Lauer's measured directions.
-  MEASURED MISS vs JPL: **0.347 au**, ~8.6x inside the 3 au gate. Wolf 359 has
+  MEASURED MISS vs JPL: **0.347 au**, ~8.7x inside the 3 au gate. Wolf 359 has
   no RV in our catalogue; filled with the Simbad value (19.57 km/s) Lauer used
   (rv_fill = 0 shifts the miss ~0.03 au — documented, not material).
 - **REPRODUCTION (reported).** Fed Lauer's own propagated positions +

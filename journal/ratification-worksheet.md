@@ -528,6 +528,77 @@ figure, then the smaller test/tooling/doc cards.)*
 
 ---
 
+## Item (u) — E1 catalog swap (navigator reads the public catalog)
+
+- **What:** the AI-authored change making experiments/e1_crlb_grid.py feed the
+  SOLVER the public NAV catalogue instead of the truth-side star positions
+  (closing the latent truth-wall flag before E6 added catalog errors).
+- **Where recorded:** logbook build-night entry; commit 9e7f709.
+- **Evidence:** results BITWISE UNCHANGED — 0.0 au difference across all 96 E1
+  cells (truth == nav catalogue today), so the swap is provably a no-op on the
+  numbers while making the navigator's dependence on the public catalogue
+  explicit. Latent truth-wall flag CLOSED for new work.
+- **AI-recommended ruling:** accept — a discipline fix with zero numeric effect,
+  and the prerequisite that let E6/E7 add catalogue errors safely.
+- **STUDENT RULING:** ____________
+- **Date/initials:** ____________
+
+## Item (v)/(vi) — Spec 10: catalog-aging propagator (+ override #6)
+
+- **What:** the AI-authored deterministic catalog-aging propagator, implemented
+  INDEPENDENTLY on both sides of the truth wall (truth twin + nav twin), that
+  moves stars by proper motion + radial velocity over an age.
+- **Where recorded:** logbook build-night entry; journal (spec-10);
+  commit 16744a8.
+- **Evidence:** the two independent implementations agree to ~1e-12; radial
+  drift 6.3285 au/yr matches the 6.33 hand-derived oracle. AUTHORIZED OVERRIDE #6
+  (SPEC10_DRIFT_REL_TOL = 1e-3, performed by the main session after the build
+  agent correctly declined an agent-relayed authorization).
+- **Sub-items to rule on:** (v) the card + independent-twin design; (vi) accept
+  override #6 (SPEC10_DRIFT_REL_TOL = 1e-3) and its evidence.
+- **AI-recommended ruling:** accept the card, the independent-twin construction
+  (it is what keeps the propagator honest across the wall), and override #6.
+- **STUDENT RULING:** ____________
+- **Date/initials:** ____________
+
+## Item (w) — E6a: truth-side sampled sky
+
+- **What:** the AI-authored truth-side sky sampler that scatters the catalogue by
+  its own error bars and supplies real radial velocities for the 554 stars whose
+  RV is missing (the missing-RV term dominates the aging).
+- **Where recorded:** logbook build-night entry; commit c5ae052.
+- **Evidence:** the missing-RV unmodelled-motion term is ~4.4e4x the
+  proper-motion-error aging term — i.e. the missing RVs, not PM errors, drive the
+  decay; 5 of the 20 nearest stars lack RV.
+- **AI-recommended ruling:** accept — the sampled sky is the truth-side input the
+  E6 headline stands on; the missing-RV finding is a genuine physics result.
+- **STUDENT RULING:** ____________
+- **Date/initials:** ____________
+
+## Item (x)/(y)/(z) — E6b: catalog-aging experiment (the headline)
+
+- **What:** the AI-authored E6 experiment mapping navigation error over
+  (catalog age x sensor precision), with the crossover locus and the epoch
+  parallax floor — the project's headline figure.
+- **Where recorded:** logbook build-night + E6 headline entries;
+  journal/spec-e6b-aging-experiment.md; commits 4f80687 (experiment) + 60a8d4e
+  (blessed archive).
+- **Evidence (BLESSED grid, npz e6_catalog_aging_20260715T231348Z):** epoch
+  parallax floor ~7.66 au (7.70 at 10 mas); aging 2.22x at 100 yr / 4.14x at
+  200 yr; crossover rises 44.8 yr (finest sensor) -> 161.9 yr (60 arcsec); knee
+  ~15.9 arcsec. AUTHORIZED OVERRIDE #7 (E6_AGING_SMOKE_MIN_FACTOR = 1.5).
+- **Sub-items to rule on:** (x) the card + the student's own in-session
+  extend-sigma-to-60-arcsec + annotate-the-floor ruling + override #7;
+  (y) the crossover DEFINITION rms(age) = sqrt(2)*rms(0), log-age interpolated,
+  cells exiting the range CENSORED (no extrapolation); (z) the nav pair-selection
+  delta vs E1 (pairs selected from the aged NAV positions, required because truth
+  is now per-trial).
+- **AI-recommended ruling:** accept the card, override #7, the crossover
+  definition, and the nav pair-selection change; the blessed grid numbers are
+  authoritative (the pre-run probe numbers are superseded, per the E6 journal).
+- **STUDENT RULING:** ____________
+- **Date/initials:** ____________
+
 ## Item (aa) — E5-lite / Spec 8 (comb part): pulsar lattice impossibility card
 
 - **What:** the AI-authored E5-lite card, its module `galnav/pulsar.py`, tests
@@ -541,8 +612,11 @@ figure, then the smaller test/tooling/doc cards.)*
 - **Evidence:** pytest 53 -> 59; comb spacings match frozen COMB_KM within
   0.51 km; coast on 467 km comb 270.25 d @1cm/s, 2.70 d @1m/s (== frozen
   270.0/2.7); 1 au / widest comb = 14,851; packing radius of (Crab, B1937+21,
-  J0030+0451) = 286 km. No golden override (reused frozen COMB_KM and
-  COAST_DAYS_*).
+  J0030+0451) = 286 km. AUTHORIZED OVERRIDE #8 (COMB_MATCH_KM = 1.0, the T2
+  comb-match gate, main session) — reuses frozen COMB_KM + COAST_DAYS_* for
+  everything else. (Correction 2026-07-16: this line previously read "No golden
+  override", which was false — override #8 is real and logged; the E5 journal
+  carried the same stale claim and is corrected too.)
 - **Sub-items to rule on:**
   1. The card + tests themselves (own every assertion).
   2. The DEFERRED-SOLVER fork: the general closest-vector integer-recovery
