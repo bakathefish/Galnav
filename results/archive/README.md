@@ -39,7 +39,7 @@ the cross-check.
   the code that produced it was never committed — this file is its only
   record.
 - `e6_catalog_aging_20260715T231348Z.npz` / `.png` — the E6 HEADLINE run
-  (produced by commit `4f80687`; archived in this commit): navigation
+  (produced by commit `4f80687`; archived in commit `60a8d4e`): navigation
   error over 10 catalog ages x 10 sensor sigmas x 500 trials, seed 42,
   1 pc, 20 nearest stars (5 lacking Gaia RV), missing_rv_scale 30 km/s.
   Headline numbers: epoch parallax floor 7.66 au; at the 10 mas sensor the

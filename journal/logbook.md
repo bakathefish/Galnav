@@ -1600,6 +1600,26 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   valid 2-axis figure from the .npz with NO Monte-Carlo recompute.
 - ENVIRONMENT: unchanged (Python 3.13.3, numpy 2.4.1, matplotlib 3.10.8, same
   machine) — no upgrade, so environment.md needs no new section (checklist #6).
-- pytest re-run after the archival edits: 53 passed, 0 skipped. Committing
+- pytest re-run after the archival edits: 53 passed, 0 skipped. Committed
   results/archive/ (npz + png + README) + this logbook addition as the second
-  commit. Both commit hashes recorded at next logbook touch.
+  commit `60a8d4e` (author + committer bakathefish, AI-attribution-free; git
+  status clean, golden_numbers.py + settings.json unchanged after). Both
+  session-9 E6 commits now on record: `4f80687` (code + tests + override #7)
+  and `60a8d4e` (blessed archive + headline numbers).
+
+## 2026-07-16 — Re-verification pass (no code change)
+
+- Requested check: "ensure it's all correctly done and logged." pytest: 53
+  passed, 0 skipped. Regenerated BOTH headline figures from scratch
+  (`python -m experiments.e6_catalog_aging` and `.e1_crlb_grid`) and compared
+  every saved array against the blessed archive: E6 (10 keys incl. rms_au
+  (10,10)) and E1 (11 keys incl. rms_au (4,6,4)) are BITWISE IDENTICAL to the
+  blessed .npz — same machine/build, so NEP19 byte-identity holds, not merely
+  statistical equivalence. `replot_from_npz` rebuilt the E6 figure from the
+  arrays alone (67896 bytes, matching the blessed .png byte-for-byte).
+- Logging back-fill: recorded the second E6 commit hash `60a8d4e` above (it had
+  been left as a forward-reference placeholder), and sharpened the archive
+  README provenance for the E6 headline .npz to name its archiving commit
+  explicitly (`60a8d4e`) rather than "this commit," matching the item-(t)
+  provenance precedent. No source, test, golden, or result array changed —
+  verification + lab-record completion only.
