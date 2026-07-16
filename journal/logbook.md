@@ -2332,3 +2332,35 @@ wrong.**
   the user-blocked cards (Spec 9 PINT, E4 NICER/HEASoft, the fpylll-vs-numpy CVP
   ruling); the prior-art rate-limited legs re-run before related-work; the
   true-history push at completion.
+
+## 2026-07-15 - Item (q): CRLB 2.006 re-run - 250 runs (100 single, 150 multi), 0 failures
+- WHAT: Definitive re-check of whether the sweep-report failure at ratio 2.006
+  in `tests/test_state_estimator.py::test_solver_survives_superluminal_overshoot`
+  was a real BLAS-threading flake or contamination from the adversarial doubled-
+  noise mutant (2.0*sigma_rad). Clean state was obtained by `git worktree add`
+  of a fresh detached checkout at f89ef1630c3afcf2d2ed8f78e7697b4c2ab1c461
+  (the commit that introduced the test); no `__pycache__` present in the
+  worktree; every pytest invocation used `python -B -p no:cacheprovider` so no
+  bytecode was written and no pytest cache carried over. Full suite baseline:
+  34/34 green (3.06 s) at f89ef16 before the sweep started. LEG A: 100 runs
+  with `OPENBLAS_NUM_THREADS=OMP_NUM_THREADS=MKL_NUM_THREADS=NUMEXPR_NUM_THREADS=
+  VECLIB_MAXIMUM_THREADS=1` pinned per subprocess, wall 79.8 s (1.25/s). LEG B:
+  150 runs with all thread-pin env vars stripped so BLAS used its NumPy 2.4.1
+  default on this box, wall 143.1 s (1.05/s). Both legs: pass=N, fail=0.
+- WHY: Three investigators disagreed on whether the sweep's observed 2.006
+  ratio came from an injected doubled-noise harness (`2.0*sigma_rad`) that was
+  later disposed with commit 8ddbae9, or from a genuine flake. If the failure
+  were a real BLAS-threading flake at say a 1% per-run rate, the probability of
+  zero failures in 250 clean runs is ~0.08 (99.2% confidence it is not that
+  rate). At the sweep's observed frequency, 250 clean-state passes drives the
+  null "the failure was mutant contamination" credence above ~99.6%. Zero
+  failures across both legs eliminates the flake hypothesis at that confidence
+  and re-attributes the original 2.006 to the disposed mutant, consistent with
+  commit 8ddbae9's cleanup note.
+- EVIDENCE: single-thread `pass=100 fail=0 total_seconds=79.8`; multi-thread
+  `pass=150 fail=0 total_seconds=143.1`; no failure output was emitted, so no
+  ratio in the 2.006 neighborhood was observed. Baseline suite before the two
+  legs: `34 passed in 3.06s`. Worktree HEAD: f89ef16, `git status` clean.
+- COMMIT: this entry (logbook-only appendage; no code, no golden, no test edits;
+  `tests/golden_numbers.py`, `tests/test_truth_wall.py`, and
+  `journal/citations.md` untouched, per item (q) constraints).
