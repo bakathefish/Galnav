@@ -357,6 +357,42 @@ estimation." *Journal of Geodesy*, 70, 65-82.
   Teunissen original before the paper's methods section (WebFetch unavailable
   in the build session, 2026-07-16).
 
+## Related work (prior-art re-sweep 2026-07-16 — positioning, not method sources)
+
+**[Deng13]** Deng, X. P., Hobbs, G., You, X. P., et al. (2013). "Interplanetary
+spacecraft navigation using pulsars." *Advances in Space Research*, 52, 1602.
+arXiv:1307.5375. https://arxiv.org/abs/1307.5375
+- Used for: related work bounding E5-lite. Demonstrates pulsar navigation IN THE
+  SOLAR SYSTEM (Earth->Mars, 4 MSPs every 7 days -> ~20 km position, ~0.1 m/s).
+  Establishes that pulsar comb navigation is a working solar-system technique;
+  E5-lite's contribution is the INTERSTELLAR limit, where the star-fix prior is
+  too coarse to lock the comb — NOT a claim that pulsar nav fails in general.
+- Where in repo: `journal/spec-e5-pulsar-lattice.md` (related work); future
+  paper related-work section. Verified: abstract via arXiv, 2026-07-16.
+
+**[Becker13]** Becker, W., Bernhardt, M. G., & Jessner, A. (2013). "Autonomous
+Spacecraft Navigation With Pulsars." *Acta Futura*, 7, 11. arXiv:1305.4842.
+https://arxiv.org/abs/1305.4842
+- Used for: the review that states pulsar navigation works "everywhere in the
+  solar system AND BEYOND." E5-lite QUANTITATIVELY BOUNDS the "and beyond":
+  beyond the solar system, without an au-or-better prior the comb integer is
+  unresolvable from a ~1 au starlight fix (4+ order gap). This is the specific
+  prior-art claim our finding sharpens.
+- Where in repo: `journal/spec-e5-pulsar-lattice.md`; paper related work.
+  Verified: abstract via arXiv, 2026-07-16.
+
+**[AbsAstro50]** Malbet, F., et al. / Hobbs, D., et al. (2014). "Absolute
+astrometry in the next 50 years." arXiv:1408.2190. https://arxiv.org/abs/1408.2190
+- Used for: related work bounding E6. The astrometric community KNOWS catalog
+  accuracy degrades with epoch as proper-motion errors accumulate (Gaia position
+  error grows ~1.76 mas in 2026 -> ~3.5 mas 2036 -> ~8.8 mas 2066). E6's novelty
+  is therefore NOT "catalogs age" (known) but the systematic MAP of interstellar
+  NAVIGATION error over (catalog age x sensor precision) with the crossover locus
+  and epoch-parallax floor — which the 2026-07-16 sweep found unpublished.
+- Where in repo: `journal/logbook.md` (2026-07-16 prior-art re-sweep); future
+  paper related-work. Verified: via WebSearch summary, 2026-07-16 (students
+  should sight the paper before the paper's methods; WebFetch was denied).
+
 ## Learning resources consulted (log for the ISEF logbook, not paper refs)
 
 - Khan Academy, "Defining the angle between vectors."

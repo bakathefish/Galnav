@@ -1736,3 +1736,44 @@ of Claude Code) live separately in `ai_sessions/` — students only.
   environment.md section needed.
 - BLESSED-RUN COMMIT: recorded next logbook touch. Next unblocked card: E2
   convergence basins.
+
+## 2026-07-16 — Prior-art RE-SWEEP (paper-critical; two novelty verdicts refined)
+
+- WHY: user wants a genuinely publishable paper; journal/README.md mandates a
+  prior-art re-sweep before the related-work section. While E2 is in design
+  review and E3/Spec9/E4 are resource-blocked, this is the highest-leverage
+  unblocked paper work. Tools: arXiv + WebSearch WORKED; Semantic Scholar and
+  Google Scholar returned empty (rate-limited) — re-run them before the paper.
+- E6 (catalog aging) VERDICT — survives, but FRAME PRECISELY. The astrometric
+  community already KNOWS catalog accuracy degrades with epoch (Gaia position
+  error ~1.76 mas 2026 -> 8.8 mas 2066; [AbsAstro50] arXiv:1408.2190). No paper
+  found that MAPS interstellar NAVIGATION error over (catalog age x sensor
+  precision), locates the crossover, or names the epoch-parallax floor. So the
+  novel claim is the MAP + crossover + floor, NOT the aging phenomenon. Do not
+  write "we show catalogs age" — write "we map the age-vs-sensor tradeoff and
+  locate where age overtakes the camera." (Overclaim avoided.)
+- E5-lite (pulsar impossibility) VERDICT — NARROWER than first framed; this is
+  the important catch. Pulsar navigation is an ESTABLISHED SOLAR-SYSTEM
+  technique ([Deng13] Earth-Mars ~20 km; Shemar 2018; SEXTANT/NICER), the
+  integer/cycle-ambiguity problem is KNOWN and solar-system-resolvable with a
+  crude prior (hypothesis-testing literature; Hou & Putnam), and at least one
+  review claims pulsar nav works "and beyond" the solar system ([Becker13]).
+  E5-lite must therefore NOT claim "pulsars can't navigate interstellar space"
+  (an overclaim a reviewer/judge would catch). Its DEFENSIBLE contribution: a
+  quantitative demonstration that a ~1 au STARLIGHT fix (Bailer-Jones regime)
+  is 4+ orders too coarse to serve as the prior needed to lock even the widest
+  comb — i.e., in a FUSED starlight+pulsar system the star leg cannot bootstrap
+  the pulsar leg's ambiguity at interstellar range — cast in the lattice
+  packing-radius (Teunissen) framing. Update spec-e5-pulsar-lattice.md wording
+  and the paper accordingly.
+- ANCHORS CONFIRMED against the literature: [BJ21] arXiv:2103.10389 (PASP 133,
+  074502) reproduces our anchor EXACTLY ("20 nearest stars, 1 arcsec -> 3 au
+  and 2 km/s"); [Lauer25] arXiv:2506.21666 "A Demonstration of Interstellar
+  Navigation Using New Horizons" is the E3 real-data anchor (already cited).
+- CITATIONS ADDED: [Deng13], [Becker13], [AbsAstro50] (related work). No code,
+  no tests, no golden touched — journal/citations + this entry only.
+- ACTION ITEMS for the students (paper): (i) re-run Semantic/Google Scholar and
+  IEEE/AIAA/ION (much nav-engineering work is off arXiv) before related-work;
+  (ii) adopt the two precise novelty framings above; (iii) fold [Deng13]/
+  [Becker13] into the E5-lite journal's related-work paragraph. Ratification
+  item (cc): the E5-lite framing narrowing.

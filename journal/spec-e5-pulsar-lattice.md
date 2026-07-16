@@ -20,6 +20,25 @@ is a real derivation-and-dependency fork, deferred to a follow-up card. E5-lite
 needs only the packing radius, which is computed by bounded integer
 enumeration in numpy.
 
+## Prior art and the PRECISE claim (prior-art re-sweep 2026-07-16)
+
+Be careful with the wording above ("why you cannot switch to pulsar-comb
+navigation between the stars") — the re-sweep shows the honest claim is
+NARROWER, and the paper must use the narrow version. What is ALREADY known:
+pulsar navigation is an established SOLAR-SYSTEM technique ([Deng13] Earth-Mars
+~20 km; Shemar 2018; SEXTANT/NICER); the pulse cycle/integer-ambiguity problem
+is known and, in the solar system, resolvable with a crude prior (hypothesis
+testing; Hou & Putnam); and at least one review claims pulsar nav works "and
+beyond" the solar system ([Becker13]). So E5-lite does NOT discover that
+pulsars fail interstellar navigation. Its DEFENSIBLE, specific contribution is:
+in a FUSED starlight+pulsar system, a ~1 au starlight fix (the Bailer-Jones
+regime, [BJ21]) is 4+ orders of magnitude too coarse to serve as the prior
+needed to lock even the widest comb — so the star leg cannot BOOTSTRAP the
+pulsar leg's integer ambiguity at interstellar range — quantified via the
+lattice packing radius ([LAMBDA]). Frame the paper as that bootstrapping limit,
+not as a blanket impossibility. (Full verdict + citations: logbook 2026-07-16
+prior-art re-sweep; ratification item cc.)
+
 ## The physics, one symbol at a time
 
 **Comb spacing.** A pulsar spins with period `P` (seconds). A photon
