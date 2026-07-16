@@ -1707,6 +1707,32 @@ of Claude Code) live separately in `ai_sessions/` — students only.
 - SUITE after the test edit + niceties: re-run immediately before commit
   (expect 59 passed, 0 skipped). golden_numbers.py carries only override #8
   (+10 lines); settings.json unchanged.
-- PENDING: commit hashes recorded next logbook touch. Two commits: (1) the card
-  file set incl. golden override #8; (2) the blessed E5-lite archive + headline
-  numbers. Next unblocked card after this: E2 convergence basins.
+- CARD COMMIT: `ba028fd` (author + committer bakathefish, AI-attribution-free;
+  settings.json not in commit; golden delta is only override #8 COMB_MATCH_KM +
+  its evidence comment). Suite 59 passed before commit.
+
+### E5-lite BLESSED RUN + headline numbers (2026-07-16)
+
+- Ran the experiment (`python -m experiments.e5_pulsar_lattice`); deterministic
+  (no Monte Carlo), so byte-identical on re-run. Blessed per
+  journal/README.md checklist: e5_pulsar_lattice_20260716T045926Z.npz + .png
+  COPIED into results/archive/ (un-ignored), README Contents entry added
+  (produced by ba028fd, archived in this second commit). replot_from_npz
+  rebuilt the figure from the archived .npz ALONE (106862 bytes, byte-identical
+  to the archived .png) — regenerable-from-arrays confirmed.
+- MEASURED HEADLINE (the authoritative .npz):
+  - comb spacings (km): B0531+21 10,073 / B1937+21 467 / J0218+4232 696 /
+    B1821-24 916 / J0030+0451 1,458 / J0437-4715 1,726.
+  - IMPOSSIBILITY: a ~1 au starlight fix is x14,851 the widest comb (Crab) and
+    x320,285 the finest (B1937+21) — 4-to-5 orders, the pre-registered E5-lite
+    prediction. Packing radius of (Crab, B1937+21, J0030+0451) = 286.0 km, so
+    1 au / rho = 523,024: no comb's integer turn-count is lockable from a star
+    fix.
+  - COAST vs the plan's oracles: 467 km comb gives 270.3 d at 1 cm/s (plan:
+    "9 months") and 2.70 d at 1 m/s (plan: "3 days") — both reproduced.
+  - The E6 epoch floor drawn on the star-fix band, 7.70 au, is read live from
+    the blessed E6 archive (drift-proof), not hardcoded.
+- ENVIRONMENT unchanged (Python 3.13.3, numpy 2.4.1, matplotlib 3.10.8) — no
+  environment.md section needed.
+- BLESSED-RUN COMMIT: recorded next logbook touch. Next unblocked card: E2
+  convergence basins.

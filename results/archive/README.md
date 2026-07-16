@@ -49,3 +49,15 @@ the cross-check.
   quadrature near ~15.9 arcsec. Explained in
   `journal/spec-e6b-aging-experiment.md`; figure regenerable from the .npz
   alone via `experiments.e6_catalog_aging.replot_from_npz`.
+- `e5_pulsar_lattice_20260716T045926Z.npz` / `.png` — the E5-lite pulsar
+  lattice-impossibility figure (produced by commit `ba028fd`; archived in the
+  commit below). Deterministic (no Monte Carlo), so byte-identical on re-run.
+  Headline numbers: the six §12 comb spacings 467-10,073 km; a starlight fix
+  of ~1 au is x14,851 the widest comb (Crab 10,073 km) and x320,285 the finest
+  (B1937+21 467 km); the packing radius of (Crab, B1937+21, J0030+0451) is
+  286 km, so 1 au / rho = 523,024 -- no comb's integer turn-count is lockable
+  from a star fix. Coast on the 467 km comb: 270.3 d at 1 cm/s, 2.70 d at
+  1 m/s (matching the plan's 9-month / 3-day oracles). The E6 epoch floor drawn
+  on the star-fix band (7.70 au) is read live from the E6 archive above.
+  Explained in `journal/spec-e5-pulsar-lattice.md`; figure regenerable from the
+  .npz alone via `experiments.e5_pulsar_lattice.replot_from_npz`.
