@@ -819,6 +819,49 @@ figure, then the smaller test/tooling/doc cards.)*
 
 ---
 
+## Item (ee) — Maximum-correctness sweep: hardening niceties (NO numeric effect)
+
+Surfaced by the user-authorized full-verification sweep (2026-07-16, four
+independent legs + a mechanical pass; see the logbook's "final correctness
+statement"). NONE of these change any computed number; they are uniformity /
+documentation clean-ups for the students to accept or action.
+
+- **(ee.1) J0030+0451 comb precision — the (aa.3) flag, now RESOLVED precisely:**
+  the frozen `COMB_KM["J0030+0451"] = 1459` km is CORRECT — it is the nearest
+  integer to c·P for the UNTRUNCATED ATNF period 4.8654 ms (c·P = 1458.63 →
+  1459). The apparent "non-nearest" look came from the pulsar module's displayed
+  truncated period 4.865 ms (c·P = 1458.49 → 1458). Documentation nit only;
+  0.51 km gap, inside the 1 km gate. Confirm you accept 1459 as frozen (and,
+  optionally, store the untruncated 4.8654 ms in the module to remove the
+  apparent mismatch).
+- **(ee.2) pair-selection source (truth-wall nicety):** E1 and E2 select star
+  pairs from the TRUTH position array while E6 selects from the NAV array.
+  Bitwise-identical today (truth == nav catalogue), and pair separation is a
+  physical property, so this is not a leak — but E6's nav-side selection is the
+  self-documenting pattern. Decide whether to standardize all experiments on
+  nav-side pair selection for uniformity.
+- **(ee.3) E7 build_network (truth-wall nicety):** E7 returns a single shared
+  public-geometry star array rather than the explicit truth/nav two-array split
+  the other experiments carry. Intentional — both the exact and the classical
+  navigator use the same PUBLIC hub geometry, and truth enters only via the
+  measurement generation and the score — but flagged for consistency review.
+- **(ee.4) API-uniformity (mechanical pass):** E1 has no standalone
+  `replot_from_npz` (its figure regenerates via a full `main()` recompute);
+  E6's `replot_from_npz` returns a Figure while E2/E3/E5/E7 return a Path; and
+  E1 converts arcsec via the raw `RAD_ARCSEC` while E3/E6/E7 use
+  `units.arcsec_to_rad` (this last is also (dd.10)). Decide whether to unify the
+  replot signature + add an E1 replot for a fully uniform archive-regeneration
+  story. (The archive is already sufficient in every case — figures ARE
+  regenerable; this is convenience/uniformity only.)
+- **AI-recommended ruling:** accept 1459 as frozen (optionally de-truncate the
+  displayed period); treat (ee.2)/(ee.3)/(ee.4) as low-priority uniformity
+  clean-ups to batch before the paper's methods section is finalized — none is
+  load-bearing and none affects a single quoted number.
+- **STUDENT RULING:** ____________
+- **Date/initials:** ____________
+
+---
+
 *End of worksheet. Original 2026-07-15 draft consolidated twenty-five items
 from `journal/logbook.md` (Spec 7 items a–i, velocity+aberration items j–o,
 Session 5 skeptic-sweep items p–r, triple-verification items s–t, plus two
@@ -826,7 +869,7 @@ legacy test items and three new-card items). Build-night additions appended
 after that draft: items u (E1 catalog swap), v/vi (Spec 10 propagator),
 w (E6a sampled sky), x/y/z (E6b aging experiment), aa (E5-lite pulsar
 lattice), bb (E3 New Horizons real-data anchor), cc (E2 convergence basins +
-the option-A failure-handling ruling), and dd (E7 relativistic aberration at
-0.1c) — see their logbook entries for the full evidence. AI-drafted as a
+the option-A failure-handling ruling), dd (E7 relativistic aberration at
+0.1c), and ee (maximum-correctness sweep hardening niceties) — see their logbook entries for the full evidence. AI-drafted as a
 decision aid; all rulings pending student sign-off; the logbook remains
 authoritative.*

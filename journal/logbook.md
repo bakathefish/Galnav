@@ -2277,3 +2277,58 @@ E3, E5-lite, E6, E2, and E7 are all built, blessed, and journaled; the suite is
   replot returns a Figure not a Path -- API-uniformity nicety, both flagged).
   Suite 80/80, tree clean, all commits bakathefish, zero AI attribution across
   history, deny-locks intact, env 3.13.3/2.4.1/1.17.0 matches environment.md.
+
+## 2026-07-16 — MAXIMUM-CORRECTNESS SWEEP: FINAL STATEMENT (sweep closed)
+
+User-authorized full verification of everything built so far ("maximum science
+correctness, run many many checks, ensure everything is perfect and in order").
+FOUR independent legs (fresh-context Opus agents, no shared bias with the build)
+plus a mechanical pass. **VERDICT: every COMPUTED result is correct and
+reproduces; all defects found were documentation staleness (now fixed, c5f2baa)
+plus one latent git hazard (disposed, 8ddbae9). Nothing in the science is
+wrong.**
+
+- LEG 1 — REPRODUCTION (E1/E6/anchor), ALL GREEN, BITWISE (NEP19 holds on this
+  machine): E1 fresh worst RMS/CRLB factor 1.064, archive recompute 1.063652,
+  fresh npz bitwise-identical to archive (max abs diff 0.0); E6 fresh floor
+  7.66 au, crossovers [44.8, 51.1, 46.9, 48.5, 55.8, 55.8, 59.1, 77.1, 108.6,
+  161.9] yr, 10-mas column 7.696/17.066/31.896 (ratios 2.217/4.144), rms grid
+  bitwise-identical; BJ anchor passes, medians 3.0187 au / 2.0282 km/s inside
+  the factor-2 gates. (This leg surfaced the crash-era stash — handled 8ddbae9.)
+- LEG 2 — WHOLE-CODEBASE TRUTH-WALL, PASS: imports clean both directions incl.
+  function-local; no dynamic-import / env / file side channels; no copied truth
+  constants; the true state flows only into measurement-gen, scoring, and start
+  guesses for ALL SIX experiments; tests/test_truth_wall.py verified intact and
+  unweakened. Three hardening NICETIES (not leaks, zero numeric effect) folded
+  into worksheet item (ee): E1/E2 pair-selection from the truth array vs E6 from
+  nav; E7 build_network's single shared public-geometry array; the E7
+  backup-artifact note was the stale-snapshot phantom (tree clean).
+- LEG 3 — FIRST-PRINCIPLES PHYSICS RE-DERIVATION, ALL FIVE CONFIRMED: E7
+  aberration oracle verified against an INDEPENDENT Lorentz boost of the photon
+  4-momentum to 2.2e-16 rad (all four claims exact; Galilean max = arcsin(0.1)
+  proven analytically); E5 combs confirmed and the J0030 nit made precise
+  (frozen 1459 km is nearest-int to c*P for the UNTRUNCATED ATNF period
+  4.8654 ms = 1458.63; the 1458.49 was the module's truncated 4.865 ms display —
+  worksheet (ee.1)); E3 estimator re-derived from scratch (projector / weights /
+  normal equations exactly match n_star_solve), miss 0.3467 confirmed, no
+  conflation; E6 floor rebuilt from first principles (~7.5 au rough vs 8.29
+  empirical vs 7.66 blessed — consistent); CRLB confirmed as the exact
+  Fisher-information bound, RMS/CRLB within 2% of unity on reference cells.
+- LEG 4 — JOURNAL/CITATIONS FACT-CHECK: 3 critical + 2 minor, ALL documentation
+  staleness (C1 E6-journal stale headline, C2 false no-override claims, C3
+  missing worksheet items u-z, M1 E3 rounding) — fixed + committed c5f2baa;
+  override #11 (comment-only) recorded; 13 citations complete; the E7 three
+  maxima and E3 miss-vs-ellipsoid never conflated.
+- MECHANICAL PASS (mine): suite 80/80 (0 skips/warnings); every deterministic
+  archive regenerates BITWISE (E3 0.346650, E7 1356.4678 / 5.746382, E2 capture
+  grid); tree + stash clean; all commits bakathefish, zero AI attribution across
+  history; 6 override constants + deny-locks intact; env matches environment.md;
+  no disk litter.
+- OUTCOME: the six experiments (E1, E2, E3, E5-lite, E6, E7) and every spec card
+  are verified correct, reproducible, truth-wall-clean, and physically sound to
+  independent re-derivation. Remaining niceties (item (ee)) are uniformity-only
+  and load-bearing on nothing. THE MAXIMUM-CORRECTNESS SWEEP IS CLOSED. What
+  remains for the humans is unchanged: the ratification sitting (items a-ee);
+  the user-blocked cards (Spec 9 PINT, E4 NICER/HEASoft, the fpylll-vs-numpy CVP
+  ruling); the prior-art rate-limited legs re-run before related-work; the
+  true-history push at completion.
