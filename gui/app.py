@@ -39,11 +39,45 @@ STAR_NAMES = {
 }
 
 
+def _tpf_median_frame(hdul):
+    """Median-over-time FLUX frame from a target-pixel file, or None.
+
+    A TESS/Kepler SPOC target-pixel file (TESScut cutout) keeps its imagery in a
+    BINARY TABLE (EXTNAME 'PIXELS'/'TARGETTABLES') as a FLUX column of one 2-D
+    cutout PER CADENCE; the only IMAGE HDU is the APERTURE MASK (all ~1), not
+    sky. Plain "first 2-D HDU" loading therefore grabs the mask. Detect the
+    table, collapse its FLUX cube (n_cadence, ny, nx) to the pixel-wise median
+    over time (NaN cadences ignored), and return that (ny, nx) frame so the
+    centroider sees stars. Returns None for a normal image FITS (no such table).
+
+    hdul: an open astropy HDUList. Returns: (ny, nx) float ndarray or None.
+    """
+    import warnings
+
+    from astropy.io.fits import BinTableHDU
+
+    for hdu in hdul:
+        if not isinstance(hdu, BinTableHDU) or hdu.data is None:
+            continue
+        names = [c.upper() for c in (hdu.columns.names or [])]
+        if "FLUX" not in names:
+            continue
+        flux = np.asarray(hdu.data["FLUX"], dtype=float)
+        if flux.ndim != 3 or flux.shape[1] < 2 or flux.shape[2] < 2:
+            continue
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")  # all-NaN column slices -> RuntimeWarning
+            med = np.nanmedian(flux, axis=0)
+        return np.where(np.isfinite(med), med, 0.0)
+    return None
+
+
 def load_grayscale(path):
     """Load a FITS/PNG/JPG image as a 2-D float array (row=y, col=x).
 
-    path: image path. FITS uses the first 2-D HDU; PNG/JPG go through
-        matplotlib.pyplot.imread and are averaged to grayscale.
+    path: image path. FITS uses a target-pixel-file median frame if the file is
+        one (see _tpf_median_frame), else the first 2-D image HDU; PNG/JPG go
+        through matplotlib.pyplot.imread and are averaged to grayscale.
     Returns: (H, W) float ndarray.
     """
     path = str(path)
@@ -51,6 +85,9 @@ def load_grayscale(path):
         from astropy.io import fits
 
         with fits.open(path) as hdul:
+            frame = _tpf_median_frame(hdul)
+            if frame is not None:
+                return frame
             for hdu in hdul:
                 if hdu.data is not None and np.ndim(hdu.data) >= 2:
                     arr = np.asarray(hdu.data, dtype=float)

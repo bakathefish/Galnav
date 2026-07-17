@@ -15,7 +15,7 @@ images were actually taken.
 import numpy as np
 
 from galnav.units import arcsec_to_rad
-from gui.locate import fix_position, star_seps_in_frame
+from gui.locate import fix_position, star_seps_in_frame, static_occupied_centroids
 
 
 def estimate_age(build_lines_fn, age_grid_yr, rmssig_arcsec=1.0):
@@ -114,7 +114,15 @@ def estimate_age(build_lines_fn, age_grid_yr, rmssig_arcsec=1.0):
     }
 
 
-def drift_date(frames, age_grid_yr, aged_catalog_fn, threshold_arcsec=3.0):
+def drift_date(
+    frames,
+    age_grid_yr,
+    aged_catalog_fn,
+    threshold_arcsec=3.0,
+    cone_fn=None,
+    static_tol_px=2.0,
+    age0_window_yr=1.0,
+):
     """Date an image by SINGLE-STAR DRIFT when a position fix is impossible.
 
     A position fix needs >= 2 distinct nearby stars whose lines of sight cross.
@@ -138,12 +146,33 @@ def drift_date(frames, age_grid_yr, aged_catalog_fn, threshold_arcsec=3.0):
     Guard: if the best RMS separation over the whole scan is >= threshold_arcsec,
     no star tracks a detection well enough to trust -- return ok=False.
 
+    STATIC-STAR EXCLUSION (cone_fn) -- the dense-field fix. In a crowded
+    galactic-plane field a fast mover's track (Barnard is 10.4 arcsec/yr) sweeps
+    the whole frame and, at some WRONG epoch, passes an unrelated bright field
+    star closer than it ever sits to its own true-epoch blob -- a false minimum
+    the reliability guard cannot see (the decoy separation is also small). If
+    cone_fn is given, each frame's full-depth Gaia cone (its catalogued STATIC
+    field stars) masks every centroid that coincides with a cataloged star, so
+    the mover can only match a detection where the catalog shows NOTHING -- which
+    is exactly where a genuinely moved star lands. Near age 0 (|age| <
+    age0_window_yr) the nearby movers still sit at their own catalog spots, so
+    their own cone entries are exempted from masking (else a modern plate would
+    self-exclude); see static_occupied_centroids. cone_fn=None keeps the plain
+    behaviour (sparse fields never needed it).
+
     frames: list of (plate, centroids_xy, name) tuples.
     age_grid_yr: 1-D array of candidate ages (Julian yr since J2016.0), evenly
         spaced; NEGATIVE ages (epochs before 2016) are the whole point here.
     aged_catalog_fn: callable age_yr -> dict with positions_au (N,3) and
         source_id (N,); the caller closes over the catalog + rv choice.
     threshold_arcsec: reliability threshold on the best RMS separation.
+    cone_fn: optional callable plate -> full-depth cone dict (positions_au,
+        source_id) or None, for static-star exclusion (default None = off).
+    static_tol_px: coincidence radius (pixels) for calling a centroid a static
+        cone star (default 2.0, the identification tolerance).
+    age0_window_yr: |age| below which a mover's own cone entry is exempt from
+        masking (default 1.0 yr; the fastest movers are still within a couple of
+        pixels of their catalog spot there).
     Returns: dict with either
         {ok:False, message:<why>} if no star dates the image reliably, or
         {ok:True, mode:"single-star drift", age_hat_yr, sigma_age_yr (or NaN),
@@ -151,12 +180,46 @@ def drift_date(frames, age_grid_yr, aged_catalog_fn, threshold_arcsec=3.0):
          set is not all in frame), best_sep_arcsec, n_stars, note}.
     """
     ages = np.asarray(age_grid_yr, dtype=float)
+
+    # Static-star masks (one per frame, age-independent apart from the near-age-0
+    # self-exclusion exemption). Cone stars are fetched once per frame; a missing
+    # cone (None) simply disables exclusion for that frame -- graceful degrade.
+    mask_far = [None] * len(frames)
+    mask_near = [None] * len(frames)
+    if cone_fn is not None and len(ages) > 0:
+        mover_ids = set(
+            int(s) for s in np.atleast_1d(aged_catalog_fn(float(ages[0]))["source_id"])
+        )
+        for fi, (plate, cen_xy, _name) in enumerate(frames):
+            try:
+                cone = cone_fn(plate)
+            except Exception:  # noqa: BLE001 -- offline/absent cone must not crash
+                cone = None
+            if cone is None:
+                continue
+            cpos, csids = cone["positions_au"], cone["source_id"]
+            mask_far[fi] = static_occupied_centroids(
+                plate, cen_xy, cpos, csids, tol_px=static_tol_px
+            )
+            mask_near[fi] = static_occupied_centroids(
+                plate,
+                cen_xy,
+                cpos,
+                csids,
+                tol_px=static_tol_px,
+                exclude_source_ids=mover_ids,
+            )
+
     per_key = {}  # (frame_index, source_id) -> separation array over ages
     for k, a in enumerate(ages):
         cat = aged_catalog_fn(float(a))
         pos, sids = cat["positions_au"], cat["source_id"]
+        near_zero = abs(float(a)) < age0_window_yr
         for fi, (plate, cen_xy, _name) in enumerate(frames):
-            for sid, sep in star_seps_in_frame(plate, cen_xy, pos, sids).items():
+            mask = mask_near[fi] if near_zero else mask_far[fi]
+            for sid, sep in star_seps_in_frame(
+                plate, cen_xy, pos, sids, exclude_centroid_mask=mask
+            ).items():
                 arr = per_key.get((fi, sid))
                 if arr is None:
                     arr = np.full(len(ages), np.nan)

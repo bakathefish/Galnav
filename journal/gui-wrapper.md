@@ -587,3 +587,131 @@ curve all render). Tests are synthetic-only (a one-star scene recovers an
 injected -48.5 yr to <1 yr; the guard fires on a starless field; negative
 propagation is linear; fitsmeta tolerates the decimal-minute date) -- nothing
 depends on the git-ignored data/candidates/ plates.
+
+## 2026-07-17 -- drift-dater dense-field fix, TESS TPF loading, epoch-span honesty
+
+A candidate-hunter stress-tested the chronometer on six never-seen DSS plates.
+Three dated true (Wolf'53 -> 1953.3, Proxima'76 -> 1976.0, Proxima'97 -> 1996.9),
+Wolf'95 was sloppy (1991.4 vs 1995.2), and BOTH Barnard plates hit a *false
+minimum* at +19.5 yr ("2035.5" instead of 1950/1991). Three fixes this round.
+
+### 1. The dense-field false minimum -- static-star exclusion
+
+*The failure, precisely.* Barnard's Star moves 10.4 arcsec/yr. Over the -75..+25
+yr scan its track sweeps the whole 30-arcmin frame, and at +19.5 yr the predicted
+position passes an *unrelated bright field star* at 1.70 arcsec -- closer than it
+ever sits to its own true-epoch blob (2.15 arcsec). The single-star objective
+(sum of squared nearest-centroid separations) has no way to tell a real match
+from a coincidental one, so the false minimum wins and the 3-arcsec reliability
+guard cannot catch it (the decoy is also sub-3 arcsec).
+
+*The fix (my lead's idea, measured and adopted).* A centroid that lands on a
+catalogued STATIC field star cannot be the fast mover we are dating -- at the
+true epoch the mover sits where the catalog shows NOTHING (it has moved far from
+its own 2016 Gaia spot). So `gui/locate.py:static_occupied_centroids` projects
+every star of the frame's full-depth Gaia cone (already warmed on disk;
+`cone_catalog(allow_fetch=False)`, zero network) through the WCS and marks each
+centroid within ~2 px of one. `star_seps_in_frame` gained an
+`exclude_centroid_mask` argument; `drift_date` builds the mask per frame and
+hides those detections, so the mover can only match a blank-catalog detection.
+
+  formula, one symbol at a time (the mask test for centroid j, cone star k):
+    occupied_j  =  OR over unmasked cone stars k of  [ dist_px(centroid_j, proj_k) <= tol_px ]
+  where proj_k is cone star k's CATALOG-epoch (J2016.0, "static") sky direction
+  pushed through the plate WCS to a pixel, dist_px is Euclidean pixel distance,
+  and tol_px = 2.0 (the identification tolerance already used elsewhere). A
+  masked centroid is dropped from the mover's nearest-neighbour search.
+
+*The near-age-0 exemption (thought through, documented).* The cone lists the
+NEARBY movers too, at their 2016 positions. On a MODERN plate (age ~ 0) a mover
+legitimately sits at its own catalog spot, so its own cone entry must not mask
+the detection it belongs to. `drift_date` therefore drops the nearby-catalog
+source ids from the mask whenever |age| < 1.0 yr (`age0_window_yr`); the fastest
+movers are still within a couple of pixels of their catalog spot there. Away from
+age 0 the mover has left that spot, so it is a legitimate static exclusion again.
+The threshold is 1.0 yr because a 10 arcsec/yr mover at a ~1 arcsec/px plate has
+moved ~10 px in a year -- unambiguously "not at its catalog spot" beyond that.
+
+*Why this alone, no flux prior.* The brief authorised a second lever (require the
+match among the brightest N) only if exclusion alone failed. It did not: measured
+on all six real plates, exclusion fixes both Barnard plates and leaves the four
+others exactly as they were, so the flux prior was not added (simplest thing that
+works). Barnard diagnostic at +19.5: 155 of 200 centroids are catalogued static
+stars; the decoy is one of them, so Barnard's separation there jumps 1.70 -> 172
+arcsec, while its true-epoch blob (2.02 arcsec, where the catalog is blank)
+survives masking and becomes the global minimum.
+
+  Six-plate table, single-star drift, grid -75..+25 @0.5, cone exclusion:
+
+  | plate (star)            | truth  | BEFORE (off) | AFTER (on) | verdict          |
+  |-------------------------|--------|--------------|------------|------------------|
+  | poss1red wolf359 1953   | 1953.3 | 1953.3       | 1953.3     | OK (unchanged)   |
+  | poss2blue proxima 1976  | 1976.2 | 1976.0       | 1976.0     | OK (unchanged)   |
+  | poss2red proxima 1997   | 1997.2 | 1996.9       | 1996.9     | OK (unchanged)   |
+  | poss2red wolf359 1995   | 1995.2 | 1991.4       | 1991.4     | ~ no regression  |
+  | poss1red barnard 1950   | 1950.5 | 2035.6 FALSE | **1950.6** | FIXED            |
+  | poss2red barnard 1991   | 1991.5 | 2035.6 FALSE | **1991.5** | FIXED            |
+
+  Wolf'95 is a *different* failure (a sparse high-latitude field where Wolf 359's
+  slower 4.7 arcsec/yr track over a short 21-yr baseline gives a shallow V with a
+  competing minimum 3.8 yr away); static exclusion neither helps nor hurts it, as
+  the brief required. Left honest, not papered over.
+
+  What it does NOT do: it does not add a new dependency, touch the position-fit
+  (chi2-scan) path, or change any NH demo number -- the NH frames are position-fit
+  and never reach `drift_date`; a single NH frame forced onto the drift path
+  returns "no reliable drift date" both before and after (at 47 au the spacecraft
+  sees Proxima's 36-arcsec PARALLAX, not its proper motion, so barycentric drift
+  prediction misses by >3 arcsec -- Earth-based DSS plates have no such offset,
+  which is exactly why drift dating is an old-plate technique).
+
+### 2. TESS target-pixel files load their imagery, not the aperture mask
+
+A SPOC/TESScut target-pixel file keeps its pictures in a binary TABLE (EXTNAME
+`PIXELS`) as a `FLUX` column of one 2-D cutout per cadence; the only IMAGE HDU is
+the `APERTURE` bit-mask (~all ones). The old "first 2-D HDU" loader skipped the
+table (its `.data` is a 1-D record array) and grabbed the mask -- so a TESS frame
+had nothing to centroid. `gui/app.py:_tpf_median_frame` now detects the PIXELS
+table and returns the pixel-wise MEDIAN over cadences (NaN gap cadences ignored
+via `nanmedian`), which is a clean single frame the pipeline centroids normally.
+On the real Proxima Sector-11 cutout this recovers 8 detections (matching the
+hunter's derived-frame count); a normal single-image FITS is untouched.
+
+### 3. Multi-epoch honesty -- the position fix warns when it is meaningless
+
+DSS/HST plates are Earth observations years apart: different observer, different
+place, so their lines of position do not cross at one real point and the fix
+returns a nonsense |r| (measured 22-35 au on mixed-era groups). `locate_payload`
+now computes the span of the selected frames' observation epochs (max-min of
+obs_age_yr) and, when it exceeds 0.2 yr, attaches a plain-English `warning`
+steering the user to the AGE estimate (which is per-frame and unaffected). The
+NH campaign is one instant, so it never trips; a Barnard'91 + Wolf'95 pair
+produces |r| = 35 au WITH the warning, exactly as intended. The web result card
+renders it as an amber banner.
+
+### 4. Noted, not patched -- HLA WFPC2 SIP warning
+
+The hunter's Hubble Legacy Archive WFPC2 drizzled products trip an astropy
+warning ("SIP coefficients present but CTYPE missing -SIP suffix -- coordinates
+might be incorrect"). `fits_header_solution` still returns a usable solution
+(warns, does not fail); the WCS may be marginally off for these drizzled
+products. Cosmetic and instrument-specific -- recorded here per the brief, no
+code change (suppressing it in the core solver risks hiding real WCS problems).
+
+*Tolerances touched.* `static_tol_px = 2.0` px: the identification tolerance
+already used for tight positional matches; measured to mask the Barnard decoy
+(and 155/200 dense-field centroids) while leaving the true-epoch blob unmasked.
+`age0_window_yr = 1.0` yr: the |age| below which a mover's own catalog spot is
+exempt; justified above. `_EPOCH_SPAN_WARN_YR = 0.2` yr: below the ~0.3-yr NH
+campaign spread stays silent, above it flags the year-apart plate groups the
+hunter measured at |r| 22-35 au.
+
+*Tests (synthetic only -- nothing depends on the git-ignored plates).* A decoy
+scene (one fast mover + a static decoy star placed where the mover's track
+crosses at a false epoch, plus a one-star cone) is fooled onto the false epoch
+without the cone and recovers the true -50 yr WITH it -- the Barnard fix in
+miniature. A synthetic astropy-written TPF (PIXELS table + all-ones aperture, one
+NaN gap cadence) proves `load_grayscale` returns the FLUX median (peak on the
+injected star, not a flat mask) and that it centroids; a plain image FITS is
+unaffected. The epoch-span warning fires on a spread-out pair and stays None on a
+same-era pair and on the real 12 NH frames. tests_gui 64 -> 71; spine 84 held.

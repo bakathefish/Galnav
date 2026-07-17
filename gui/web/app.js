@@ -105,8 +105,9 @@ async function locate() {
 }
 
 function renderLocate(r) {
+  const warn = r.warning ? `<div class="warnbar">${r.warning}</div>` : "";
   if (!r.ok) {
-    $("results").innerHTML = `<div class="resultcard"><div class="pos">${r.message}</div></div>`;
+    $("results").innerHTML = `<div class="resultcard">${warn}<div class="pos">${r.message}</div></div>`;
     hideSpacePanel();
     return;
   }
@@ -120,6 +121,7 @@ function renderLocate(r) {
   ).join("<br>");
   $("results").innerHTML =
     `<div class="resultcard">
+       ${warn}
        <div class="k mono" style="color:var(--faint);letter-spacing:.1em">SPACECRAFT POSITION</div>
        <div class="big-r">|r| = ${r.r_au.toFixed(2)} au</div>
        <div class="pos">x = [${x}] au &nbsp;(${r.r_pc.toExponential(3)} pc)</div>

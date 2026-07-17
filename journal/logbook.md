@@ -3169,3 +3169,37 @@ wrong.**
   `gui/web/{index.html,app.js}`, `tests_gui/test_age.py`,
   `journal/{gui-wrapper.md,logbook.md}`. No galnav/, tests/, golden_numbers,
   pytest.ini, docs/, or root README.md change; no frozen/golden value changed.
+
+- 2026-07-17 -- GUI fix round: drift-dater dense-field false minimum, TESS TPF
+  loading, epoch-span honesty (candidate-hunter stress-test findings).
+  WHAT: (1) STATIC-STAR EXCLUSION cures the Barnard false minimum. A high-PM
+  track sweeping a dense field passes an unrelated catalogued field star closer,
+  at a wrong epoch, than the mover sits to its own true blob; the fix masks every
+  centroid that coincides (<=2 px) with a full-depth Gaia cone star's STATIC
+  position, so the mover can only match a blank-catalog detection. New
+  `gui/locate.py:static_occupied_centroids`; `star_seps_in_frame` gains
+  `exclude_centroid_mask`; `gui/age.py:drift_date` gains `cone_fn`,
+  `static_tol_px=2.0`, `age0_window_yr=1.0` (near-age-0 self-exclusion exemption
+  for modern plates); `gui/webapp.py:age_payload` injects
+  `cone_catalog(allow_fetch=False)`. (2) `gui/app.py` `load_grayscale` detects a
+  TESS/Kepler target-pixel file (PIXELS binary table) and returns the median-over-
+  cadence FLUX frame instead of the all-ones APERTURE mask. (3)
+  `gui/webapp.py:locate_payload` attaches an epoch-span `warning` (>0.2 yr spread)
+  + amber banner in `app.js`. (4) HLA WFPC2 SIP warning noted, not patched.
+  WHY: the shipped chronometer nailed sparse fields but was fooled 2035.5 on both
+  Barnard plates; TESS frames were unusable; mixed-era groups gave nonsense |r|.
+  EVIDENCE: six real DSS plates measured OFF vs ON -- both Barnard plates FIXED
+  (2035.6 -> 1950.6 / 1991.5, within 0.1 yr of truth), the four good plates
+  UNCHANGED, Wolf'95 not regressed (1991.4, a separate sparse-field ambiguity);
+  static exclusion alone sufficed so the authorised flux prior was NOT added. TESS
+  Proxima S11 cutout now yields 8 centroids (was the flat mask). Mixed-era
+  Barnard'91+Wolf'95 locate -> |r| 35 au WITH the warning. NH 12-frame position-fit
+  still 4.2856 yr / 0.38659 au (drift path never touched); single NH frame drift
+  identical before/after (parallax-dominated, correctly "no reliable drift date").
+  tests_gui 64 -> 71 (+1 decoy, +3 TESS, +3 epoch-span; all synthetic, none touch
+  the git-ignored plates); spine `pytest -q` 84 held; truth wall AST scan green.
+  COMMIT: uncommitted (orchestrator will commit). New: `tests_gui/test_load_grayscale.py`.
+  Changed: `gui/{age,locate,app,webapp}.py`, `gui/web/{app.js,style.css}`,
+  `tests_gui/{test_age.py,test_webapp.py}`, `journal/{gui-wrapper.md,citations.md,
+  logbook.md}`. No galnav/, tests/, golden_numbers, pytest.ini, docs/, or root
+  README.md change; no frozen/golden value changed.

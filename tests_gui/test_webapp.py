@@ -255,3 +255,33 @@ def test_static_vendor_guard_rejects_escape_and_missing():
     assert webapp.static_file("/etc/passwd") is None  # absolute
     assert webapp.static_file("vendor/spacekit/nope.js") is None  # missing file
     assert webapp.static_file("vendor/") is None  # a directory, not a file
+
+
+# --- multi-epoch honesty ----------------------------------------------------
+
+
+def test_epoch_span_warning_flags_mixed_era_frames(monkeypatch):
+    """Frames taken years apart are different observers: the fix is meaningless,
+    so locate must carry a warning steering the user to the age estimate."""
+    recs = {"a": {"obs_age_yr": -62.7}, "b": {"obs_age_yr": -20.8}}
+    monkeypatch.setattr(webapp, "_record_by_id", lambda fid: recs.get(fid))
+    w = webapp._epoch_span_warning(["a", "b"])
+    assert w is not None
+    assert "span" in w and "age estimate" in w
+    assert "41" in w  # the measured span (62.7 - 20.8) rounds into the text
+
+
+def test_epoch_span_warning_silent_for_same_era(monkeypatch):
+    """A single-instant campaign (all frames within ~0.2 yr) must NOT warn."""
+    recs = {"a": {"obs_age_yr": 4.31}, "b": {"obs_age_yr": 4.33}}
+    monkeypatch.setattr(webapp, "_record_by_id", lambda fid: recs.get(fid))
+    assert webapp._epoch_span_warning(["a", "b"]) is None
+    assert webapp._epoch_span_warning(["a"]) is None  # one frame: nothing to span
+
+
+def test_locate_demo_has_no_epoch_span_warning():
+    """The 12 real NH frames are one campaign: the fix is meaningful and the
+    warning field is present-but-None (proves it is wired without false alarms)."""
+    r = webapp.locate_payload(_demo_ids(), 4.31, 120, 19.57)
+    assert r["ok"] is True
+    assert r["warning"] is None

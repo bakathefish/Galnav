@@ -230,3 +230,84 @@ def test_negative_age_catalog_propagation_is_linear():
     vel = c1 - c0  # au/yr
     assert np.allclose(cm, c0 - 50.0 * vel, rtol=1e-9, atol=1e-6)
     assert np.max(np.linalg.norm(cm - c0, axis=1)) > 0  # motion is real
+
+
+# --- dense-field false-minimum fix (static-star exclusion) ------------------
+
+
+def _decoy_scene(
+    true_age=-50.0,
+    false_age=20.0,
+    pmra=8.0,
+    dist_pc=3.0,
+    sid=900123,
+    decoy_sid=555000,
+    ra0=150.0,
+    dec0=20.0,
+    scale=2.0,
+    nx=600,
+    ny=600,
+):
+    """A Barnard-style trap: one fast mover, plus a STATIC decoy star sitting
+    exactly where the mover's track crosses at a WRONG (false) epoch, closer than
+    the mover ever sits to its own true-epoch blob.
+
+    Returns (plate, centroids, cat_fn, cone). Without the cone the drift scan is
+    fooled onto false_age (the decoy wins); with the cone (a full-depth catalog
+    listing the decoy at its STATIC position) the decoy centroid is masked and
+    the true_age is recovered. Mirrors the real POSS Barnard plates.
+    """
+
+    def cat_fn(a):
+        ra = ra0 + a * pmra / 3600.0 / np.cos(np.radians(dec0))
+        u = radec_to_unit(deg_to_rad(ra), deg_to_rad(dec0))
+        return {
+            "positions_au": (u * dist_pc * AU_PER_PC).reshape(1, 3),
+            "source_id": np.array([sid], dtype=np.int64),
+        }
+
+    def _sky(a):
+        u = cat_fn(a)["positions_au"][0]
+        u = u / np.linalg.norm(u)
+        return float(np.degrees(np.arctan2(u[1], u[0]))), float(
+            np.degrees(np.arcsin(u[2]))
+        )
+
+    rac, decc = _sky((true_age + false_age) / 2.0)  # centre between the epochs
+    plate = PlateSolution(
+        wcs=_tan_wcs(rac, decc, scale, nx, ny), source="mock", width=nx, height=ny
+    )
+
+    def _pix(a, off):
+        ra, dec = _sky(a)
+        px, py = plate.wcs.world_to_pixel(SkyCoord(ra, dec, unit="deg"))
+        return [float(px) + off, float(py)]
+
+    true_blob = _pix(true_age, 0.4)  # real detection, small residual
+    decoy = _pix(false_age, 0.1)  # unrelated field star, even closer
+    cen = np.array([true_blob, decoy])
+
+    u_decoy = cat_fn(false_age)["positions_au"][0]
+    u_decoy = u_decoy / np.linalg.norm(u_decoy)
+    cone = {
+        "positions_au": u_decoy.reshape(1, 3),  # STATIC (catalog-epoch) position
+        "source_id": np.array([decoy_sid], dtype=np.int64),
+    }
+    return plate, cen, cat_fn, cone
+
+
+def test_drift_date_static_star_exclusion_rejects_decoy():
+    """The dense-field fix: a mover's track passes a STATIC field star closer, at
+    a false epoch, than it sits to its own true blob. Without the cone the scan is
+    fooled onto the false epoch; feeding the full-depth cone masks the cataloged
+    decoy so the TRUE epoch is recovered. This is the Barnard 2035->1950/1991
+    fix in miniature."""
+    plate, cen, cat_fn, cone = _decoy_scene()
+    grid = np.arange(-75.0, 25.0 + 1e-9, 0.5)
+
+    off = drift_date([(plate, cen, "synth")], grid, cat_fn)
+    assert off["ok"] and off["age_hat_yr"] > 10.0  # fooled onto the false +20 min
+
+    on = drift_date([(plate, cen, "synth")], grid, cat_fn, cone_fn=lambda p: cone)
+    assert on["ok"] and abs(on["age_hat_yr"] - (-50.0)) < 1.0  # decoy masked
+    assert on["best_sep_arcsec"] < 3.0

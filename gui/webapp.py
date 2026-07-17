@@ -512,19 +512,54 @@ def _lines_for(ids, age_yr, radius_arcsec, rv_kms, catalog_override=None):
     return lines, all_demo
 
 
+_EPOCH_SPAN_WARN_YR = 0.2  # frames farther apart than this are different observers
+
+
+def _epoch_span_warning(ids):
+    """A plain-English warning if the selected frames were taken at spread-out
+    epochs, else None.
+
+    A single-point position fix assumes ONE observer at ONE instant. Frames
+    taken years apart are different observers at different places, so their
+    lines of position do not cross at a real point -- the fix comes back as a
+    nonsense |r| (measured 22-35 au on mixed-era DSS/HST groups). The AGE
+    estimate is unaffected (each frame still dates itself), so we steer the user
+    there instead of hiding the hazard. Span is max-min of obs_age_yr (yr since
+    J2016.0) across the selection.
+    """
+    epochs = [
+        rec["obs_age_yr"] for fid in ids if (rec := _record_by_id(fid)) is not None
+    ]
+    if len(epochs) < 2:
+        return None
+    span = float(max(epochs) - min(epochs))
+    if span <= _EPOCH_SPAN_WARN_YR:
+        return None
+    return (
+        f"frames span {span:.1f} yr - observers at different epochs; the position "
+        f"fix is not meaningful, use the age estimate."
+    )
+
+
 def locate_payload(ids, age_yr, radius_arcsec, rv_kms):
     """Fix the spacecraft from the selected frames. Never raises to the caller.
 
     Returns a JSON-ready dict: on success {ok:True, x_au, r_au, r_pc,
     ellipsoid_au, chi2, n_lines, distinct_stars, lines:[{star_name, image,
-    resid_arcsec}], miss_au (or None), message:""}; on a degenerate geometry
-    {ok:False, message:<friendly text>, n_lines}.
+    resid_arcsec}], miss_au (or None), warning (or None), message:""}; on a
+    degenerate geometry {ok:False, message:<friendly text>, n_lines, warning}.
     """
     lines, all_demo = _lines_for(ids, age_yr, radius_arcsec, rv_kms)
+    warning = _epoch_span_warning(ids)
     try:
         fix = fix_position(lines, rmssig_arcsec=RMSSIG_ARCSEC)
     except ValueError as exc:
-        return {"ok": False, "message": str(exc), "n_lines": len(lines)}
+        return {
+            "ok": False,
+            "message": str(exc),
+            "n_lines": len(lines),
+            "warning": warning,
+        }
     x = fix["x_au"]
     r_au = float(np.linalg.norm(x))
     miss = float(np.linalg.norm(x - NEWH_X_JPL)) if all_demo else None
@@ -546,6 +581,7 @@ def locate_payload(ids, age_yr, radius_arcsec, rv_kms):
             for ln in lines
         ],
         "miss_au": miss,
+        "warning": warning,
         "message": "",
     }
 
@@ -625,6 +661,7 @@ def age_payload(ids, radius_arcsec, rv_kms, age_min, age_max, age_step):
         lambda a: load_aged_catalog(
             str(CATALOG_CSV), a, rv_fill_kms=rv_kms or DEFAULT_RV_FILL_KMS
         ),
+        cone_fn=lambda p: gaiacone.cone_catalog(p, allow_fetch=False),
     )
     if not d["ok"]:
         return {"ok": False, "message": d["message"]}

@@ -197,7 +197,12 @@ def identify_in_frame(
 
 
 def star_seps_in_frame(
-    plate, centroids_xy, aged_positions_au, source_ids, gate_margin_arcsec=180.0
+    plate,
+    centroids_xy,
+    aged_positions_au,
+    source_ids,
+    gate_margin_arcsec=180.0,
+    exclude_centroid_mask=None,
 ):
     """Nearest-centroid separation (arcsec) for every catalog star that projects
     inside the frame -- the primitive for single-star drift dating.
@@ -209,10 +214,19 @@ def star_seps_in_frame(
     V whose minimum marks the epoch the image was taken. An angular pre-gate
     keeps the WCS inversion to the handful of stars near the field.
 
+    exclude_centroid_mask lets the caller HIDE some centroids from the nearest-
+    neighbour search: any True position is skipped as a match candidate. The
+    drift dater passes the static-cone mask (see static_occupied_centroids) so a
+    fast-moving star cannot be matched to a detection that is really a catalogued
+    STATIC field star -- the fix for the dense-field false minimum. A star whose
+    every in-frame centroid is masked simply gets no entry (no reliable match).
+
     plate: PlateSolution. centroids_xy: (M,2) detected pixels.
     aged_positions_au: (N,3) aged catalog positions, au. source_ids: (N,) ids.
     gate_margin_arcsec: extra angular margin beyond the frame half-diagonal for
         the pre-gate (a star just outside can still project in-frame).
+    exclude_centroid_mask: optional (M,) bool; True centroids are ignored as
+        match candidates (default None -> all centroids eligible).
     Returns: dict {source_id: nearest_centroid_sep_arcsec} for in-frame stars.
     """
     positions = np.atleast_2d(np.asarray(aged_positions_au, dtype=float))
@@ -223,6 +237,13 @@ def star_seps_in_frame(
     out = {}
     if cen.shape[0] == 0:
         return out
+
+    keep = np.ones(cen.shape[0], dtype=bool)
+    if exclude_centroid_mask is not None:
+        keep = ~np.asarray(exclude_centroid_mask, dtype=bool)
+    if not keep.any():
+        return out
+    cen_kept = cen[keep]
 
     cra, cdec = plate.center_radec_deg
     center_unit = radec_to_unit(deg_to_rad(cra), deg_to_rad(cdec))
@@ -248,9 +269,83 @@ def star_seps_in_frame(
             continue
         if x < -0.5 or x > plate.width - 0.5 or y < -0.5 or y > plate.height - 0.5:
             continue
-        d_px = float(np.hypot(cen[:, 0] - x, cen[:, 1] - y).min())
+        d_px = float(np.hypot(cen_kept[:, 0] - x, cen_kept[:, 1] - y).min())
         out[int(ids[si])] = d_px * scale
     return out
+
+
+def static_occupied_centroids(
+    plate,
+    centroids_xy,
+    cone_positions_au,
+    cone_source_ids,
+    tol_px=2.0,
+    exclude_source_ids=None,
+):
+    """Which detected centroids sit on a catalogued STATIC field star.
+
+    A full-depth Gaia cone (gaiacone.cone_catalog) lists the field stars in the
+    footprint at the CATALOG epoch (J2016.0). Nearly all are low-proper-motion,
+    so their catalog position IS essentially their plate position -- a static
+    marker. A centroid within tol_px of any such projected cone star is that
+    star's light, so it CANNOT be the fast-moving nearby star we are drift-dating:
+    masking these removes the decoys that create dense-field false minima (a
+    high-PM track sweeping the frame passes an unrelated field star closer, at a
+    wrong epoch, than it sits to its own true-epoch blob).
+
+    exclude_source_ids names cone stars NOT allowed to mark a centroid. The drift
+    dater passes the nearby (mover) catalog's ids here ONLY when the scanned age
+    is near 0: at ~J2016.0 every nearby star legitimately sits at its own catalog
+    spot, so its own cone entry must not self-exclude the detection it belongs to
+    (a modern plate). Away from age 0 the mover has left its catalog spot, so that
+    spot is a legitimate static exclusion again and exclude_source_ids is None.
+
+    plate: PlateSolution. centroids_xy: (M,2) detected pixels.
+    cone_positions_au: (K,3) cone catalog-epoch positions (unit vectors ok).
+    cone_source_ids: (K,) int cone source ids. tol_px: coincidence radius, pixels.
+    exclude_source_ids: iterable of ids not permitted to mask (or None).
+    Returns: (M,) bool mask; True = centroid coincides with a static cone star.
+    """
+    cen = np.atleast_2d(np.asarray(centroids_xy, dtype=float))
+    mask = np.zeros(cen.shape[0], dtype=bool)
+    if cen.shape[0] == 0:
+        return mask
+    positions = np.atleast_2d(np.asarray(cone_positions_au, dtype=float))
+    if positions.shape[0] == 0:
+        return mask
+    dist = np.linalg.norm(positions, axis=1)
+    dist[dist == 0.0] = 1.0
+    units = positions / dist[:, None]
+    ids = np.atleast_1d(np.asarray(cone_source_ids))
+    excl = set(int(s) for s in exclude_source_ids) if exclude_source_ids else set()
+
+    cra, cdec = plate.center_radec_deg
+    center_unit = radec_to_unit(deg_to_rad(cra), deg_to_rad(cdec))
+    cosang = units @ center_unit
+    half_diag_arcsec = (
+        0.5 * np.hypot(plate.width, plate.height) * plate.scale_arcsec_per_px
+    )
+    gate_rad = arcsec_to_rad(half_diag_arcsec + 180.0)
+    near = np.nonzero(cosang > np.cos(gate_rad))[0]
+    if near.size == 0:
+        return mask
+
+    sky = _unit_to_skycoord(units[near])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        px, py = plate.wcs.celestial.world_to_pixel(sky)
+    px = np.atleast_1d(np.asarray(px, dtype=float))
+    py = np.atleast_1d(np.asarray(py, dtype=float))
+    for j, ci in enumerate(near):
+        if int(ids[ci]) in excl:
+            continue
+        x, y = px[j], py[j]
+        if not (np.isfinite(x) and np.isfinite(y)):
+            continue
+        if x < -0.5 or x > plate.width - 0.5 or y < -0.5 or y > plate.height - 0.5:
+            continue
+        mask |= np.hypot(cen[:, 0] - x, cen[:, 1] - y) <= tol_px
+    return mask
 
 
 def measured_direction(plate, centroid_xy):

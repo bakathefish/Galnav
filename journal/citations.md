@@ -287,6 +287,20 @@ Zenodo, doi:10.5281/zenodo.16051178 (v2.1.0, 2025-07).
   manifest); the ApJL bibliographic details should be sighted by the
   students before the paper's reference list is finalized.
 
+**[TESS-TPF]** NASA/MAST, "TESS Science Data Products Description Document"
+(EXP-TESS-ARC-ICD-0014) — Target Pixel File (TPF) format. https://archive.stsci.edu/missions-and-data/tess
+- Used for: the demo's arbitrary-image loader. A SPOC/TESScut target-pixel
+  file stores its imagery as a `FLUX` column of per-cadence 2-D cutouts in a
+  binary-table HDU (EXTNAME `PIXELS`); the only IMAGE HDU is the `APERTURE`
+  mask (integer bit-flags, ~all ones over the cutout). `gui/app.py`
+  `load_grayscale` therefore detects the PIXELS table and returns the
+  pixel-wise MEDIAN over cadences (NaN gaps ignored) so a TPF centroids like
+  any other frame, instead of loading the flat aperture mask.
+- Where in repo: `gui/app.py` (`_tpf_median_frame`, `load_grayscale`);
+  `tests_gui/test_load_grayscale.py` (synthetic TPF, no data committed).
+- Retrieval note: verified 2026-07-17 against a real MAST TESScut cutout of
+  Proxima (Sector 11, 30x30 px) held only in git-ignored `data/candidates/`.
+
 ## Historical
 
 **[Gauss1809]** Gauss, C. F. (1809). *Theoria Motus Corporum Coelestium*.
