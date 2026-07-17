@@ -66,3 +66,35 @@ def test_flat_image_returns_nothing():
     empty result rather than divide by zero or hallucinate a source."""
     out = find_centroids(np.full((32, 32), 7.0))
     assert out["xy"].shape[0] == 0
+
+
+# A Gaussian PSF fit recovers a clean star's centre to well under a tenth of a
+# pixel; 0.05 px gates the refine path (and would fail if the fit diverged).
+REFINE_TOL_PX = 0.05
+
+
+def test_refine_recovers_gaussian_subpixel():
+    """With refine=True, a clean single Gaussian star is pinned to <0.05 px --
+    the PSF fit path runs and converges to the injected sub-pixel centre."""
+    x, y = 63.37, 96.62
+    img = _render((128, 128), [(x, y, 1200.0)], sigma=1.4, noise=1.0, seed=3)
+    out = find_centroids(img, refine=True)
+    d = np.hypot(out["xy"][:, 0] - x, out["xy"][:, 1] - y)
+    assert d.min() < REFINE_TOL_PX
+
+
+def test_refine_falls_back_on_saturated_flat_top():
+    """A saturated (flat-topped) star has an ill-defined Gaussian centre; the
+    refine must FALL BACK to the moment centroid rather than chase a bad fit --
+    so the refined and unrefined centroids are identical for that star."""
+    x, y = 80.4, 50.7
+    img = _render((128, 128), [(x, y, 5000.0)], sigma=1.7, noise=0.5, seed=4)
+    img = np.clip(img, None, 1500.0)  # saturate the core to a flat top
+
+    def nearest(o):
+        d = np.hypot(o["xy"][:, 0] - x, o["xy"][:, 1] - y)
+        return o["xy"][int(np.argmin(d))]
+
+    off = nearest(find_centroids(img, refine=False))
+    on = nearest(find_centroids(img, refine=True))
+    assert np.allclose(off, on)  # refine fell back to the moment centroid

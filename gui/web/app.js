@@ -239,21 +239,44 @@ function drawCurve(r) {
   ctx.fillText("chi2", 0, 0); ctx.restore();
 }
 
+const UPLOAD_STAGES = ["Solving field…", "Identifying stars…", "Locating…"];
+
 async function upload(file) {
   setBusy(true);
+  const stage = $("upload-stage");
+  stage.hidden = false;
+  stage.className = "upload-stage busy";
+  stage.innerHTML = `<span class="spin"></span><span id="stage-text">${UPLOAD_STAGES[0]}</span>`;
+  // Animate the stage label while the (possibly slow) blind solve runs server-side.
+  let i = 0;
+  const timer = setInterval(() => {
+    i = (i + 1) % UPLOAD_STAGES.length;
+    const t = $("stage-text"); if (t) t.textContent = UPLOAD_STAGES[i];
+  }, 1200);
   try {
     const fd = new FormData(); fd.append("file", file);
     const key = $("apikey").value.trim();
     const opts = { method: "POST", body: fd };
     if (key) opts.headers = { "X-Api-Key": key };
     const r = await api("/api/upload", opts);
-    if (!r.ok) { toast(r.message || "upload failed"); return; }
+    clearInterval(timer);
+    if (!r.ok) {
+      // Surface the friendly multi-backend reason prominently (this is the error
+      // the user keeps hitting before a solver is installed) -- not just a toast.
+      stage.className = "upload-stage err";
+      stage.textContent = r.message || "Upload failed.";
+      return;
+    }
+    stage.className = "upload-stage ok";
+    stage.textContent = `Solved — added “${r.name}”. Select it (plus one more nearby-star frame) and click Locate.`;
     await loadFrames();
     state.selected.add(r.id); state.focus = r.id;
     renderGallery(); updatePreview();
-    toast("Added " + r.name);
-  } catch (e) { toast("Upload failed: " + e); }
-  finally { setBusy(false); }
+  } catch (e) {
+    clearInterval(timer);
+    stage.className = "upload-stage err";
+    stage.textContent = "Upload failed: " + e;
+  } finally { setBusy(false); }
 }
 
 async function loadFrames() {

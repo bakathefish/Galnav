@@ -3100,3 +3100,36 @@ wrong.**
   galnav/, tests/, golden_numbers, pytest.ini, docs/, README.md (repo root), or
   golden-value change. The vendored bundle is COMMITTED (it is the offline booth
   asset, not a re-fetchable cache).
+
+## 2026-07-17 — Upload-first UI, raw-path E2E proof, PSF-centroid trial (null)
+- WHAT: (1) Reordered the web UI to lead with "Add your own image" (raw image ->
+  plate-solve/identify/locate) as the primary card; the New Horizons demo moved
+  below under a "Reproducible demo (offline)" heading (kept, not deleted). Upload
+  now shows a staged indicator and surfaces the friendly multi-backend error
+  prominently in-card. (2) New gui/raw_demo.py writes a WCS-stripped copy of a
+  demo LORRI frame; new tests_gui/test_raw_upload.py proves the whole raw upload
+  chain (solver mocked). (3) Added optional Gaussian-PSF centroid refinement to
+  gui/centroids.py, MEASURED it, and kept it OFF by default (null result).
+- WHY: user asked for upload-first (raw images are the real use case); the demo
+  is the reproducible/offline anchor so it stays. The raw-path tests make the
+  "trace any image" claim code-complete and provable today without a solver
+  binary. PSF refinement was the one honest accuracy lever, so it was measured
+  rather than assumed.
+- EVIDENCE: `python -m pytest -q` -> 84 passed (spine untouched). `python -m
+  pytest tests_gui -q` -> 58 passed (was 54: +2 centroid PSF [subpixel recovery
+  <0.05 px; saturated flat-top falls back], +2 raw upload E2E [no-solver friendly
+  error; mocked-solver identifies Proxima + reproduces the 2-frame teaching fix
+  to <1e-5 au]), 0 skips. PSF measurement (12 demo frames): 12-frame miss OFF
+  0.38659 -> ON 0.40864 au (WORSE by 0.022; rule needed >0.01 improvement ->
+  KEEP OFF); 2-frame 0.98301 -> 0.72284; age 4.2856 -> 4.3425. No frozen constant
+  changed. Browser drive: upload-first layout renders (upload card primary, demo
+  below); an uploaded raw PNG with no solver shows the full fits-header/wsl/nova
+  error in a red in-card box; demo Full-solve still returns 0.387 au with the 3-D
+  panel. Import clean. Three screenshots saved to the scratchpad (upload-first
+  layout, upload error state, and the earlier 3-D scenes).
+- COMMIT: uncommitted (orchestrator will commit). New: `gui/raw_demo.py`,
+  `tests_gui/test_raw_upload.py`. Changed: `gui/centroids.py`,
+  `tests_gui/test_centroids.py`, `gui/web/{index.html,style.css,app.js,README.md}`,
+  `journal/{gui-wrapper.md,logbook.md}`. No galnav/, tests/, golden_numbers,
+  pytest.ini, docs/, or root README.md change; no frozen/golden value changed
+  (PSF trial was a null result).

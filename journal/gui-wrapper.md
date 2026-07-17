@@ -485,3 +485,55 @@ collapses to one dot at interstellar scale).
   builds the pc scene (second canvas) with the five famous-star labels (Proxima
   1.30, Barnard's 1.83, Wolf 359 2.41, Lalande 2.55, Ross 154 2.98 pc) and the
   collapse caption. Screenshots of both scenes saved for review.
+
+**Upload-first UI + raw-path proof + a PSF-centroid trial.** Three changes,
+one round.
+
+1. *Upload-first layout.* The page now leads with **Add your own image** (a raw
+   telescope/spacecraft image, no coordinates needed) as the primary card at the
+   top of the left column, with the one-line promise "Raw image in: no
+   coordinates needed -- the pipeline plate-solves, identifies, and locates." The
+   reproducible New Horizons demo (gallery + presets) moved BELOW it under
+   "Reproducible demo -- real New Horizons frames (offline)". The demo is kept,
+   not deleted: it is the byte-reproducible anchor and the offline booth path.
+   Upload UX: while the blind solve runs the card shows a staged indicator
+   (solving field / identifying / locating); on failure it surfaces the friendly
+   three-backend message PROMINENTLY in the card (a red box), not just a toast --
+   because that "solve-field not installed yet" error is the one users actually
+   hit. Verified in a browser: the demo Full-solve still returns 0.387 au and the
+   3-D panel still appears; an uploaded raw image with no solver shows the full
+   fits-header/wsl/nova error with install hints.
+
+2. *Raw-path end-to-end proof.* `gui/raw_demo.py` writes a WCS-stripped copy of a
+   demo LORRI frame (a genuine "raw" image, pixels only) so the user has
+   something to upload live. `tests_gui/test_raw_upload.py` drives the WHOLE raw
+   chain on a stripped real frame (in tmp_path, nothing committed): (a) solver
+   mocked ABSENT -> the friendly three-backend error; (b) solver mocked to return
+   the frame's TRUE plate -> the upload identifies Proxima and, with one demo
+   Wolf frame, reproduces the 2-frame teaching fix to <1e-5 au (the stripped
+   pixels + mock-recovered plate are byte-identical to demo frame f0). This
+   proves every line of the raw path except the solver binary itself.
+
+3. *PSF-centroid accuracy trial (a measured null result).* `gui/centroids.py`
+   gained an optional Gaussian-PSF refinement (`refine=True`): after the moment
+   centroid, fit a 2-D circular Gaussian in a 7x7 stamp and take its centre when
+   the fit is sane (edge / no-amplitude / SATURATION / non-convergence / >=1.5 px
+   runaway all fall back to the moment centroid). The one honest lever toward
+   Lauer's 0.351 au -- so it was MEASURED, not assumed. Result on the demo:
+
+   | case | miss OFF (moment) | miss ON (PSF) |
+   |---|---|---|
+   | 12-frame (headline) | 0.38659 au | 0.40864 au |
+   | 2-frame | 0.98301 au | 0.72284 au |
+   | age_hat | 4.2856 yr | 4.3425 yr |
+
+   The headline 12-frame miss got WORSE by 0.022 au (the decision rule required a
+   >0.01 au improvement to adopt), even though the noisier 2-frame case improved
+   by 0.26 au. Reading: averaging 12 moment centroids already beats a single
+   frame; the Gaussian fit adds a small coherent bias (the LORRI PSF is not a
+   perfect circular Gaussian) that the 12-frame average locks in rather than
+   cancels. DECISION: keep the default OFF, keep the code behind the `refine`
+   parameter, change no frozen constant. A null result is a result -- recorded
+   here with its numbers. Unit tests pin the method regardless: a clean synthetic
+   Gaussian is recovered to <0.05 px with refine=True, and a saturated flat-top
+   star falls back to the moment centroid (identical to refine=False).

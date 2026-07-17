@@ -19,27 +19,46 @@
   <header class="hero">
     <p class="eyebrow">Interstellar navigation, live</p>
     <h1>A photo of stars in, <span class="a">your position</span> out.</h1>
-    <p class="lede">Upload or pick a spacecraft star-field image. The tool plate-solves it,
-      finds the nearby <span class="u">Gaia</span> stars in the frame, and intersects the
-      lines of sight to recover where the spacecraft is &mdash; in au, with an error ellipsoid.
-      Same physics as the science spine; this is just a friendlier shell.</p>
-    <div class="presets">
-      <button class="btn primary" id="preset-2">Quick demo (2 frames)</button>
-      <button class="btn primary" id="preset-12">Full solve (all 12 frames)</button>
-      <button class="btn" id="clear-sel">Clear selection</button>
-    </div>
+    <p class="lede">Drop in a raw star-field image &mdash; from a telescope or a spacecraft, with
+      no coordinates attached. The tool plate-solves it, finds the nearby <span class="u">Gaia</span>
+      stars in the frame, and intersects the lines of sight to recover where the camera is
+      &mdash; in au, with an error ellipsoid. Same physics as the science spine; this is just a
+      friendlier shell. No image handy? A reproducible New Horizons demo is below, and runs
+      fully offline.</p>
   </header>
 
   <div class="layout">
-    <!-- gallery -->
-    <section class="card">
-      <h2>Frames</h2>
-      <div class="gallery" id="gallery" aria-label="frame gallery"></div>
-      <div class="uploadrow">
-        <label for="file" class="mono" style="font-size:11px;color:var(--dim)">Add your own image</label>
-        <input type="file" id="file" accept=".fits,.fit,.fts,.png,.jpg,.jpeg">
-      </div>
-    </section>
+    <!-- left column: PRIMARY upload, then the reproducible demo below it -->
+    <div class="leftcol">
+      <section class="card upload-card">
+        <h2>Add your own image</h2>
+        <p class="upload-lede">Raw image in: no coordinates needed &mdash; the pipeline
+          plate-solves, identifies, and locates.</p>
+        <input type="file" id="file" class="file-hidden"
+               accept=".fits,.fit,.fts,.png,.jpg,.jpeg">
+        <label for="file" class="btn primary big uploadbtn">Choose a star-field image</label>
+        <p class="upload-hint mono">FITS / PNG / JPG. A FITS with a WCS solves instantly;
+          any other image needs a blind solver.</p>
+        <div id="upload-stage" class="upload-stage" hidden></div>
+        <details class="upload-adv">
+          <summary>No coordinates in the image?</summary>
+          <p class="upload-hint">A raw photo needs a blind plate solve: install local
+            <span class="mono">astrometry.net</span> (WSL), or paste a free nova API key.</p>
+          <label for="apikey">nova API key</label>
+          <input type="password" id="apikey" placeholder="optional">
+        </details>
+      </section>
+
+      <section class="card demo-card">
+        <h2>Reproducible demo &mdash; real New Horizons frames (offline)</h2>
+        <div class="presets">
+          <button class="btn primary" id="preset-2">Quick demo (2 frames)</button>
+          <button class="btn primary" id="preset-12">Full solve (all 12)</button>
+          <button class="btn" id="clear-sel">Clear</button>
+        </div>
+        <div class="gallery" id="gallery" aria-label="frame gallery"></div>
+      </section>
+    </div>
 
     <!-- preview -->
     <section class="card preview">
@@ -68,8 +87,6 @@
         <summary>Advanced</summary>
         <label for="rv">RV fill (km/s)</label>
         <input type="number" id="rv" value="19.57" step="0.1">
-        <label for="apikey">nova API key (for uploads without WCS)</label>
-        <input type="password" id="apikey" placeholder="optional">
         <label>Age scan grid (min / max / step)</label>
         <div class="row3">
           <input type="number" id="amin" value="0" step="0.25">

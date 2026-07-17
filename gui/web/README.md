@@ -16,9 +16,11 @@ It prints `GalNav web demo running -> http://127.0.0.1:PORT   (Ctrl+C to stop)`
 (first free port from 8000) and opens your browser. If no browser is available
 (headless), the server still runs — just open the printed URL yourself.
 
-Then: click **Quick demo (2 frames)** or **Full solve (all 12 frames)**, then
-**Locate spacecraft**, or **Estimate catalog age**. Or select individual frames
-from the gallery and add your own image.
+The page is **upload-first**: the primary card is **Add your own image** — drop in
+a raw star-field image (no coordinates needed) and the pipeline plate-solves,
+identifies, and locates. Below it is the **reproducible New Horizons demo** (the
+offline anchor): click **Quick demo (2 frames)** or **Full solve (all 12)**, then
+**Locate spacecraft** or **Estimate catalog age**.
 
 ## What it does
 
@@ -29,6 +31,42 @@ spacecraft to **0.387 au** of the JPL Horizons truth (matching Lauer et al.'s
 0.351 au 12-line solve) and estimates the catalog age to **4.286 ± 0.055 yr**
 (true ~4.31). The 2-frame teaching case gives ~0.98 au — the difference is
 centroid-noise averaging, not aberration (see `journal/gui-wrapper.md`).
+
+## Uploading a raw image (the primary flow)
+
+An arbitrary telescope/spacecraft image usually has **no coordinates** in its
+header, so it needs a blind plate solve. The upload path tries, in order:
+the FITS header (instant if present), a local **astrometry.net** via WSL, then
+**nova.astrometry.net** (paste a free API key under "No coordinates in the
+image?"). While the solve runs, the card shows a staged indicator
+(*solving field… identifying… locating…*). If no solver is installed, it shows
+the friendly three-backend message prominently — the exact error a user hits
+before `solve-field` is set up, with the one-line install hint.
+
+**Try it without a telescope.** `gui/raw_demo.py` writes a WCS-stripped copy of a
+demo LORRI frame — a genuine "raw" image (pixels only) — so you can exercise the
+whole upload path live once a solver is installed:
+
+```
+python -m gui.raw_demo                       # -> results/lor_..._RAW_no_wcs.fits
+python -m gui.raw_demo <src.fits> <out_dir>  # choose the frame and folder
+```
+
+The raw path is proven end-to-end by `tests_gui/test_raw_upload.py`: with the
+solver mocked absent it returns the friendly error; with the solver mocked to
+return the frame's true plate the upload identifies Proxima and the fix
+reproduces the 2-frame teaching number — every line of the raw chain except the
+solver binary itself.
+
+## Centroid accuracy (moment vs PSF)
+
+Centroids default to the robust flux-weighted (moment) centre. `gui/centroids.py`
+also has an **optional** Gaussian-PSF refinement (`refine=True`), but it is OFF by
+default: measured on the demo, PSF refinement did NOT improve the headline
+12-frame miss (0.38659 → 0.40864 au, slightly worse — the 12-frame average of
+moment centroids beats locking in the fit's small systematic), though it helped
+the noisier 2-frame case (0.98301 → 0.72284 au). A null result, kept behind the
+parameter and recorded in `journal/gui-wrapper.md`.
 
 ## Identifying stars in the frame (labels + distances)
 
