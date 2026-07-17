@@ -58,34 +58,50 @@ def estimate_age(build_lines_fn, age_grid_yr, rmssig_arcsec=1.0):
     Returns: dict with
         age_hat_yr: best-fit age (parabola vertex, or grid argmin at an edge);
         sigma_age_yr: 1-sigma age error from the parabola curvature (NaN if the
-            minimum is at an edge or the curvature is non-positive);
+            minimum is at an edge, has a non-finite neighbour, or the curvature
+            is non-positive);
         ages: the age grid (copy);
-        chi2s: NORMALISED chi2 at each grid age (proper chi-squared).
+        chi2s: NORMALISED chi2 at each grid age (proper chi-squared; +inf at any
+            age too degenerate to fix, i.e. fewer than 2 lines);
+        note: "" on a clean parabolic fit, else a plain-English reason the
+            sigma is unavailable (the caller should print it).
     """
     ages = np.asarray(age_grid_yr, dtype=float)
     norm = arcsec_to_rad(rmssig_arcsec) ** 2
-    chi2s = np.array([fix_position(build_lines_fn(a))["chi2"] / norm for a in ages])
+
+    # Per-age guard: an age that drifts the stars out of the match radius yields
+    # < 2 lines and fix_position raises. That age is simply unmatchable, i.e.
+    # infinitely bad -- record chi2 = +inf and keep scanning. (Confirmed needed:
+    # the app default 0..25 yr at 120" radius throws for ~1/3 of the grid.)
+    chi2s = np.empty(len(ages))
+    for k, a in enumerate(ages):
+        try:
+            chi2s[k] = fix_position(build_lines_fn(a))["chi2"] / norm
+        except ValueError:
+            chi2s[k] = np.inf
+
     i = int(np.argmin(chi2s))
+    unfit = {
+        "age_hat_yr": float(ages[i]),
+        "sigma_age_yr": float("nan"),
+        "ages": ages,
+        "chi2s": chi2s,
+        "note": "sigma unavailable (chi2 curve not parabolic at minimum -- "
+        "widen the match radius or narrow the age grid)",
+    }
 
+    # The curvature sigma needs a finite, interior, convex minimum. Fall back to
+    # the grid argmin (with sigma = NaN and a note) whenever that fails.
     if i == 0 or i == len(ages) - 1:
-        return {
-            "age_hat_yr": float(ages[i]),
-            "sigma_age_yr": float("nan"),
-            "ages": ages,
-            "chi2s": chi2s,
-        }
-
-    h = float(ages[i + 1] - ages[i])
+        return unfit
     y0, y1, y2 = float(chi2s[i - 1]), float(chi2s[i]), float(chi2s[i + 1])
+    if not np.all(np.isfinite([y0, y1, y2])):
+        return unfit
     curv = y0 - 2.0 * y1 + y2  # = chi2'' * h^2
     if curv <= 0.0:
-        return {
-            "age_hat_yr": float(ages[i]),
-            "sigma_age_yr": float("nan"),
-            "ages": ages,
-            "chi2s": chi2s,
-        }
+        return unfit
 
+    h = float(ages[i + 1] - ages[i])
     age_hat = ages[i] + h * (y0 - y2) / (2.0 * curv)
     chi2_second = curv / (h * h)
     sigma_age = float(np.sqrt(2.0 / chi2_second))
@@ -94,4 +110,5 @@ def estimate_age(build_lines_fn, age_grid_yr, rmssig_arcsec=1.0):
         "sigma_age_yr": sigma_age,
         "ages": ages,
         "chi2s": chi2s,
+        "note": "",
     }

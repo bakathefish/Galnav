@@ -153,3 +153,21 @@ def test_nova_solve_requires_key(tmp_path, monkeypatch):
     fits.writeto(img_path, np.zeros((8, 8), dtype=np.float32), overwrite=True)
     with pytest.raises(RuntimeError, match="API key"):
         platesolve.nova_solve(img_path)
+
+
+def test_fits_header_solution_non_fits_message(tmp_path):
+    """A PNG fed to the fits-header backend must raise a plain-English 'not a
+    FITS file' hint, not astropy's cryptic 'No SIMPLE card' error, so the user
+    knows a PNG needs a blind solve."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    png = tmp_path / "star.png"
+    plt.imsave(png, np.random.default_rng(0).random((16, 16)), cmap="gray")
+    with pytest.raises(RuntimeError, match="not a FITS file"):
+        platesolve.fits_header_solution(png)
+    # solve_image must surface that reason (no blind backend available here).
+    with pytest.raises(RuntimeError, match="not a FITS file"):
+        platesolve.solve_image(png, prefer=("fits-header",))

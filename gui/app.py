@@ -284,13 +284,18 @@ class App:
             pass
         self.root.after(120, self._drain_queue)
 
-    def _collect_lines(self, age_yr, radius):
-        """Build lines of position across all solved images at a catalog age."""
+    def _collect_lines(self, age_yr, radius, rv, images):
+        """Build lines of position across all solved images at a catalog age.
+
+        Pure worker-safe helper: takes rv and the image snapshot as ARGUMENTS
+        (read on the main thread by the caller) so nothing here touches a Tk
+        variable or widget -- Tk is not thread-safe and this runs inside the
+        age-scan worker thread.
+        """
         lines = []
-        for im in self.images:
+        for im in images:
             if im["plate"] is None:
                 continue
-            rv = float(self.rv_var.get() or 0.0)
             cat = load_aged_catalog(CATALOG_CSV, age_yr, rv_fill_kms=rv)
             centroids = find_centroids(im["image"])
             matches = identify_in_frame(
@@ -319,10 +324,12 @@ class App:
         try:
             age = float(self.age_var.get())
             radius = float(self.radius_var.get())
+            rv = float(self.rv_var.get() or 0.0)
         except ValueError:
-            self._log("age and match radius must be numbers")
+            self._log("age, RV fill, and match radius must be numbers")
             return
-        lines = self._collect_lines(age, radius)
+        images = list(self.images)  # snapshot on the main thread
+        lines = self._collect_lines(age, radius, rv, images)
         self._log(f"\nLocate at age {age:.2f} yr: {len(lines)} line(s) of position")
         for ln in lines:
             name = STAR_NAMES.get(ln.star_source_id, str(ln.star_source_id))
@@ -349,17 +356,22 @@ class App:
             hi = float(self.age_max_var.get())
             step = float(self.age_step_var.get())
             radius = float(self.radius_var.get())
+            rv = float(self.rv_var.get() or 0.0)
         except ValueError:
             self._log("age scan fields must be numbers")
             return
         grid = np.arange(lo, hi + 1e-9, step)
+        # Snapshot everything the worker needs on the MAIN thread -- Tk vars and
+        # widgets must never be touched from the background thread below.
+        images = list(self.images)
+        truth = [age_yr_since_j2016(im["obs_jd"]) for im in images if im.get("obs_jd")]
         self._busy = True
         self._queue.put(("text", None, f"\nEstimating age over {lo}..{hi} yr..."))
 
         def worker():
             try:
                 res = estimate_age(
-                    lambda a: self._collect_lines(a, radius),
+                    lambda a: self._collect_lines(a, radius, rv, images),
                     grid,
                     rmssig_arcsec=0.44,
                 )
@@ -371,11 +383,8 @@ class App:
                         f"{res['sigma_age_yr']:.3f} yr",
                     )
                 )
-                truth = [
-                    age_yr_since_j2016(im["obs_jd"])
-                    for im in self.images
-                    if im.get("obs_jd")
-                ]
+                if res.get("note"):
+                    self._queue.put(("text", None, f"  note: {res['note']}"))
                 if truth:
                     self._queue.put(
                         ("text", None, f"  FITS truth (mean) = {np.mean(truth):.3f} yr")

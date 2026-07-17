@@ -80,8 +80,18 @@ def fits_header_solution(path):
         later HDUs resolve) is turned into a WCS.
     Returns: PlateSolution (source="fits-header"), or None if no HDU has a
         celestial (RA/Dec) WCS -- the caller then falls back to a blind solve.
+    Raises RuntimeError with a plain-English hint if the file is not FITS at all
+        (e.g. a PNG/JPG), so the caller does not surface astropy's cryptic
+        "No SIMPLE card found" message.
     """
-    with fits.open(path) as hdul:
+    try:
+        hdul = fits.open(path)
+    except OSError:
+        raise RuntimeError(
+            "not a FITS file (no embedded WCS possible) -- a PNG/JPG needs a "
+            "blind solve: enable WSL astrometry.net or a nova API key."
+        )
+    with hdul:
         for hdu in hdul:
             data = hdu.data
             if data is None or np.ndim(data) < 2:
@@ -100,8 +110,10 @@ def fits_header_solution(path):
 def _win_to_wsl_path(path):
     """Convert a Windows path (C:\\a\\b) to its WSL mount form (/mnt/c/a/b).
 
-    path: a filesystem path (str or Path). A path already in POSIX form is
-        returned unchanged apart from resolution.
+    path: a filesystem path (str or Path). On Windows, Path.resolve() anchors a
+        relative or bare-POSIX input to the current drive (e.g. "img.fits" ->
+        "C:/.../img.fits"), so it is mapped to /mnt/c/...; an already-absolute
+        POSIX path (no drive letter) is returned unchanged.
     Returns: str path usable from inside `wsl`.
     """
     p = Path(path).resolve()

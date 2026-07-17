@@ -1,28 +1,38 @@
 """End-to-end real-data smoke test (a script, NOT a pytest test).
 
-Runs the whole GUI pipeline on two REAL New Horizons LORRI frames that already
-carry a solved WCS ("pwcs2"): one Proxima Centauri frame and one Wolf 359
-frame. It plate-solves from the FITS header, centroids the stars, ages the
-public Gaia catalog to each frame's epoch, identifies the target star in the
-frame, builds one line of position per frame, and fixes the spacecraft
-position -- then compares to the JPL Horizons ephemeris. Finally it estimates
-the catalog age from the image geometry and compares to the true ~4.31 yr.
+Runs the whole GUI pipeline on REAL New Horizons LORRI frames that already
+carry a solved WCS ("pwcs2"), and prints TWO cases so the demo tells the honest
+story:
 
-FRAME CHOICE -- a deviation from the orchestrator brief. The brief suggested a
-Wolf frame glob `lor_04499*`, but that also matches lor_0449913531, which
-actually points at the PROXIMA field (RA 217, not Wolf's RA 164). We therefore
-select frames by which target their WCS centre actually contains: Proxima frame
-lor_0449855930, Wolf 359 frame lor_0449933827.
+  * TEACHING CASE -- one Proxima frame + one Wolf 359 frame (2 lines): recovers
+    the spacecraft to ~1 au. Simple to explain: two stars, two lines, one fix.
+  * FULL CASE -- all 12 frames (6 per star): recovers to ~0.39 au, matching
+    Lauer et al.'s 0.351 au (their 12-line x60 solve). The improvement is pure
+    centroid-noise averaging: 12 lines instead of 2 shrink the ellipsoid by
+    sqrt(6).
 
-HONEST LIMITS -- do NOT read the ~1 au miss as a failure. Lauer et al. (2025)
-reached 0.35 au by averaging 6 carefully-registered line-of-sight vectors per
-star AND correcting stellar aberration (~10 arcsec at NH's ~14 km/s). We use a
-single frame per star, a quick 5-sigma centroid, and NO aberration correction.
-A ~1 au fix from two raw frames is exactly the expected order of magnitude.
+It then estimates the catalog age from the image geometry and, as a sanity
+check, fixes the OBSERVER of two ground-based frames (it lands on Earth).
+
+WHY THE MISS IS NOT ABERRATION (proven, not assumed). The New Horizons pwcs2
+WCS solutions were fit to Gaia field-star positions, so the ~9.6 arcsec of
+stellar aberration from NH's ~14 km/s motion is absorbed into the plate-solution
+zero-point -- the measured target residuals here (31.9 arcsec Proxima, 16.4
+arcsec Wolf) match PURE parallax geometry to a few tenths of an arcsecond, NOT
+parallax +/- 9.6 arcsec. Had aberration been left in, the fix would miss by ~17
+au, not ~1. So an explicit aberration correction would NOT help; the ~1 au (2
+frames) and ~0.39 au (12 frames) misses are single-frame centroid noise, and
+averaging frames -- not correcting aberration -- is what tightens the fix.
+
+FRAME CHOICE. Frames are classified by which target their WCS centre actually
+contains (Proxima field RA ~217, Wolf field RA ~164); the teaching pair is one
+of each. (Note lor_0449913531, despite the lor_04499* prefix, points at the
+Proxima field, so a filename glob would misclassify it.)
 
 Run:  python -m gui.nh_demo
 """
 
+import glob
 from pathlib import Path
 
 import numpy as np
@@ -30,7 +40,7 @@ from astropy.io import fits
 
 from gui.age import estimate_age
 from gui.centroids import find_centroids
-from gui.fitsmeta import observation_jd, age_yr_since_j2016
+from gui.fitsmeta import age_yr_since_j2016, observation_jd
 from gui.locate import (
     LineOfPosition,
     fix_position,
@@ -51,34 +61,40 @@ WOLF_ID = 3864972938605115520
 WOLF_RV_FILL_KMS = 19.57  # Simbad value Lauer used (our CSV lacks Wolf's RV)
 RMSSIG_ARCSEC = 0.44  # Buie per-image astrometric sigma (E3)
 MATCH_RADIUS_ARCSEC = 120.0
+STAR_NAMES = {PROXIMA_ID: "Proxima Cen", WOLF_ID: "Wolf 359"}
 
-# (frame file, target source_id, RV fill km/s). Selected by actual field centre.
-FRAMES = [
-    ("lor_0449855930_0x633_pwcs2.fits", PROXIMA_ID, 0.0),
-    ("lor_0449933827_0x633_pwcs2.fits", WOLF_ID, WOLF_RV_FILL_KMS),
+TEACHING_FRAMES = [
+    "lor_0449855930_0x633_pwcs2.fits",  # Proxima field, 2020-04-22
+    "lor_0449933827_0x633_pwcs2.fits",  # Wolf 359 field, 2020-04-23
 ]
+LAUER_X60_MISS_AU = 0.351  # Lauer's 12-line x60 miss vs JPL (E3)
 
 
-def _load_frames():
-    """Plate-solve and centroid each frame once. Returns a list of records."""
+def _classify(plate):
+    """Return (source_id, rv_fill) for the target this frame's WCS centre holds."""
+    cra, _ = plate.center_radec_deg
+    if abs(cra - 217.4) < 5.0:
+        return PROXIMA_ID, 0.0
+    return WOLF_ID, WOLF_RV_FILL_KMS
+
+
+def _load_frames(frame_paths):
+    """Plate-solve, centroid, and date each frame once. Returns list of records."""
     records = []
-    for fname, sid, rv in FRAMES:
-        path = NH_DIR / fname
+    for path in frame_paths:
         plate = fits_header_solution(path)
         if plate is None:
-            raise RuntimeError(f"{fname}: no WCS in header (expected a pwcs2 frame)")
+            raise RuntimeError(f"{Path(path).name}: no WCS in header (expected pwcs2)")
+        sid, rv = _classify(plate)
         image = np.asarray(fits.open(path)[0].data, dtype=float)
-        centroids = find_centroids(image)
-        jd = observation_jd(path)
-        age = age_yr_since_j2016(jd)
         records.append(
             dict(
-                fname=fname,
+                fname=Path(path).name,
                 sid=sid,
                 rv=rv,
                 plate=plate,
-                centroids=centroids,
-                age_yr=age,
+                centroids=find_centroids(image),
+                age_yr=age_yr_since_j2016(observation_jd(path)),
             )
         )
     return records
@@ -87,10 +103,7 @@ def _load_frames():
 def _lines_at(records, per_frame_age):
     """Build one LineOfPosition per frame at the given catalog age(s).
 
-    records: from _load_frames.
-    per_frame_age: either a scalar age applied to every frame, or a callable
-        record -> age_yr (used to age each frame to its own epoch).
-    Returns: list of LineOfPosition (target star only).
+    per_frame_age: scalar age for every frame, or callable record -> age_yr.
     """
     lines = []
     for rec in records:
@@ -106,13 +119,12 @@ def _lines_at(records, per_frame_age):
             si = m["star_index"]
             if int(cat["source_id"][si]) != rec["sid"]:
                 continue
-            direction = measured_direction(
-                rec["plate"], rec["centroids"]["xy"][m["centroid_index"]]
-            )
             lines.append(
                 LineOfPosition(
                     star_pos_au=cat["positions_au"][si],
-                    direction_unit=direction,
+                    direction_unit=measured_direction(
+                        rec["plate"], rec["centroids"]["xy"][m["centroid_index"]]
+                    ),
                     star_source_id=rec["sid"],
                     sep_arcsec=m["sep_arcsec"],
                     image_name=rec["fname"],
@@ -121,59 +133,102 @@ def _lines_at(records, per_frame_age):
     return lines
 
 
-def main():
-    """Run the fix + age estimate on the two real frames and print results."""
-    records = _load_frames()
-    print("=== GalNav GUI real-data smoke: New Horizons, 2 LORRI frames ===")
-    for rec in records:
-        n = rec["centroids"]["xy"].shape[0]
-        print(
-            f"  {rec['fname']}: source={rec['plate'].source}, "
-            f"{rec['plate'].width}x{rec['plate'].height}px, "
-            f'scale={rec["plate"].scale_arcsec_per_px:.3f}"/px, '
-            f"age={rec['age_yr']:.4f} yr, {n} centroids"
-        )
-
-    # Fix at each frame's own epoch (correct: Proxima/Wolf imaged hours apart).
+def _run_case(label, records):
+    """Fix + age-estimate one set of frames (each aged to its own epoch)."""
     lines = _lines_at(records, lambda rec: rec["age_yr"])
-    print(f"\n  built {len(lines)} line(s) of position:")
-    for ln in lines:
-        name = {PROXIMA_ID: "Proxima Cen", WOLF_ID: "Wolf 359"}.get(
-            ln.star_source_id, str(ln.star_source_id)
-        )
-        print(f'    {name} in {ln.image_name}: match residual {ln.sep_arcsec:.2f}"')
-
     fix = fix_position(lines, rmssig_arcsec=RMSSIG_ARCSEC)
     miss = float(np.linalg.norm(fix["x_au"] - NEWH_X_JPL))
     r_au = float(np.linalg.norm(fix["x_au"]))
-    print("\n  FIX:")
-    print(f"    recovered x = {np.round(fix['x_au'], 3)} au  (|r| = {r_au:.2f} au)")
-    print(f"    JPL truth   = {NEWH_X_JPL} au")
-    print(f"    miss        = {miss:.3f} au")
+    print(f"\n=== {label}: {len(records)} frame(s), {fix['n_lines']} lines ===")
+    print(f"  recovered x = {np.round(fix['x_au'], 3)} au  (|r| = {r_au:.2f} au)")
+    print(f"  JPL truth   = {NEWH_X_JPL} au")
+    print(f"  miss        = {miss:.3f} au")
     print(
-        f"    1-sigma ellipsoid = {np.round(fix['ellipsoid_au'], 3)} au "
+        f"  1-sigma ellipsoid = {np.round(fix['ellipsoid_au'], 3)} au "
         f'(rmssig {RMSSIG_ARCSEC}"), chi2 = {fix["chi2"]:.3e}'
     )
-    print(
-        "    NOTE: a ~1 au miss is expected -- single raw frames, quick "
-        "centroids, no aberration correction (~10\" at 14 km/s); Lauer's "
-        "0.35 au used 6 averaged, aberration-corrected sightlines per star."
-    )
-
-    # Age estimate: scan 0..10 yr, compare to the true mean epoch.
     grid = np.arange(0.0, 10.0 + 1e-9, 0.25)
     age_res = estimate_age(
         lambda a: _lines_at(records, a), grid, rmssig_arcsec=RMSSIG_ARCSEC
     )
     true_age = float(np.mean([rec["age_yr"] for rec in records]))
-    print("\n  AGE ESTIMATE (chi2 scan 0..10 yr, step 0.25):")
     print(
-        f"    age_hat = {age_res['age_hat_yr']:.3f} +/- "
-        f"{age_res['sigma_age_yr']:.3f} yr"
+        f"  age estimate = {age_res['age_hat_yr']:.3f} +/- "
+        f"{age_res['sigma_age_yr']:.3f} yr (true {true_age:.3f}, "
+        f"|diff| {abs(age_res['age_hat_yr'] - true_age):.3f})"
     )
-    print(f"    true    = {true_age:.3f} yr (from FITS SPCUTCAL vs J2016.0)")
-    print(f"    |age_hat - true| = {abs(age_res['age_hat_yr'] - true_age):.3f} yr")
-    return fix, age_res
+    return fix, age_res, miss
+
+
+def _earth_sanity():
+    """Fix the OBSERVER of the two ground-based frames -- should land on Earth."""
+    ground = [
+        ("lco_prox_20200422-0332.fits", PROXIMA_ID, 0.0),
+        ("wolf359_20200423_ULMT_rp_00000123_d_cw.fits", WOLF_ID, WOLF_RV_FILL_KMS),
+    ]
+    lines = []
+    for fname, sid, rv in ground:
+        path = NH_DIR / fname
+        if not path.exists():
+            return
+        plate = fits_header_solution(path)
+        image = np.asarray(fits.open(path)[0].data, dtype=float)
+        if image.ndim > 2:
+            image = image[0]
+        cen = find_centroids(image)
+        jd = observation_jd(path)
+        age = age_yr_since_j2016(jd) if jd else 4.31
+        cat = load_aged_catalog(CATALOG_CSV, age, rv_fill_kms=rv)
+        for m in identify_in_frame(plate, cen["xy"], cat["positions_au"], 300.0):
+            si = m["star_index"]
+            if int(cat["source_id"][si]) != sid:
+                continue
+            lines.append(
+                LineOfPosition(
+                    cat["positions_au"][si],
+                    measured_direction(plate, cen["xy"][m["centroid_index"]]),
+                    sid,
+                    m["sep_arcsec"],
+                    fname,
+                )
+            )
+    if len(lines) >= 2:
+        fix = fix_position(lines, rmssig_arcsec=1.0)
+        r = float(np.linalg.norm(fix["x_au"]))
+        print("\n=== ground-based sanity: whose telescope took these? ===")
+        print(
+            f"  fixing the OBSERVER of two Earth telescope frames -> "
+            f"|r| = {r:.3f} au (Earth is 1 au from the Sun)."
+        )
+
+
+def main():
+    """Run both NH cases + the Earth sanity check and print everything."""
+    print("=== GalNav GUI real-data smoke: New Horizons LORRI ===")
+    all_paths = sorted(glob.glob(str(NH_DIR / "lor_*_pwcs2.fits")))
+    teaching = _load_frames([str(NH_DIR / f) for f in TEACHING_FRAMES])
+    for rec in teaching:
+        n = rec["centroids"]["xy"].shape[0]
+        print(
+            f"  {rec['fname']}: {STAR_NAMES[rec['sid']]} field, "
+            f"age {rec['age_yr']:.4f} yr, {n} centroids"
+        )
+
+    _run_case("TEACHING CASE (2 frames)", teaching)
+    all_records = _load_frames(all_paths)
+    fix12, _, miss12 = _run_case("FULL CASE (all 12 frames)", all_records)
+    print(
+        f"  -> {miss12:.3f} au vs Lauer's {LAUER_X60_MISS_AU:.3f} au (12-line x60); "
+        f"the sqrt(6) tighter ellipsoid is centroid-noise averaging, not an "
+        f"aberration fix (aberration is already absorbed by the pwcs2 WCS)."
+    )
+    _earth_sanity()
+    print(
+        "\nNOTE: the residual ~0.39 au floor is per-frame astrometric systematics "
+        "(quick centroids vs Buie's careful multi-frame astrometry), NOT "
+        "uncorrected aberration -- correcting aberration would not move it."
+    )
+    return fix12
 
 
 if __name__ == "__main__":

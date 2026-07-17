@@ -2826,3 +2826,90 @@ wrong.**
 - COMMIT: uncommitted (orchestrator will commit). New files under gui/ and
   tests_gui/; appends only to journal/citations.md ([AstrometryNet], [NovaAPI])
   and this logbook.
+
+## 2026-07-17 — Human-readable documentation pack (navigation layer, no code touched)
+
+- WHAT: added a reader-facing doc pack ON TOP of the existing layout — a
+  navigation layer, not a reshuffle (no file moved, renamed, or edited except
+  this logbook append). New files: `README.md` (repo-root front door: the
+  three-leg thesis, the memorize-grade numbers table copied from
+  findings-compilation §5, a one-line repo map of every top-level item, the
+  reproduce-everything recipe, the truth wall in five lines, and the AI-use
+  note pointing here); `docs/GUI-EXPLAINED.md` (the five-stage pipeline
+  plate-solve -> centroid -> age -> identify -> fix, each symbol-by-symbol with
+  `file:function` citations, the parallax match-radius derivation, the chi2
+  age scan, the three WCS backends, what the tool does NOT do, and the honest
+  0.976 au-vs-Lauer-0.351 au comparison); `docs/ISEF-DEMO-PLAYBOOK.md` (the
+  booth script: 90-second opener, live command sequence with expected output,
+  judge Q&A, framing discipline, and what-not-to-claim); `docs/INDEX.md`
+  (one-screen "want X? read Y" map).
+- VERIFIED BY RUNNING (2026-07-17, native Windows spine env): `python -m pytest
+  -q` -> 84 passed; `python -m pytest tests_gui -q` -> 21 passed; `python -m
+  gui.nh_demo` -> miss 0.976 au, age 4.336 +/- 0.134 yr (true 4.309); `python -m
+  experiments.e1_crlb_grid` -> worst RMS/CRLB factor 1.064 (96 cells, ~90 s);
+  `python -m experiments.e6_catalog_aging` -> floor 7.66 au, crossover 44.8 ->
+  161.9 yr (~25 s); `python -m gui.app` imports cleanly; the two demo LORRI
+  FITS and the blessed `e4_bias_recovery_20260716T154452Z.png` are present.
+  Every command printed in the docs was run before it was printed.
+- SOURCE-MATERIAL NOTE (reported, not resolved — `experiments/README.md` is not
+  in this task's touch list): `experiments/README.md` still lists the OLD
+  planned script names (`e1_solver.py`, `e2_basins.py`, `e3_newhorizons.py`,
+  `e5_lattice.py`, `e6_aging.py`) and omits E4/E7; the actual files are
+  `e1_crlb_grid.py`, `e2_convergence_basins.py`, `e3_new_horizons.py`,
+  `e4_nicer_photon.py`, `e5_pulsar_lattice.py`, `e6_catalog_aging.py`,
+  `e7_relativistic_aberration.py`. The new README/INDEX use the real filenames
+  and `python -m experiments.<name>` commands; a student may want to refresh
+  `experiments/README.md` to match.
+- COMMIT: uncommitted (orchestrator will commit). Docs only; zero changes to
+  `galnav/`, `tests/`, `experiments/`, `gui/`, or any golden value.
+
+## 2026-07-17 — GUI skeptic sweep: consolidated fixes (age-scan crash, thread safety, the aberration correction, 12-frame headline)
+- WHAT: applied one consolidated round of fixes from three adversarial skeptics
+  of the GUI demo (FATAL=0). Code: (1) `gui/age.py` now guards every grid age —
+  an age that drifts stars out of the match radius scores chi2=+inf instead of
+  raising, and the parabola falls back to the grid-argmin with sigma=NaN + a
+  plain-English `note` when the minimum is at an edge or has an unmatchable
+  neighbour (fixes a booth-critical crash on wide age grids / tight radii). (2)
+  `gui/app.py` reads the RV field and snapshots the image list on the MAIN
+  thread and passes them into `_collect_lines(age, radius, rv, images)`, so the
+  age-scan worker thread touches no Tk variable (kills an intermittent "main
+  thread is not in main loop"). (3) `gui/locate.py::fix_position` now emits a
+  DISTINCT message for zero lines ("no nearby star in any frame") vs one line
+  ("single image = a line"). (4) `fits_header_solution` catches a non-FITS
+  upload and says "not a FITS file … needs a blind solve" instead of astropy's
+  "No SIMPLE card" jargon. (5) `load_aged_catalog` caches the raw CSV read
+  (lru_cache on path+mtime) — tests_gui runtime 2.8 s -> 1.7 s. (6) identify's
+  in-frame test uses the pixel-edge convention [-0.5, w-0.5] so an exact-corner
+  star (WCS round-trip lands it at y=-2e-12) stays in-frame.
+- THE ABERRATION CORRECTION (the big one): the first write-up blamed the ~1 au
+  New Horizons miss on uncorrected stellar aberration. The physics skeptic
+  PROVED that wrong — the measured target residuals (31.9" Proxima, 16.4" Wolf)
+  match PURE parallax geometry to a few tenths of an arcsecond, so the pwcs2
+  plate solution already absorbs the 9.6" velocity aberration; injecting 9.6"
+  swings the miss to ~17 au. The real driver is single-frame centroid noise, and
+  AVERAGING frames is the fix. Purged the false causal story from
+  `gui/README.md`, `journal/gui-wrapper.md` (with an explicit "what we first
+  wrote and why it was wrong" paragraph), `gui/nh_demo.py`, and the
+  `locate.py` match-radius comment; magnitudes corrected 10" -> 9.6".
+- 12-FRAME HEADLINE: `gui/nh_demo.py` now runs and prints BOTH cases plus a
+  ground-based sanity check. Also refreshed `experiments/README.md` to the 7
+  real filenames + `python -m experiments.<name>` (the gap the docs-pack entry
+  above flagged).
+- EVIDENCE (measured this session, native Windows): spine `python -m pytest -q`
+  -> 84 passed; `python -m pytest tests_gui -q` -> 25 passed (was 21; +4:
+  age-scan guard x2, identify uniqueness, border-pixel), 0 skips; `python -c
+  "import gui.app"` clean. `python -m gui.nh_demo`: 2 frames miss 0.976 au,
+  ellipsoid [1.08,0.57,0.504], age 4.336±0.134; ALL 12 frames miss 0.387 au (vs
+  Lauer 0.351), ellipsoid [0.441,0.233,0.206] (√6 tighter), chi2 3.16e-11, age
+  4.286±0.055; ground-based observer fix |r|=1.149 au (Earth). App-default age
+  scan (0..25 @0.25, radius 120, 2 demo frames) completes in 0.87 s with no
+  exception. New test tolerances frozen from measurement (sigma_age 0.4836 yr,
+  pinned 0.5x–2x). golden_numbers.py untouched.
+- CROSS-AGENT NOTE (reported, not resolved — outside my touch list): the
+  docs-pack `README.md` (root) and `docs/GUI-EXPLAINED.md` still carry the
+  2-frame-only "0.976 vs Lauer 0.351" framing and may repeat the old aberration
+  story; their owning agent should update to the 12-frame 0.387-au headline and
+  the proven single-frame-noise explanation.
+- COMMIT: uncommitted (orchestrator will commit). Changed `gui/*`, `tests_gui/*`,
+  `journal/gui-wrapper.md`, `experiments/README.md`, this logbook. No changes to
+  `galnav/`, `tests/`, `experiments/*.py`, or any golden value.

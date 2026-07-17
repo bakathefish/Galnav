@@ -10,6 +10,8 @@ TRUTH WALL: everything here is navigator-side. It reads the public Gaia CSV
 directions. It imports nothing from galnav.truth.
 """
 
+import functools
+import os
 import warnings
 from dataclasses import dataclass
 
@@ -25,6 +27,22 @@ from galnav.nav.triangulate import n_star_solve
 from galnav.units import arcsec_to_rad, deg_to_rad, radec_to_unit
 
 
+@functools.lru_cache(maxsize=8)
+def _load_catalog_cached(csv_path, _mtime):
+    """Cache the raw CSV read (catalog + source ids) keyed on path+mtime.
+
+    load_catalog re-parses the ~2000-row CSV (~22 ms) on every call; an age scan
+    calls it dozens of times. The returned objects are treated as READ-ONLY by
+    load_aged_catalog (the aging math builds fresh arrays), so sharing them is
+    safe. _mtime is part of the key so editing the CSV busts the cache.
+    """
+    catalog = load_catalog(csv_path)
+    source_id = np.loadtxt(
+        csv_path, delimiter=",", skiprows=1, usecols=0, dtype=np.int64
+    )
+    return catalog, np.atleast_1d(source_id)
+
+
 def load_aged_catalog(csv_path, age_yr, rv_fill_kms=0.0):
     """Load the public catalog and propagate it forward by age_yr.
 
@@ -33,6 +51,8 @@ def load_aged_catalog(csv_path, age_yr, rv_fill_kms=0.0):
     by load_catalog) is re-read from CSV column 0 so matches can be labelled.
     The aged sky coordinates (ra/dec/dist) are recomputed from the aged
     Cartesian positions, so they reflect the propagated, not the epoch, sky.
+    The raw CSV read is cached (see _load_catalog_cached) so repeated calls in an
+    age scan do not re-parse the file.
 
     csv_path: path to data/gaia_dr3_nav_subset.csv.
     age_yr: catalog age in Julian years since the J2016.0 epoch (0 = epoch).
@@ -45,15 +65,13 @@ def load_aged_catalog(csv_path, age_yr, rv_fill_kms=0.0):
         source_id: (N,) int64 Gaia source ids (CSV column 0 order);
         sigma_dist_au: (N,) catalog 1-sigma distance error, au (passthrough).
     """
-    catalog = load_catalog(csv_path)
+    key = str(csv_path)
+    catalog, source_id = _load_catalog_cached(key, os.path.getmtime(key))
     vel = star_velocities_kms(catalog, rv_fill_kms=rv_fill_kms)
     positions = propagate_positions_au(catalog["star_pos_au"], vel, age_yr)
     dist = np.linalg.norm(positions, axis=1)
     ra = np.arctan2(positions[:, 1], positions[:, 0])
     dec = np.arcsin(np.clip(positions[:, 2] / dist, -1.0, 1.0))
-    source_id = np.loadtxt(
-        csv_path, delimiter=",", skiprows=1, usecols=0, dtype=np.int64
-    )
     return {
         "positions_au": positions,
         "ra_rad": ra,
@@ -86,10 +104,14 @@ def identify_in_frame(
     PHYSICS NOTE -- why the match radius is generous. We predict from the
     barycentric direction, but the spacecraft sees the PARALLACTIC direction:
     a spacecraft r au from the barycentre sees a star d au away displaced by up
-    to ~r/d rad (47 au vs Proxima's 268,000 au ~ 36 arcsec), plus ~10 arcsec of
-    stellar aberration at ~14 km/s. The 120 arcsec default swallows both for
-    outer-solar-system demos; push it higher (a UI knob) for farther-out
-    spacecraft where r/d grows.
+    to ~r/d rad (47 au vs Proxima's 268,000 au ~ 36 arcsec). Stellar aberration
+    from the observer's ~14 km/s motion is another ~9.6 arcsec, but for the New
+    Horizons pwcs2 frames it is already absorbed into the plate-solution
+    zero-point (the field stars are aberrated by the same amount), so the
+    measured residuals here are essentially pure parallax; the 9.6 arcsec is
+    only budgeted for FOREIGN images whose WCS did not absorb it. The 120 arcsec
+    default swallows both for outer-solar-system demos; push it higher (a UI
+    knob) for farther-out spacecraft where r/d grows.
 
     plate: PlateSolution for this image.
     centroids_xy: (M, 2) detected (x, y) pixel centroids (find_centroids order).
@@ -129,13 +151,17 @@ def identify_in_frame(
         px[near_idx] = np.atleast_1d(np.asarray(px_near, dtype=float))
         py[near_idx] = np.atleast_1d(np.asarray(py_near, dtype=float))
 
+    # Pixel-edge convention: pixel-centre index i covers [i-0.5, i+0.5], so the
+    # detector spans [-0.5, width-0.5]. Using this (rather than [0, width-1])
+    # keeps an exact-corner star in-frame even when the WCS round-trip lands it a
+    # sub-picometre outside 0 (measured: pixel (0,0) round-trips to y=-2e-12).
     in_frame = (
         np.isfinite(px)
         & np.isfinite(py)
-        & (px >= 0)
-        & (px <= plate.width - 1)
-        & (py >= 0)
-        & (py <= plate.height - 1)
+        & (px >= -0.5)
+        & (px <= plate.width - 0.5)
+        & (py >= -0.5)
+        & (py <= plate.height - 0.5)
     )
     cen = np.atleast_2d(np.asarray(centroids_xy, dtype=float))
     if cen.shape[0] == 0 or not np.any(in_frame):
@@ -231,9 +257,18 @@ def fix_position(lines, rmssig_arcsec=1.0):
         chi2: weighted sum of squared perpendicular distances at x;
         n_lines: number of lines used;
         distinct_stars: number of distinct source ids among the lines.
-    Raises ValueError (plain English) if fewer than 2 lines, all lines are from
-        one star, or the directions are within ~5 arcmin of parallel.
+    Raises ValueError (plain English), with a DISTINCT message for each of: zero
+        lines (no nearby star in any frame), one line (single image = a line,
+        not a point), all lines from one star, or directions within ~5 arcmin of
+        parallel.
     """
+    if len(lines) == 0:
+        raise ValueError(
+            "no nearby (within-20-pc) catalog stars fell inside any frame's "
+            "footprint -- pointing is solved, but a position fix needs images "
+            "that contain nearby stars (the catalog holds 1,941 of them). A "
+            "larger match radius helps only if you expect a nearby star here."
+        )
     if len(lines) < 2:
         raise ValueError(
             "need at least 2 lines of position to fix a position; a single "

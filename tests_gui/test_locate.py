@@ -8,7 +8,7 @@ computed from the scene rather than hardcoded.
 import numpy as np
 import pytest
 
-from galnav.units import arcsec_to_rad
+from galnav.units import arcsec_to_rad, deg_to_rad, radec_to_unit
 from gui.centroids import find_centroids
 from gui.locate import (
     LineOfPosition,
@@ -16,12 +16,14 @@ from gui.locate import (
     identify_in_frame,
     measured_direction,
 )
+from gui.platesolve import PlateSolution
 from tests_gui.synth import (
     BARNARD_ID,
     PROXIMA_ID,
     WOLF_ID,
     Scene,
     build_synthetic,
+    _tan_wcs,
 )
 
 R_TRUE = np.array([13.5, -42.0, -16.5])
@@ -115,6 +117,8 @@ def test_fix_exact_two_lines_recovers_position():
     fix = fix_position(_exact_lines([PROXIMA_ID, BARNARD_ID]))
     assert np.linalg.norm(fix["x_au"] - R_TRUE) < EXACT_FIX_TOL_AU
     assert fix["n_lines"] == 2 and fix["distinct_stars"] == 2
+    # The error ellipsoid semi-axes must be sorted largest-first.
+    assert np.all(np.diff(fix["ellipsoid_au"]) <= 0)
 
 
 def test_fix_exact_three_lines_recovers_position():
@@ -179,3 +183,47 @@ def test_fix_parallel_directions_raise():
     ]
     with pytest.raises(ValueError, match="parallel"):
         fix_position(lines)
+
+
+def _mock_plate(nx=256, ny=256, ra0=100.0, dec0=20.0, scale=4.0):
+    """A distortion-free TAN PlateSolution for direct identify_in_frame tests."""
+    return PlateSolution(
+        wcs=_tan_wcs(ra0, dec0, scale, nx, ny), source="mock", width=nx, height=ny
+    )
+
+
+def _dir_at_pixel(plate, x, y):
+    """Unit direction whose barycentric projection lands on pixel (x, y)."""
+    sky = plate.wcs.pixel_to_world(x, y).icrs
+    return radec_to_unit(deg_to_rad(sky.ra.deg), deg_to_rad(sky.dec.deg))
+
+
+def test_identify_uniqueness_closest_star_wins():
+    """Two catalog stars predicted near ONE centroid must not both claim it: the
+    closer star wins and the centroid is used at most once. Exercises the
+    one-to-one matching guard."""
+    plate = _mock_plate()
+    near = _dir_at_pixel(plate, 129.0, 128.0)  # 1 px from the centroid
+    far = _dir_at_pixel(plate, 132.0, 128.0)  # 4 px from the centroid
+    positions = np.array([far, near]) * 1.0e5  # deliberately far-first ordering
+    centroids = np.array([[128.0, 128.0]])  # a single centroid
+    matches = identify_in_frame(plate, centroids, positions, match_radius_arcsec=120.0)
+    assert len(matches) == 1
+    assert matches[0]["star_index"] == 1  # the CLOSER star (row 1) wins
+    used = [m["centroid_index"] for m in matches]
+    assert len(used) == len(set(used))  # centroid claimed at most once
+
+
+def test_identify_border_pixel_in_bounds():
+    """A star landing exactly on the (0,0) or (w-1,h-1) corner pixel must count as
+    in-frame -- the WCS round-trip can push it a sub-picometre negative, which a
+    naive [0, w-1] bound would wrongly reject."""
+    plate = _mock_plate()
+    for bx, by in [(0.0, 0.0), (plate.width - 1.0, plate.height - 1.0)]:
+        direction = _dir_at_pixel(plate, bx, by)
+        positions = np.array([direction]) * 1.0e5
+        centroids = np.array([[bx, by]])
+        matches = identify_in_frame(
+            plate, centroids, positions, match_radius_arcsec=60.0
+        )
+        assert len(matches) == 1

@@ -107,12 +107,15 @@ from off to the side, so it appears shifted. The shift is about
 - **r** is how far the spacecraft is from the barycentre (au).
 - **d** is how far the star is (au).
 - Example: r = 47 au, Proxima at d ≈ 268,000 au → Δθ ≈ 1.8×10⁻⁴ rad ≈ 36
-  arcsec. Plus about 10 arcsec of "stellar aberration" from the spacecraft's own
-  ~14 km/s motion. So a real star can sit ~40 arcsec from where the barycentric
-  prediction puts it. The default 120 arcsec match radius swallows that with
-  room to spare; it is a knob in the window for spacecraft even farther out
-  (bigger r means bigger Δθ). On the real New Horizons frames the measured
-  offsets were 32 arcsec (Proxima) and 16 arcsec (Wolf 359) — comfortably
+  arcsec. Stellar aberration from the observer's ~14 km/s motion is another
+  9.6 arcsec — but on the New Horizons pwcs2 frames that shift is already baked
+  into the plate solution (the field stars used to solve the WCS are aberrated
+  by the same amount), so on THESE frames the star sits ~parallax arcsec from the
+  barycentric prediction, not parallax + 9.6. The default 120 arcsec match radius
+  swallows that with room to spare; it is a knob in the window for spacecraft even
+  farther out (bigger r means bigger Δθ), and the 9.6 arcsec is budgeted for
+  foreign images whose WCS did NOT absorb it. On the real New Horizons frames the
+  measured offsets were 32 arcsec (Proxima) and 16 arcsec (Wolf 359) — comfortably
   inside 120.
 
 ### Estimating the catalog age (the chi2 scan)
@@ -156,9 +159,12 @@ only the error bar becomes truthful.
   header, the tool needs a blind solver (local astrometry.net via WSL, or the
   nova web service). With neither installed it still works on any image that
   already carries a WCS — which every demo frame in this repo does.
-- **It does not correct stellar aberration.** The spacecraft's own motion
-  shifts every star by ~10 arcsec; Lauer removed this, we do not. That is the
-  main reason our fix lands ~1 au from the truth instead of ~0.3 au.
+- **It does not correct stellar aberration — and does not need to, here.** The
+  spacecraft's own motion shifts every star by ~9.6 arcsec, but on these New
+  Horizons frames that shift is already absorbed by the plate solution, so an
+  explicit correction would change nothing (see the correction note below). The
+  ~1 au (2 frames) / ~0.39 au (12 frames) miss is single-frame centroid noise,
+  not aberration.
 - **It never touches the truth side.** The window only ever sees the photo and
   the public catalog — exactly what a real spacecraft carries. It imports
   nothing from `galnav/truth`. A test (`tests_gui/test_wall.py`) proves this by
@@ -206,31 +212,63 @@ irrelevant here — this is demo code).
   `nova_solve` walks the full web protocol against a monkeypatched `urlopen`
   (no network). Catches a broken backend chain or a mis-parsed WCS.
 - `test_locate.py` — identify finds the right star by source id and rejects
-  both a too-far centroid and filler stars; the fix recovers the true position
-  both exactly and through the full pixel chain; and the three degenerate cases
-  (one line, same-star lines, parallel lines) raise clear errors. Catches a
-  wrong pixel convention or a silent bad fix.
-- `test_age.py` — the full chain recovers a known injected age with a sane error
-  bar and a convex minimum. Catches a broken age scan or a mis-normalized sigma.
+  both a too-far centroid and filler stars; two stars competing for one centroid
+  resolve one-to-one with the closer winning; an exact-corner star stays
+  in-frame; the fix recovers the true position both exactly and through the full
+  pixel chain, its ellipsoid is sorted descending, and the three degenerate cases
+  (one line, same-star lines, parallel lines) raise clear errors. Catches a wrong
+  pixel convention, a broken uniqueness guard, or a silent bad fix.
+- `test_age.py` — the full chain recovers a known (off-grid) injected age with a
+  sane, magnitude-pinned error bar and a convex minimum, the sub-grid vertex
+  beats the grid node, and a scan with unmatchable ages returns a finite age
+  without crashing (falling back to a NaN sigma + note when the minimum's
+  neighbour is unmatchable). Catches a broken age scan, a mis-normalized sigma,
+  or the default-settings crash.
 - `test_wall.py` — no `gui/` file imports `galnav.truth`, and `gui/` reaches
   into galnav only through the navigator surface. Catches a truth-wall breach
   the eye would miss.
 
 ## Proof on real data
 
-`python -m gui.nh_demo` runs the whole thing on two REAL New Horizons LORRI
-frames (one Proxima, one Wolf 359, taken 2020-04-23, already carrying solved
-WCS). Measured this session:
+`python -m gui.nh_demo` runs the whole thing on REAL New Horizons LORRI frames
+(Proxima field taken 2020-04-22, Wolf 359 field 2020-04-23, already carrying
+solved WCS) in two cases. Measured this session:
 
-- recovered position [12.694, −42.038, −16.926] au, |r| = 47.06 au;
-- miss vs JPL Horizons truth = **0.976 au** (a few au or better, as expected);
-- 1-sigma ellipsoid [1.08, 0.57, 0.504] au;
-- age estimate **4.336 ± 0.134 yr** vs the true 4.309 yr from the FITS times —
-  off by 0.027 yr.
+- **2 frames (teaching case):** position [12.694, −42.038, −16.926] au,
+  |r| = 47.06 au, miss vs JPL = **0.976 au**, ellipsoid [1.08, 0.57, 0.504] au,
+  age **4.336 ± 0.134 yr** vs true 4.309.
+- **All 12 frames (headline):** position [13.386, −42.369, −16.486] au, miss vs
+  JPL = **0.387 au** (matching Lauer's 0.351 au 12-line ×60 solve), ellipsoid
+  [0.441, 0.233, 0.206] au — exactly √6 tighter than the 2-frame ellipsoid — and
+  age **4.286 ± 0.055 yr**.
+- **Sanity:** fixing the OBSERVER of two ground-based frames lands on Earth,
+  |r| = 1.149 au — the tool finds whoever took the picture.
 
-The ~1 au miss is printed with its honest explanation (single raw frames, quick
-centroids, no aberration correction), so nobody mistakes it for the spine's
-vetted 0.35 au E3 result.
+## Correction: what we first wrote about the miss, and why it was wrong
+
+This repo records its corrections openly, so here is one. The first draft of this
+journal (and the demo) blamed the ~1 au miss on **uncorrected stellar aberration**
+(the ~9.6 arcsec shift from New Horizons' ~14 km/s motion), saying a correction
+would pull the miss toward Lauer's 0.35 au. An adversarial re-check proved that
+wrong on two counts:
+
+1. **The residuals are pure parallax.** The measured target offsets (31.9 arcsec
+   Proxima, 16.4 arcsec Wolf) match the *geometric parallax* angle to a few
+   tenths of an arcsecond — not parallax ± 9.6 arcsec. The New Horizons pwcs2 WCS
+   was fit to Gaia field stars, which carry the same velocity aberration, so the
+   aberration is absorbed into the plate-solution zero-point and `measured_direction`
+   already returns aberration-corrected directions.
+2. **Injecting aberration breaks it.** Adding a synthetic ±9.6 arcsec aberration
+   to the sightlines swings the miss to ~17 au. So if aberration were truly
+   uncorrected, the miss would be ~17 au, not ~1 — the opposite of a small
+   residual. An explicit correction would therefore NOT improve the fix.
+
+The real driver is **single-frame centroid noise**: our quick 5-σ centroids are
+cruder than Buie's careful multi-frame astrometry. That is why *averaging* frames
+helps — 12 frames (6 per star) pull the miss from 0.976 au to 0.387 au and shrink
+the ellipsoid by √6 (12 lines vs 2). The remaining ~0.39 au floor is per-frame
+astrometric systematics, honestly of unproven exact origin, but NOT aberration.
+The lesson: measure before attributing a cause.
 
 ## Where this sits, and what's next
 
@@ -240,7 +278,10 @@ exact units module — so if the demo agrees with the science, it is because the
 are the same code underneath. It is the thing to open at a poster session: a
 photo goes in, a position and an age come out.
 
-Next, if we want it sharper: add the ~10 arcsec aberration correction (would pull
-the miss toward Lauer's 0.35 au), average several frames per star, and let the
-blind solvers (WSL astrometry.net / nova) carry raw amateur images that have no
-WCS yet. None of that changes the spine; it only polishes the front door.
+Next, if we want it sharper: average more frames per star (already the biggest
+lever — 12 frames reach 0.387 au), improve the centroiding toward Buie-grade
+astrometry to chip at the ~0.39 au systematics floor, and let the blind solvers
+(WSL astrometry.net / nova) carry raw amateur images that have no WCS yet. An
+aberration correction is NOT on this list — on the pwcs2 frames it is already
+absorbed and would not move the miss. None of that changes the spine; it only
+polishes the front door.

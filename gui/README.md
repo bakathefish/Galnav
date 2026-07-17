@@ -23,8 +23,10 @@ python -m gui.nh_demo       # real New Horizons smoke test (prints numbers)
 ```
 
 Requirements: the project's existing stack (Python 3.11+, numpy, scipy, astropy,
-matplotlib). `tkinter` is part of the Python standard library; image reading for
-PNG/JPG uses Pillow, which already ships with matplotlib. **No new pip installs.**
+matplotlib). `tkinter` is part of the Python standard library. PNG/JPG reading
+uses Pillow, an **optional** matplotlib dependency that is already installed in
+this environment (Pillow 11.3.0) — it is not bundled with matplotlib, but no new
+`pip install` is needed here; FITS never needs it. **No new pip installs.**
 
 ### Using the window
 
@@ -80,34 +82,55 @@ still fully works on any image that already has a WCS.
 - **Match radius must swallow parallax.** The tool predicts a star's pixel from
   its *barycentric* direction, but the spacecraft sees it shifted by ≈ r/d
   (spacecraft distance ÷ star distance) — e.g. ~36″ for a 47 au spacecraft and
-  Proxima — plus ~10″ of stellar aberration at ~14 km/s. The 120″ default covers
-  outer-solar-system demos; raise it (a UI knob) for spacecraft farther out.
-- **No aberration correction.** We do not remove the ~10″ stellar-aberration
-  shift from the spacecraft's own motion. This is the main reason a quick fix
-  lands ~1 au from truth rather than ~0.3 au.
+  Proxima. Stellar aberration from the observer's ~14 km/s motion is another
+  ~9.6″, but on the New Horizons pwcs2 frames that shift is already **absorbed
+  into the plate solution** (the field stars are aberrated by the same amount),
+  so the measured residuals here are essentially pure parallax; the 9.6″ is only
+  budgeted for *foreign* images whose WCS did not absorb it. The 120″ default
+  covers outer-solar-system demos; raise it (a UI knob) for spacecraft farther
+  out.
+- **The ~1 au miss is single-frame centroid noise, not aberration.** The measured
+  target residuals (31.9″ Proxima, 16.4″ Wolf) match *pure parallax* geometry to
+  a few tenths of an arcsecond — not parallax ± 9.6″. Injecting the 9.6″
+  aberration into the sightlines swings the miss to ~17 au, so if it were
+  uncorrected the fix would be ~17 au off, not ~1. An explicit aberration
+  correction would therefore **not** improve the fix. What tightens it is
+  *averaging frames*: using all 12 LORRI frames (6 per star) instead of 2 pulls
+  the miss to 0.387 au and shrinks the error ellipsoid by √6 (see below). The
+  residual ~0.39 au floor is per-frame astrometric systematics (our quick
+  centroids vs Buie's careful multi-frame astrometry), not aberration.
 - **Age estimate leans on proper motion.** The χ² scan finds the epoch because
   nearby stars drift fast (Proxima ~3.85″/yr, Wolf 359 ~4.7″/yr); a wrong age
   puts each star many pixels off and the lines stop crossing. The `σ_age` error
   bar is a curvature (Δχ²=1) estimate, honest when the minimum is interior and
-  the curve is convex.
+  the curve is convex. Ages that drift a star out of the match radius are scored
+  as unmatchable (χ² = ∞) rather than crashing the scan.
+- **Ground-based frames fix the OBSERVER — a feature, not a bug.** The included
+  `lco_prox` / `wolf359_ULMT` frames carry valid WCS and their targets are
+  identified, but the pipeline then fixes *whoever took the picture*: it lands on
+  **Earth** (|r| = 1.149 au). The tool finds the observer, so mixing Earth frames
+  with New Horizons frames in one fix is meaningless — keep a session to one
+  spacecraft.
 
 ## Measured results (`python -m gui.nh_demo`, 2026-07-17)
 
-Two real New Horizons LORRI frames (Proxima `lor_0449855930`, Wolf 359
-`lor_0449933827`, taken 2020-04-23):
+Real New Horizons LORRI frames (Proxima field 2020-04-22, Wolf 359 field
+2020-04-23), classified by which target their WCS centre contains:
 
-| quantity | value |
-|---|---|
-| recovered position | `[12.694, −42.038, −16.926]` au (|r| = 47.06 au) |
-| miss vs JPL Horizons truth | **0.976 au** |
-| 1-σ error ellipsoid | `[1.08, 0.57, 0.504]` au (σ_θ = 0.44″) |
-| catalog age estimate | **4.336 ± 0.134 yr** (true 4.309 yr; |diff| 0.027 yr) |
+| quantity | 2 frames (teaching) | all 12 frames (headline) |
+|---|---|---|
+| recovered position (au) | `[12.694, −42.038, −16.926]` | `[13.386, −42.369, −16.486]` |
+| \|r\| (au) | 47.06 | 47.39 |
+| **miss vs JPL Horizons** | **0.976 au** | **0.387 au** |
+| 1-σ error ellipsoid (au) | `[1.08, 0.57, 0.504]` | `[0.441, 0.233, 0.206]` |
+| χ² | 1.56e−13 | 3.16e−11 |
+| catalog age estimate | 4.336 ± 0.134 yr | 4.286 ± 0.055 yr |
 
-The ~1 au miss is *expected* and is printed with its explanation: single raw
-frames, quick 5-σ centroids, and no aberration correction — whereas the spine's
-E3 result (0.35 au) used 6 averaged, aberration-corrected sightlines per star.
-Do not read the demo's ~1 au as the project's navigation accuracy; the vetted
-number lives in the spine (E3).
+(σ_θ = 0.44″ Buie per-image sigma; ages vs true ~4.31 yr.) The **0.387 au**
+all-frames miss matches Lauer et al.'s **0.351 au** (their 12-line ×60 solve),
+and the ellipsoid is exactly √6 tighter than the 2-frame one — 12 lines instead
+of 2, i.e. centroid-noise averaging. Do not read the 2-frame ~1 au as the
+project's navigation accuracy; the vetted spine number lives in E3.
 
 ## Files
 
