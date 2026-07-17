@@ -171,3 +171,46 @@ def test_fits_header_solution_non_fits_message(tmp_path):
     # solve_image must surface that reason (no blind backend available here).
     with pytest.raises(RuntimeError, match="not a FITS file"):
         platesolve.solve_image(png, prefer=("fits-header",))
+
+
+def _capture_wsl_cmd(monkeypatch, cfg_present):
+    """Drive wsl_solve up to the solve-field call and return the argv it built.
+
+    Stubs the two WSL probes (so no real `wsl` runs) and intercepts
+    subprocess.run to snapshot the command, then aborts before the .wcs step.
+    """
+    monkeypatch.setattr(platesolve, "_wsl_available", lambda: True)
+    monkeypatch.setattr(platesolve, "_wsl_has_galnav_config", lambda: cfg_present)
+    captured = {}
+
+    class _Stop(Exception):
+        pass
+
+    def fake_run(cmd, *a, **k):
+        captured["cmd"] = list(cmd)
+        raise _Stop()
+
+    monkeypatch.setattr(platesolve.subprocess, "run", fake_run)
+    with pytest.raises(_Stop):
+        platesolve.wsl_solve("C:/tmp/img.fits")
+    return captured["cmd"]
+
+
+def test_wsl_solve_passes_config_when_present(monkeypatch):
+    """When ~/.galnav-astrometry.cfg exists in WSL, solve-field must be invoked
+    with `--config ~/.galnav-astrometry.cfg` so it sees our wide+narrow indexes;
+    the input image stays the last (positional) argument."""
+    cmd = _capture_wsl_cmd(monkeypatch, cfg_present=True)
+    assert "--config" in cmd
+    assert cmd[cmd.index("--config") + 1] == "~/.galnav-astrometry.cfg"
+    assert cmd[0] == "wsl" and cmd[1] == "solve-field"
+    assert cmd[-1] == "/mnt/c/tmp/img.fits"  # positional file last
+
+
+def test_wsl_solve_omits_config_when_absent(monkeypatch):
+    """When the config is NOT present, --config must be omitted entirely so a
+    stock astrometry.net install (no GalNav cfg) is not broken by a missing
+    config file."""
+    cmd = _capture_wsl_cmd(monkeypatch, cfg_present=False)
+    assert "--config" not in cmd
+    assert cmd[-1] == "/mnt/c/tmp/img.fits"

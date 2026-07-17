@@ -285,3 +285,159 @@ astrometry to chip at the ~0.39 au systematics floor, and let the blind solvers
 aberration correction is NOT on this list — on the pwcs2 frames it is already
 absorbed and would not move the miss. None of that changes the spine; it only
 polishes the front door.
+
+## The web shell (so it actually shows up)
+
+The tkinter window (`gui/app.py`) opens a desktop window — which never appears
+in a headless or remote session, so the user could not see it. `gui/webapp.py`
+adds a second front door that opens in a **browser** instead: `python -m
+gui.webapp` starts a localhost server (Python's stdlib `http.server`, first free
+port from 8000), prints the URL, and opens it. It reuses the SAME physics as the
+tkinter app — nothing is reimplemented. The five stages, `n_star_solve`, the
+catalog aging, the identify/age code are all the existing `gui/*` functions.
+
+What it adds and how it stays honest:
+
+- **Zero new dependencies.** Backend is pure stdlib (`http.server`, `json`,
+  `io`, `re`, `socket`, `threading`, `webbrowser`); the star-field PNGs use
+  matplotlib (already a dependency); uploads are parsed by a small hand-rolled
+  multipart reader because Python 3.13 removed the `cgi` module. The frontend is
+  three static files (`gui/web/index.html`, `style.css`, `app.js`) served from
+  localhost — plain `fetch()` to the app's own API, no framework.
+- **Thin HTTP layer.** The request handler only routes and serialises; every bit
+  of work lives in plain functions — `frames_payload`, `render_frame_png`,
+  `locate_payload`, `age_payload`, `handle_upload`, `static_file` — so the tests
+  (`tests_gui/test_webapp.py`) exercise the real code paths WITHOUT a socket.
+- **Truth wall preserved.** `webapp.py` imports only `gui.*` and (transitively)
+  `galnav.nav.*` / `galnav.units`, never `galnav.truth`; the existing AST scan in
+  `tests_gui/test_wall.py` already covers it. The `/static/` route serves a
+  two-file allowlist and rejects any name with a separator or `..`, so the
+  browser cannot read arbitrary files.
+- **The single-age model.** The web UI applies ONE catalog age to all selected
+  frames (the tkinter app and `nh_demo` age each frame to its own epoch). Over
+  the two demo nights (2020-04-22/23) the frames' true ages differ by <0.003 yr,
+  so this changes nothing measurable: the 12-frame fix is 0.38659 au (vs the
+  per-frame 0.387) and the 2-frame teaching case is 0.983 au (vs 0.976). Both
+  numbers are frozen as measured test constants.
+- **Verified in a real browser.** Driven with Playwright: the full-solve preset →
+  Locate returns 0.387 au / 12 lines / ellipsoid 0.441·0.233·0.206, and Estimate
+  age draws the chi2-vs-age curve with the 4.29-yr minimum marked; dark and light
+  themes both render cleanly (tokens mirror docs/PIPELINE-FLOWCHART.html).
+
+### Labelling every star, and the honest limit of "we know what it is"
+
+A later request: label EVERY star in the preview, not just the navigable ones,
+so a viewer sees what the tool knows. The render now distinguishes three tiers:
+
+- **detected** — every centroid, a cyan circle (what the camera saw);
+- **identified** — a centroid that cross-matches the catalog by SKY POSITION
+  (a tight ~2-pixel match), labelled with its distance ("81 pc");
+- **position-capable** — a nearby star whose parallax shift can fix position;
+  the big amber cross + name + distance ("Proxima Cen (1.3 pc)").
+
+Two matches feed this, and the split is itself the lesson. The tight
+identification match projects each catalog star's BARYCENTRIC direction and
+matches within ~2 pixels; the navigation match uses the generous 120-arcsec
+radius that swallows parallax. Nearby stars are displaced tens of arcsec by
+parallax (that displacement IS the navigation signal), so the tight match
+deliberately catches the DISTANT stars, and the position-capable nearby ones
+come from the 120-arcsec match. Caption: "N detected - M identified - K
+position-capable".
+
+**The honest number, and a correction to the framing.** The request imagined the
+tool would "know what nearly every dot is". It does not — and cannot, with the
+catalogue it has. The widest catalog is <=100 pc; a narrow LORRI frame near the
+galactic plane holds ~100 detected blobs, of which only ~2 are within 100 pc
+(measured: the Proxima frame reads "100 detected - 2 identified - 1
+position-capable"; the second identified star sits at 80.8 pc, labelled but not
+navigable). The other ~98 blobs are faint kpc-distant field stars in no nearby
+catalog. Labelling nearly every dot would need a full-depth Gaia field catalog
+(hundreds of millions of stars), not a nearby-star subset. So the feature is
+built to be truthful: it labels what it CAN identify, shows the distance, and the
+caption's M << N makes the real point — almost everything in the sky is too far
+to navigate by; only the amber stars move with viewpoint.
+
+**Catalog split (byte-reproducibility preserved).** The demo navigation
+(`/api/locate`, `/api/estimate_age` on the 12 baked frames) is pinned to the
+FROZEN 20-pc file, so 0.387 au / 4.286 yr stay bit-identical even when the wider
+100-pc catalog is present (a test asserts this). Only the identification labels,
+and the navigation path for UPLOADED frames, use the widest catalog. The
+wide-catalog loader degrades gracefully — if the 100-pc file is absent, or
+mid-write and unparseable (it is fetched by a separate process), it marks that
+file state bad and falls back to the 20-pc file, under a lock so concurrent
+requests do not each re-parse the ~36 MB CSV. Thumbnails render nav-only
+(`thumb=1`) to stay fast; only the big preview pays the wide-catalog load.
+
+**Two cosmetic fixes after a real-browser review (no physics touched).**
+
+1. *Opaque sticky topbar.* The bar was `background: color-mix(in srgb, var(--bg)
+   88%, transparent)` with an 8px blur, so scrolled hero content ghosted through
+   it. Fixed to `background: var(--bg)` — fully opaque in BOTH themes, because
+   `--bg` is a solid hex in each `:root` (`#eef2f7` light, `#0a0e16` dark). The
+   blur is dropped (pointless under an opaque fill).
+
+2. *chi2-curve bowl clip.* The age-scan curve drew a sharp sawtooth on the left.
+   It is NOT noise and NOT non-finite points (the default 0–10 yr grid has no
+   unmatchable ages): it is real chi2 jumping DISCONTINUOUSLY where the matched
+   star SET changes, because the fix then sums a different number of terms. Drawn
+   as one polyline that is misleading — those segments are not a continuation of
+   the same chi-squared. The drawn curve (`drawCurve` in `app.js`) now shows only
+   the contiguous run around the minimum where chi2 stays within `30x` the
+   minimum (absolute floor `30`, so a near-zero minimum still shows a few points;
+   falls back to the full set if no clear bowl exists). This is DISPLAY-ONLY —
+   every value stays in the returned `chi2s` array (the self-test confirms 41/41
+   finite chi2s are still returned), so the saved arrays remain fully
+   regenerable. Measured on the 12-frame default scan: the minimum is at 4.25 yr
+   (chi2 7.13), the parabola vertex 4.286 yr; the clip draws ages 4.00–5.00 (five
+   points spanning the vertex) and drops the two match-set cliffs at 2.00→2.25
+   (21267→4954) and 3.75→4.00 (5117→33.8) plus the uninformative 12k–21k ramps.
+   The `30x` window is a readability heuristic on an unchanged array, not a
+   science threshold; it earns its number by cleanly separating the ~7–500 bowl
+   from the ~5000–21000 clutter on the actual data.
+
+**Wiring the offline solver's config (conditionally).** The offline-solver setup
+script writes `~/.galnav-astrometry.cfg`, which lists BOTH the apt Tycho-2 wide
+indexes and our narrow 5200 LITE indexes so one `solve-field` call handles wide
+AND narrow fields. `wsl_solve` now passes `--config ~/.galnav-astrometry.cfg`,
+but ONLY when that file exists in WSL — probed once per process with a LOGIN
+shell (`wsl bash -lc 'test -f ~/.galnav-astrometry.cfg && echo ok'`, so `~`
+expands). Why conditional: an unconditional `--config` would break a pre-existing
+stock astrometry.net install that has no such file (solve-field errors on a
+missing config), so with no cfg we simply omit the flag and let solve-field use
+its default. Two tests pin it: cfg-present → the flag is in the argv; cfg-absent
+→ it is omitted (both stub the WSL probes, so they need no real WSL).
+
+**Deep identify — labelling (nearly) every dot, honestly.** The earlier honest
+limit ("100 detected, 2 identified") was a CATALOGUE-DEPTH limit, not a physics
+one: the nearby catalogs only hold stars close enough to navigate by. To label
+the rest, `gui/gaiacone.py` fetches the FULL-DEPTH Gaia DR3 stars inside each
+frame's footprint (ESA Gaia TAP async, stdlib urllib, `TOP 5000` brightest,
+radius = half-diagonal + 10%) and caches one CSV per footprint on disk. Two hard
+separations keep it safe:
+
+- *Identification vs navigation.* The cone feeds ONLY the identification tier (a
+  tight ~2-pixel positional match: "which catalogued star is this dot?"). The
+  position-capable / navigation tier is untouched — still the nearby catalog and
+  the 120″ parallax match. A far star gets a label, never a vote in the fix; the
+  frozen 0.387 au / 4.286 yr numbers are entirely unaffected.
+- *Fetch vs render.* Rendering NEVER hits the network: `cone_catalog(...,
+  allow_fetch=False)` returns a cached cone or None, so a preview cannot block.
+  The prewarm script (`gui/prewarm_demo_cones.py`) does the one-time fetching; a
+  cache hit is zero network. A miss or an offline TAP silently degrades to the
+  nearby-catalog labels — never an error to the browser.
+
+*Honest labels.* A known name wins; else a DISTANCE ("212 pc") but only when the
+parallax is trustworthy (`parallax_over_error ≥ 5` and `parallax > 0`), since
+faint far stars carry junk (often negative) parallaxes; else the Gaia G
+MAGNITUDE ("G 16.8"). So we never fabricate a distance we cannot measure.
+
+*Measured result (12 demo frames, cache active).* The footprint key collapses the
+12 frames to 4 cones (2 Proxima at the 5000 cap near the galactic plane; 2 Wolf
+at ~530 stars, high latitude). Caption counts jump from the 100-pc file's
+"2 identified" to: **Proxima 100 detected → 100 identified, 1 position-capable**
+(every dot now named), **Wolf 359 38 detected → 28 identified, 1
+position-capable** (its sparse high-latitude cone holds only 531 stars, so ten
+faint/artefact blobs stay unmatched). Dim labels are still capped at the 25
+brightest for readability; the caption reports the full counts. The rendered
+Proxima preview shows the amber "Proxima Cen (1.3 pc)" plus muted distances on
+the bright field stars and one honest "G 11.6" where the parallax was junk.

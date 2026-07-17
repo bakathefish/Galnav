@@ -138,6 +138,38 @@ def _wsl_available():
         return False
 
 
+# Per-process cache for the GalNav solver-config probe: None=not yet probed.
+_wsl_cfg_present = None
+
+
+def _wsl_has_galnav_config():
+    """True if ~/.galnav-astrometry.cfg exists inside WSL (cached per process).
+
+    The offline-solver setup script (gui/install-offline-solver.sh) writes that
+    config, which lists BOTH the apt Tycho-2 wide indexes and our narrow 5200
+    LITE indexes, so solve-field can handle wide AND narrow fields in one call.
+    We pass it via `--config` ONLY when it exists, because an unconditional
+    --config would break a pre-existing astrometry.net install that has no such
+    file (solve-field errors on a missing config). Probed with a LOGIN shell so
+    `~` expands to the WSL home; the result is cached so the upload path does not
+    re-shell on every solve. Any WSL/subprocess error -> False (omit the flag and
+    let solve-field use its built-in default config).
+    """
+    global _wsl_cfg_present
+    if _wsl_cfg_present is None:
+        try:
+            out = subprocess.run(
+                ["wsl", "bash", "-lc", "test -f ~/.galnav-astrometry.cfg && echo ok"],
+                capture_output=True,
+                text=True,
+                timeout=30,
+            )
+            _wsl_cfg_present = out.returncode == 0 and "ok" in out.stdout
+        except (OSError, subprocess.SubprocessError):
+            _wsl_cfg_present = False
+    return _wsl_cfg_present
+
+
 def wsl_solve(
     image_path, scale_low_arcsec_px=None, scale_high_arcsec_px=None, timeout_s=300
 ):
@@ -160,15 +192,12 @@ def wsl_solve(
     src_wsl = _win_to_wsl_path(image_path)
     with tempfile.TemporaryDirectory() as tmp:
         out_wsl = _win_to_wsl_path(tmp)
-        cmd = [
-            "wsl",
-            "solve-field",
-            "--overwrite",
-            "--no-plots",
-            "--dir",
-            out_wsl,
-            src_wsl,
-        ]
+        cmd = ["wsl", "solve-field", "--overwrite", "--no-plots", "--dir", out_wsl]
+        # Point solve-field at our combined wide+narrow index config, but ONLY if
+        # the setup script has written it -- otherwise let solve-field use its
+        # own default (a missing --config file is a hard error).
+        if _wsl_has_galnav_config():
+            cmd += ["--config", "~/.galnav-astrometry.cfg"]
         if scale_low_arcsec_px is not None and scale_high_arcsec_px is not None:
             cmd += [
                 "--scale-units",
@@ -178,6 +207,7 @@ def wsl_solve(
                 "--scale-high",
                 str(scale_high_arcsec_px),
             ]
+        cmd.append(src_wsl)  # positional input file last
         subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_s)
         stem = Path(image_path).stem
         wcs_path = Path(tmp) / f"{stem}.wcs"

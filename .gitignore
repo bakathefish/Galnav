@@ -25,4 +25,14 @@ data/e4_nicer/*
 # numbers), with provenance + sha256 recorded in data/e4_nicer/README.md.
 !data/e4_nicer/pars/
 !data/e4_nicer/pars/**
+
+# Astrometry.net 5200 LITE narrow-field index files (~4 GB) are re-downloadable
+# from the NERSC mirror; vendor only provenance (see data/README.md), not them.
+data/astrometry-index/
 data/gaia_dr3_nav_100pc.csv
+
+# Deep-identify Gaia cone cache: per-footprint TAP query results (~1 MB for the
+# 12 demo frames), re-fetchable with `python -m gui.prewarm_demo_cones`. Cache,
+# not source -- never committed. See data/README.md.
+data/gaia_cones/
+.playwright-mcp/

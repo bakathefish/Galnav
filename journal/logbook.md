@@ -2913,3 +2913,151 @@ wrong.**
 - COMMIT: uncommitted (orchestrator will commit). Changed `gui/*`, `tests_gui/*`,
   `journal/gui-wrapper.md`, `experiments/README.md`, this logbook. No changes to
   `galnav/`, `tests/`, `experiments/*.py`, or any golden value.
+
+## 2026-07-17 — GUI web shell: the demo now opens in a browser (stdlib server, zero new deps)
+- WHAT: added `gui/webapp.py` (a localhost web server) + `gui/web/{index.html,
+  style.css,app.js,README.md}` (a clean browser frontend) + `tests_gui/
+  test_webapp.py` (10 tests). `python -m gui.webapp` starts Python's stdlib
+  ThreadingHTTPServer on the first free port from 8000, prints the URL, and opens
+  the browser. It exists because the tkinter window (`gui/app.py`) never appears
+  in a headless/remote session — the browser one actually shows up for the user.
+- WHY: same physics, visible shell. Every stage reuses the existing `gui/*` +
+  `galnav.nav` pipeline unchanged (plate-solve, centroid, age, identify, fix);
+  nothing reimplemented. Frontend design tokens mirror docs/PIPELINE-FLOWCHART.html
+  (dark+light, cyan=data, amber=answer).
+- CONSTRAINTS HELD: zero new dependencies — backend is pure stdlib (http.server,
+  json, io, re, socket, threading, webbrowser); PNGs via matplotlib (already a
+  dep); multipart uploads hand-parsed because Python 3.13 removed `cgi`. Truth
+  wall preserved (webapp imports only gui.* / galnav.nav.* / galnav.units; the
+  existing tests_gui/test_wall.py AST scan covers it). `/static/` serves a
+  two-file allowlist and rejects `..`/separators — no path traversal. Errors
+  return {ok:false, message} with HTTP 200; no stack traces to the browser. The
+  HTTP handler is thin; logic is in plain functions the tests call directly.
+- EVIDENCE (measured this session): spine `python -m pytest -q` -> 84 passed;
+  `python -m pytest tests_gui -q` -> 36 passed (was 26; +10 webapp), 0 skips;
+  `python -c "import gui.webapp"` clean. HTTP self-test (server in a thread on an
+  OS-assigned port, urllib client, then shut down): GET / 200; /api/frames 12;
+  /api/image 200 image/png (PNG signature, ~370 KB); POST /api/locate (12 frames)
+  miss 0.38659 au, |r| 47.389, distinct 2; (2 frames) 0.98301; POST
+  /api/estimate_age age_hat 4.2856 +/- 0.0549 (truth 4.3097); /api/locate (1 id)
+  ok:false "need at least 2 lines". Browser-driven (Playwright): full-solve preset
+  -> Locate = 0.387 au / 12 lines / ellipsoid 0.441·0.233·0.206; Estimate age drew
+  the chi2 curve with the 4.29-yr minimum marked; dark + light themes both clean.
+  Frozen web test constants: MISS_12=0.38659, MISS_2=0.98301, AGE_HAT_12=4.2856.
+- POLISH: favicon route returns 204 (silences the browser's /favicon.ico 404);
+  default age-scan max is 10 yr in the web UI for a cleaner U-curve (the 0..25
+  wide grid is still tested for the no-crash guard).
+- COMMIT: uncommitted (orchestrator will commit; they drive a real browser first).
+  New: `gui/webapp.py`, `gui/web/*`, `tests_gui/test_webapp.py`. Appends to
+  `journal/gui-wrapper.md` and this logbook. No changes to `galnav/`, `tests/`,
+  `golden_numbers.py`, `pytest.ini`, `docs/`, `README.md`, or any golden value.
+
+## 2026-07-17 — Web addendum: label every identifiable star with its distance (wide-catalog aware)
+- WHAT: the web preview now labels stars in three tiers — cyan circle = detected,
+  muted distance label = identified (cross-matched by sky position), amber cross
+  + name + distance = position-capable (navigable nearby star). New module funcs
+  in `gui/webapp.py`: `crossmatch_labels` (tight ~2-px identification match,
+  reusing `identify_in_frame`), `labeling_catalog` / `_widest_usable_path`
+  (widest catalog with graceful fallback), `_nav_catalog_path` (frozen 20-pc for
+  demo, widest for uploads). `render_frame_png` gained `full_labels`; `/api/image`
+  gained `thumb=1` (nav-only, fast) for gallery thumbnails. Caption: "N detected
+  - M identified - K position-capable". One UI sentence added near the preview.
+- WHY (user request): make the viewer SEE what the tool knows about each dot and
+  that only the close ones can navigate. Honest outcome, recorded plainly: with a
+  <=100-pc catalog a narrow LORRI frame reads "100 detected - 2 identified - 1
+  position-capable" (measured; the 2nd identified star is at 80.8 pc, labelled
+  but not navigable). "Nearly every dot" is not achievable with a nearby-star
+  catalog — most blobs are kpc-distant field stars — so the feature labels what
+  it CAN and lets M << N make the point. Flagged this reality to the lead.
+- CATALOG SPLIT (byte-reproducibility): demo navigation stays pinned to the
+  FROZEN 20-pc file, so the blessed 0.387 au / 4.286 yr are unchanged even with
+  the 100-pc file present (asserted by a new test). Identification labels and
+  uploaded-frame navigation use the widest catalog; the loader falls back to
+  20-pc when the 100-pc file is absent or mid-write/unparseable (it is fetched by
+  a concurrent task-#10 process — observed growing 111k -> 174k rows during this
+  build), under a lock so concurrent requests don't each re-parse the 36 MB CSV.
+- EVIDENCE: `python -m pytest -q` -> 84 passed (spine untouched); `python -m
+  pytest tests_gui -q` -> 42 passed (was 36; +6 addendum: crossmatch identifies+
+  flags, far-source-not-navigable, wide fallback on absent + on malformed, wide
+  used when valid, demo-frozen-even-with-wide-present), 0 skips; `import
+  gui.webapp` clean. Demo numbers re-verified unchanged: 12-frame 0.38659 au,
+  2-frame 0.98301, age 4.2856±0.0549. Browser (Playwright): the Proxima preview
+  renders "100 detected, 2 identified, 1 position-capable" with amber
+  "Proxima Cen (1.3 pc)" and a muted "81 pc" label — screenshot reviewed, deleted.
+- CROSS-AGENT NOTE: task #10 ships an offline WSL astrometry.net setup writing
+  `~/.galnav-astrometry.cfg`; the web Upload path (`handle_upload` -> `solve_image`
+  -> `wsl_solve`) does NOT yet pass `--config ~/.galnav-astrometry.cfg`, so
+  narrow-field uploads won't use their index files until that is wired. Flagged
+  for the lead — left unmodified to avoid stepping on task #10.
+- COMMIT: uncommitted (orchestrator will commit). Changed `gui/webapp.py`,
+  `gui/web/{index.html,app.js,README.md}`, `tests_gui/test_webapp.py`,
+  `journal/gui-wrapper.md`, this logbook. No changes to `galnav/`, `tests/`,
+  `golden_numbers.py`, `pytest.ini`, `docs/`, `README.md`, `data/`, or any golden
+  value.
+
+## 2026-07-17 — Web shell: two cosmetic fixes after a real-browser review
+- WHAT: (1) Made the sticky `.topbar` fully opaque in both themes
+  (`background: var(--bg)`, blur dropped) so scrolled hero content no longer
+  ghosts through it. (2) Clipped the age-scan chi2 polyline in `drawCurve`
+  (`gui/web/app.js`) to the contiguous informative bowl around the minimum
+  (chi2 <= 30x min, floor 30), dropping the left-side sawtooth that comes from
+  DISCONTINUOUS match-set changes (a different number of matched stars → a
+  different chi2 baseline), not from noise or non-finite points.
+- WHY: Both flagged by the team-lead from a real-browser pass. The ghosting is a
+  legibility bug; the sawtooth line misleads because those segments are not a
+  smooth continuation of the same chi-squared. The clip is DISPLAY-ONLY — the
+  returned `chi2s`/`ages` arrays are unchanged, so every figure stays
+  regenerable from the saved arrays.
+- EVIDENCE: measured the actual 12-frame default scan (0–10 yr, 0.25 step):
+  minimum 4.25 yr (chi2 7.13), vertex 4.286; the clip draws ages 4.00–5.00 and
+  drops the cliffs at 2.00→2.25 (21267→4954) and 3.75→4.00 (5117→33.8). Offline
+  HTTP self-test over a real socket: GET / 200; `/static/style.css` serves the
+  opaque `background:var(--bg)`; `/static/app.js` serves the bowl clip;
+  `/api/image` 200 PNG; `/api/frames` 12; POST `/api/locate` x12 miss 0.38659 au
+  |r| 47.389, x2 0.98301, x1 ok:false; POST `/api/estimate_age` 4.2856±0.0549 with
+  41/41 finite chi2s STILL returned (clip is display-only); server shut down. One
+  labeled preview PNG rendered to the scratchpad for the orchestrator to eyeball
+  ("100 detected, 2 identified, 1 position-capable", amber Proxima Cen 1.3 pc +
+  muted 81 pc). `python -m pytest -q` → 84 passed; `python -m pytest tests_gui -q`
+  → 42 passed; 0 skips.
+- COMMIT: uncommitted (orchestrator will commit). Changed `gui/web/style.css`,
+  `gui/web/app.js`, `journal/gui-wrapper.md`, this logbook. No physics, no golden
+  value, no galnav/tests/docs/data change.
+
+## 2026-07-17 — Conditional solver --config + deep-identify Gaia cone cache
+- WHAT: (A) `wsl_solve` now passes `--config ~/.galnav-astrometry.cfg` to
+  solve-field, but ONLY when that file exists in WSL (cached per-process login-
+  shell probe). (B) New `gui/gaiacone.py`: per-footprint full-depth Gaia DR3
+  cone fetch (ESA TAP async, stdlib urllib, TOP 5000, radius = half-diagonal +
+  10%) + disk cache; `render_frame_png` prefers a CACHED cone (allow_fetch=False,
+  never blocks) for the identification tier, falling back to the nearby catalog
+  when absent. New `gui/prewarm_demo_cones.py` warms the demo cones. Parallax-
+  quality label guard: distance only when parallax_over_error >= 5 and
+  parallax > 0, else the Gaia G magnitude.
+- WHY: (A) the offline solver's combined wide+narrow index config must be used
+  when present but must not break a stock astrometry.net install that lacks it.
+  (B) user-approved "download the full catalog" so nearly every dot is labelled;
+  delivered via bounded per-frame cone caching, NOT a terabyte bulk file. The
+  identification/navigation and fetch/render splits keep the frozen fix numbers
+  and the offline booth guarantee intact.
+- EVIDENCE: `python -m pytest -q` -> 84 passed (spine untouched); `python -m
+  pytest tests_gui -q` -> 51 passed (was 42: +2 platesolve --config tests, +7
+  gui/test_gaiacone.py: label rule, footprint cache-key sharing, zero-network
+  cache hit, no-fetch-when-disallowed, network-failure->None, cone label honesty
+  + flags, render degrades without cone), 0 skips. Prewarm (network) fetched 4
+  distinct cones for the 12 frames: Proxima 2 x 5000 stars/472 KB (galactic-plane
+  cap), Wolf 2 x ~530 stars/47 KB; 1038 KB total. Caption counts with cone
+  active: Proxima 100 detected -> 100 identified, 1 position-capable; Wolf 38 ->
+  28 identified, 1 position-capable (vs 2 identified on the 100-pc file). Rendered
+  scratchpad/labeled_deep_preview.png reviewed: amber Proxima Cen (1.3 pc) +
+  muted field-star distances + one honest "G 11.6" (junk-parallax star). Demo
+  fix numbers re-confirmed unchanged (0.38659 / 0.98301 / 4.2856). NOTE: the live
+  TAP fetch needs real network egress (the sandboxed shell fails DNS with Errno
+  11004); prewarm was run with egress. Rendering + all tests are offline.
+- COMMIT: uncommitted (orchestrator will commit). New: `gui/gaiacone.py`,
+  `gui/prewarm_demo_cones.py`, `tests_gui/test_gaiacone.py`. Changed:
+  `gui/platesolve.py`, `tests_gui/test_platesolve.py`, `gui/webapp.py`,
+  `.gitignore` (append `data/gaia_cones/`), `data/README.md` (append cone
+  section), `journal/gui-wrapper.md`, this logbook. No galnav/, tests/,
+  golden_numbers, pytest.ini, docs/, or golden-value change. `data/gaia_cones/`
+  is git-ignored.

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GalNav - a photo of stars in, your position out</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="topbar"><div class="wrap">
+  <span class="brand">Gal<span class="dot">Nav</span></span>
+  <span class="mono" style="color:var(--dim);font-size:12px">starlight + pulsar navigation demo</span>
+  <span class="spacer"></span>
+  <a class="nav" href="#how">How it works</a>
+</div></div>
+
+<div class="wrap">
+  <header class="hero">
+    <p class="eyebrow">Interstellar navigation, live</p>
+    <h1>A photo of stars in, <span class="a">your position</span> out.</h1>
+    <p class="lede">Upload or pick a spacecraft star-field image. The tool plate-solves it,
+      finds the nearby <span class="u">Gaia</span> stars in the frame, and intersects the
+      lines of sight to recover where the spacecraft is &mdash; in au, with an error ellipsoid.
+      Same physics as the science spine; this is just a friendlier shell.</p>
+    <div class="presets">
+      <button class="btn primary" id="preset-2">Quick demo (2 frames)</button>
+      <button class="btn primary" id="preset-12">Full solve (all 12 frames)</button>
+      <button class="btn" id="clear-sel">Clear selection</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- gallery -->
+    <section class="card">
+      <h2>Frames</h2>
+      <div class="gallery" id="gallery" aria-label="frame gallery"></div>
+      <div class="uploadrow">
+        <label for="file" class="mono" style="font-size:11px;color:var(--dim)">Add your own image</label>
+        <input type="file" id="file" accept=".fits,.fit,.fts,.png,.jpg,.jpeg">
+      </div>
+    </section>
+
+    <!-- preview -->
+    <section class="card preview">
+      <h2>Preview</h2>
+      <div class="imgwrap" id="imgwrap">
+        <div class="hint" id="preview-hint">Select a frame to see its detected stars
+          (cyan circles) and identified nearby stars (amber crosses).</div>
+      </div>
+      <div class="cap" id="caption"></div>
+      <p class="cap" style="color:var(--faint);text-align:left;margin-top:8px">
+        <span style="color:var(--cyan)">detected</span> = a blob the camera saw &middot;
+        <span style="color:var(--faint)">identified</span> = we know which catalogued star it is (its distance is shown) &middot;
+        <span style="color:var(--amber)">position-capable</span> = close enough that its parallax shift reveals where the spacecraft is.
+        Most blobs are distant/faint field stars beyond the nearby catalog &mdash; only the amber ones can navigate.
+      </p>
+    </section>
+
+    <!-- controls -->
+    <section class="card ctl">
+      <h2>Controls</h2>
+      <label for="age">Catalog age (yr since J2016.0)</label>
+      <input type="number" id="age" value="4.31" step="0.01" min="0">
+      <label for="radius">Match radius (arcsec)</label>
+      <input type="number" id="radius" value="120" step="1" min="1">
+      <details>
+        <summary>Advanced</summary>
+        <label for="rv">RV fill (km/s)</label>
+        <input type="number" id="rv" value="19.57" step="0.1">
+        <label for="apikey">nova API key (for uploads without WCS)</label>
+        <input type="password" id="apikey" placeholder="optional">
+        <label>Age scan grid (min / max / step)</label>
+        <div class="row3">
+          <input type="number" id="amin" value="0" step="0.25">
+          <input type="number" id="amax" value="10" step="0.25">
+          <input type="number" id="astep" value="0.25" step="0.05" min="0.05">
+        </div>
+      </details>
+      <button class="btn answer big" id="locate">Locate spacecraft</button>
+      <button class="btn big" id="estimate">Estimate catalog age</button>
+    </section>
+  </div>
+
+  <div class="results" id="results" aria-live="polite"></div>
+
+  <footer id="how">
+    <strong>How it works &amp; honest limits.</strong> Five stages: plate-solve &rarr; centroid
+    &rarr; age the catalog &rarr; identify nearby stars &rarr; intersect the lines of position.
+    <ul>
+      <li>One image gives a <em>line</em> of position, not a point &mdash; you need &ge;2 different nearby stars.</li>
+      <li>A random photo of the sky usually has <em>no</em> star within 20 pc in frame, so it can't be fixed (pointing still works).</li>
+      <li>An uploaded image with no embedded WCS needs a blind solver (local astrometry.net via WSL, or a nova API key).</li>
+      <li>The ground-based frames fix the observer &mdash; they land on Earth. The demo (New Horizons) frames land at ~47 au.</li>
+    </ul>
+  </footer>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

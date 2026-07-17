@@ -128,3 +128,90 @@ Integrity: sha256 945c827d1c50dc04b63167e95f9382bae21c21e2b9d8ebc0a8c9174f760fd4
 is git-ignored: reproduce it with `python data/fetch_gaia_100pc.py` (the exact
 ADQL above; Gaia DR3 is a static release). The GUI degrades gracefully to the
 20 pc subset when this file is absent.
+
+## astrometry-index/  (narrow-field blind-solver index files)
+
+Star-pattern ("skymark") index files that let the OFFLINE blind plate-solver
+(astrometry.net's `solve-field`, run inside WSL) figure out where a NARROW-field
+spacecraft camera pointed — e.g. a New Horizons LORRI frame (0.29 deg = 17.4
+arcmin). These are used **only** by the web GUI's Upload button when someone
+drops in an arbitrary star image with no WCS header. The baked-in New Horizons
+demo never needs them: those frames already carry a solved WCS, so they solve
+instantly from the header (backend 1 in `gui/platesolve.py`).
+
+**Why a separate index set.** `solve-field` matches 4-star patterns ("quads")
+whose size must sit inside the image's field of view. The apt package
+`astrometry-data-tycho2` only covers wide fields (>~0.5 deg). A 17.4-arcmin
+frame needs the small-scale Gaia-based **5200 series**. Index scale *N* covers
+quads of roughly `[2·2^(N/2), 2.8·2^(N/2)]` arcmin — so for a 17.4-arcmin field
+the useful scales are 3 (5.6–8′), 4 (8–11′) and 5 (11–16′); scale 6 (16–22′) is
+marginal (quads barely fit) and was left out (see cap below).
+
+**Source (exact):**
+`https://portal.nersc.gov/project/cosmo/temp/dstn/index-5200/LITE/`
+This is the **LITE** ("LIGHT") build of the 5200 series — smaller files with no
+extra Gaia columns, which is all the solver needs. It is the location the
+astrometry.net data root (`http://data.astrometry.net/`) now points to for the
+5200 LIGHT series (the older `http://data.astrometry.net/5200/` path 404s / has
+moved). Fetched with `curl` (streamed, resumable), stdlib only.
+
+**What was fetched (2026-07-17):** scales **3, 4 and 5**, all 48 healpix tiles
+each = **144 files, 3.99 GiB** (4,284,051,840 bytes):
+- scale 4 `index-5204-00..47.fits` — 48 files, 1.136 GiB (the best match for LORRI)
+- scale 5 `index-5205-00..47.fits` — 48 files, 0.573 GiB
+- scale 3 `index-5203-00..47.fits` — 48 files, 2.281 GiB
+Downloaded in that priority order (4, 5, then 3). **Scale 6** (0.287 GiB) was
+intentionally skipped: adding it would push the total to 4.28 GiB, past the
+**4.0 GiB hard cap** for this download, and scales 3–5 already cover the field.
+Every file was verified to begin with the FITS magic `SIMPLE  =` and to match
+its published `Content-Length` byte-for-byte.
+
+**Git-ignored** (`data/astrometry-index/` in `.gitignore`): ~4 GB of
+re-downloadable binary index files never belong in the repo. To recreate them,
+re-run the download step, or grab scales 3–5 (`index-520{3,4,5}-*.fits`) from
+the source URL above into this directory.
+
+**How the solver finds them.** `gui/install-offline-solver.sh` (run once) writes
+`~/.galnav-astrometry.cfg` with an `add_path` line pointing here (as the WSL
+`/mnt/c/...` mount path), and the app calls
+`solve-field --config ~/.galnav-astrometry.cfg`. Nothing else in the repo reads
+this directory.
+
+**Citation [AstrometryNet] in journal/citations.md**: Lang, Hogg, Mierle,
+Blanton & Roweis (2010), AJ 139, 1782. Index series: 5200 (Tycho-2 + Gaia DR2),
+LITE build, retrieved from the NERSC data mirror.
+
+## `data/gaia_cones/` — deep-identify Gaia cone cache
+
+The web demo's **deep identify** tier labels nearly every detected dot with the
+star it is (not just the handful close enough to navigate by). It does this by
+caching, once per frame footprint, the full-depth Gaia DR3 stars inside that
+footprint. `gui/gaiacone.py` fetches them from the ESA Gaia TAP async service
+and writes one CSV per footprint; a cached cone is a **zero-network** read, so
+the booth demo runs fully offline after a one-time pre-warm.
+
+- **Query (ADQL), per footprint:**
+  `SELECT TOP 5000 source_id, ra, dec, parallax, parallax_over_error,
+  phot_g_mean_mag FROM gaiadr3.gaia_source WHERE
+  1=CONTAINS(POINT('ICRS',ra,dec), CIRCLE('ICRS',<ra>,<dec>,<radius_deg>))
+  ORDER BY phot_g_mean_mag ASC`. Radius = half the frame diagonal + 10%
+  (LORRI ≈ 0.23°). The **TOP 5000** cap bounds each file to the brightest 5000
+  stars — plenty to label ~100 blobs; near the galactic plane (the Proxima
+  fields, b ≈ −2°) the cap bites, while high-latitude fields (Wolf 359, b ≈ +56°)
+  return everything (~530 stars).
+- **Cache key / filename:** the footprint centre RA/Dec and radius, each rounded
+  to 0.01°, as `cone_ra<ra>_dec<dec>_r<radius>.csv`. The several same-pointing
+  LORRI frames therefore share one file — the 12 demo frames collapse to **4**
+  cones (~1.0 MB total; Proxima 2 × 472 KB at the 5000 cap, Wolf 2 × 47 KB).
+- **Pre-warm (once, internet up):** `python -m gui.prewarm_demo_cones`. Retrieved
+  **2026-07-17** from `https://gea.esac.esa.int/tap-server/tap/async` (Gaia DR3).
+- **Git-ignored** (`data/gaia_cones/` in `.gitignore`): it is a re-fetchable
+  cache, not source. A cache miss during a render never blocks (rendering passes
+  `allow_fetch=False`) and never errors — it silently falls back to the nearby
+  navigation catalog's labels.
+- **Identification only.** These cones feed the *labelling* tier (a tight ~2-px
+  positional match). They never enter a position fix — the navigation /
+  position-capable tier still uses the frozen nearby catalog and the 120″
+  parallax match. Distances shown come from `parallax` only when
+  `parallax_over_error ≥ 5` and `parallax > 0`; otherwise the label is the Gaia
+  `G` magnitude, never a fabricated distance.
