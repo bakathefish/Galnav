@@ -7,12 +7,17 @@ sourced from `journal/findings-compilation.md`.
 
 ## Before the booth (once)
 
-- Fetch the real data (it is git-ignored, re-fetchable):
-  `python data/e3_new_horizons/fetch_e3_data.py` (New Horizons frames for the
-  GUI finale). The NICER photons for E4 are not needed live — you show a
-  committed figure.
 - `pip install -r requirements.txt`, then confirm `python -m pytest -q` says
   **84 passed**.
+- Fetch the real data (git-ignored, re-fetchable):
+  `python data/e3_new_horizons/fetch_e3_data.py` (the New Horizons frames for the
+  Locate finale). For the chronometer finale, have the DSS survey plates in
+  `data/candidates/dss/` (also a git-ignored cache — see
+  `data/candidates/MANIFEST.md` for how they were fetched). The NICER photons for
+  E4 are not needed live — you show a committed figure.
+- Confirm the demo launches: double-click **Start GalNav Demo.bat** (or run
+  `python -m gui.webapp`) and check the browser opens the page. The GUI has its
+  own **71 tests** (`python -m pytest tests_gui -q`).
 - Have `results/archive/e4_bias_recovery_20260716T154452Z.png` open in an image
   viewer as a backup slide.
 
@@ -73,38 +78,94 @@ crossover — the age at which a stale catalog hurts you more than a cheap camer
 there's a floor of 7.66 au you can't beat with any camera, because the catalog's
 own parallax uncertainty sets it. Nobody has mapped this before."*
 
-### 4. THE FINALE — a real spacecraft, from its own photos (`python -m gui.app`)
+### 4. THE FINALE — a real spacecraft, from its own photos (`python -m gui.webapp`)
 
-Open the window, then:
+Launch the web app: double-click **Start GalNav Demo.bat** (or run
+`python -m gui.webapp`); it opens in your browser. In the **reproducible New
+Horizons demo** card:
 
-1. **Add image(s)…** → select all twelve LORRI frames in
-   `data/e3_new_horizons/repo/` (`lor_*_pwcs2.fits` — six Proxima-field, six
-   Wolf-field).
-2. **Solve fields** → each frame gets a WCS straight from its header (source
-   `fits-header`), instantly.
-3. **Locate spacecraft** → the Locate button accumulates every loaded image, so
-   twelve lines of position give **miss ≈ 0.387 au** (|r| ≈ 47.39 au) — right on
+1. Click **Full solve (all 12)** → the twelve LORRI frames plate-solve from
+   their headers (instant).
+2. Click **Locate spacecraft** → **miss ≈ 0.387 au** (|r| ≈ 47.4 au), right on
    Lauer's own 0.351 au. (Under 0.1 s.)
-4. **Estimate catalog age** → **4.286 ± 0.055 yr** against the true 4.310 yr.
-   The all-frames scan takes a few to ~15 s and runs on a background thread, so
-   the window stays alive.
+3. A **"Where in space" 3-D panel** opens under the result — the amber marker is
+   the recovered fix, out past Pluto near the real New Horizons. (Detail in
+   step 5.)
+4. Click **Estimate catalog age** → **4.286 ± 0.055 yr** against the true 4.31
+   yr. (A few to ~15 s, threaded — the page stays responsive.)
 
 Say: *"These are real photos a real NASA spacecraft took at 47 au. From twelve
 pictures of two stars, the tool finds New Horizons to within 0.39 au — right on
 the published result — and reads that the catalog is 4.3 years old from how far
 the stars have drifted. Where you are, and when you are, from starlight."*
 
-**Fast fallback — two frames.** For the ~5-second version, load just
-`lor_0449855930_0x633_pwcs2.fits` (Proxima) and
-`lor_0449933827_0x633_pwcs2.fits` (Wolf 359): miss ≈ 0.976 au, age 4.336 ± 0.134
-yr (its age scan is ~5 s). The larger miss is one frame per star instead of six
-— centroid-noise averaging, not a physics gap.
+**Fast fallback — two frames.** Click **Quick demo (2 frames)** then **Locate**:
+miss ≈ **0.98 au**, age 4.336 ± 0.134 yr (its age scan is ~5 s). The larger miss
+is one frame per star instead of six — centroid-noise averaging, not a physics
+gap.
 
-**Robust fallback** (if a click misbehaves live): run the deterministic script
-`python -m gui.nh_demo`, which prints the fix and age with no clicking. If a
-judge asks *"why is two frames worse than Lauer?"*, the answer is: *"one frame
-per star versus his six averaged — and when we use all twelve frames we land at
-0.387 au, right on his 0.351, with nothing but quick 5-sigma centroids."*
+**Upload wow (optional).** The page is upload-first: drop any star-field image
+into **Add your own image** and it plate-solves, identifies, and locates. A raw
+image with no coordinates needs a blind solver (WSL astrometry.net or a free
+nova key); the demo frames need none.
+
+**Robust fallback** (if the browser misbehaves): `python -m gui.nh_demo` prints
+the fix and age with no clicking, or use the desktop window `python -m gui.app`.
+If a judge asks *"why is two frames worse than Lauer?"*, the answer is: *"one
+frame per star versus his six averaged — and when we use all twelve frames we
+land at 0.387 au, right on his 0.351, with nothing but quick 5-sigma centroids."*
+
+### 5. THE 3-D MAP — where the fix sits in space
+
+Every successful **Locate** opens a **"Where in space"** 3-D view, built on a
+vendored, **fully offline** copy of spacekit.js. Two scenes behind a scale
+toggle:
+
+- **Solar system (au):** the Sun, the planets and their orbits, the asteroid and
+  Kuiper belts, a heliopause shell, and the five real escaping spacecraft
+  (Voyager 1/2, Pioneer 10/11, New Horizons) — with an **amber marker at the
+  recovered fix**, sitting at ~47 au.
+- **Nearby stars (pc):** the project's real 1,941-star 20-pc Gaia cloud with
+  amber sightlines to Proxima Cen and Wolf 359 — the picture of why you navigate
+  by *stars*, not planets.
+
+Say: *"The amber dot is where we just computed the spacecraft is — out past
+Pluto, near the real New Horizons. Flip the scale, and here is that same fix
+against the nearby stars it was found from."*
+
+**Honesty line if asked:** the amber marker is the *measured* fix; the spacecraft
+and Eris markers are approximate 2025–26 positions shown for context (cited in
+the vendored `SOURCES.md`), not measurements.
+
+### 6. THE SECOND FINALE — read the year off an old photograph (the chronometer)
+
+Upload a real sky-survey plate from `data/candidates/dss/` (e.g.
+`dss_poss1red_wolf359_1953.fits`) and run **Estimate catalog age**. With a single
+fast-moving nearby star in view, the tool reads the **calendar year** the
+photograph was taken, purely from how far that star has drifted:
+
+- A genuine **1953 Palomar Sky Survey (POSS-I) plate of Wolf 359 is dated to
+  1953.3** — from one star's motion.
+- Across six real Palomar and UK-Schmidt survey plates from **1950–1997**, every
+  one comes back to within about a year — including the dense galactic-plane
+  fields, where a background star that could mimic the drifter is ruled out by
+  cross-checking the static star catalog (a blob sitting where a catalogued star
+  already sits cannot be the star that moved).
+
+Say: *"This photograph is seventy years old. We gave the tool nothing but the
+pixels — no date — and it read the year off the sky, to within about a year, from
+one star's drift. A star catalog is a clock you can read backwards."*
+
+The catalog is a 2016 snapshot, so a 1953 plate has a **negative** catalog age:
+the stars are simply run backwards (the propagator takes a signed time — no
+special code).
+
+**Required credit — show this whenever a DSS plate is on screen:**
+
+> The Digitized Sky Surveys were produced at the Space Telescope Science
+> Institute under U.S. Government grant NAG W-2166. The images of these surveys
+> are based on photographic data obtained using the Oschin Schmidt Telescope on
+> Palomar Mountain and the UK Schmidt Telescope.
 
 **If a command is risky to run live at all**, show the blessed figures in
 `results/archive/` and tell the replot story: every figure regenerates from its
@@ -179,7 +240,7 @@ to its archived run; the whole environment is pinned.
   of Lauer's error ellipsoid**; his actual miss vs JPL is 0.351 au, and we
   reproduce it at 0.3467 au.
 - **Do not present the GUI's two-frame ~1 au as the project's accuracy.** The
-  vetted number is E3's 0.3467 au; the demo's two-frame 0.976 au is one frame
+  vetted number is E3's 0.3467 au; the demo's two-frame ~0.98 au is one frame
   per star (centroid-noise averaging), and its twelve-frame fix is 0.387 au. Do
   not blame the two-frame miss on "uncorrected aberration" — that was measured
   false (the `pwcs2` WCS already absorbs aberration); the residual is per-frame
@@ -188,7 +249,10 @@ to its archived run; the whole environment is pinned.
 ## Booth logistics
 
 - **Everything except E4 is offline-safe** and runs on the laptop with no
-  network. Run E1, E6, and the GUI live.
+  network. Run E1, E6, and the web app (`python -m gui.webapp`) live — the
+  Locate, 3-D map, and chronometer all work offline against the committed data.
+  The one online-only path is uploading a *raw* image with no WCS (it needs a
+  blind solver); every demo frame and DSS plate already carries its WCS.
 - **E4 / the armor track is NOT a live run.** It needs a WSL2 float128
   environment. Show the committed figure
   `results/archive/e4_bias_recovery_20260716T154452Z.png` and tell its story:

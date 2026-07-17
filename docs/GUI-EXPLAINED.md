@@ -11,13 +11,25 @@ unchanged, from the finished GalNav spine: the same navigator
 (`galnav.nav.triangulate.n_star_solve`), the same catalog aging
 (`galnav.nav.catalog.propagate_positions_au`), and the same units module.
 If the demo agrees with the science, it is because they are the same code
-underneath. The window itself (`gui/app.py`) is a thin shell of buttons wired
-to five small files, each testable on its own.
+underneath.
+
+**Two shells, one pipeline.** The primary demo is now a **local web app**,
+`python -m gui.webapp` — it opens in your browser (so it works even on a
+headless or remote machine, where a desktop window cannot), and the
+`Start GalNav Demo.bat` launcher opens it for you. The older desktop window,
+`python -m gui.app` (tkinter), remains as a fallback, and `python -m gui.nh_demo`
+is a headless script that prints the numbers. All three are thin shells over the
+**same five small files**, each testable on its own; the physics below is
+identical whichever shell you open. The web app adds two things purely in the
+front end — a three-tier star-label overlay and a 3-D "Where in space" view —
+plus one extra reading of the same age math, the **chronometer**; all three are
+described near the end of this document.
 
 Sources for this document: the code in `gui/*.py`, the GUI journal entry
-`journal/gui-wrapper.md`, and `gui/README.md`. The two-frame and twelve-frame
-numbers quoted here were measured by driving the real `gui/` pipeline on the New
-Horizons data on 2026-07-17.
+`journal/gui-wrapper.md`, `gui/README.md`, and `gui/web/README.md`. The
+two-frame and twelve-frame numbers quoted here were measured by driving the real
+`gui/` pipeline — including the web app's own `locate_payload`/`age_payload` —
+on the New Horizons data on 2026-07-17.
 
 ## The five small jobs, in order
 
@@ -302,6 +314,98 @@ as NaN and you are told to inspect the raw curve.
 
 ---
 
+## The star labels — detected, identified, position-capable (`gui/gaiacone.py`)
+
+The web app draws every star it can, in **three tiers**, and captions the frame
+`N detected - M identified - K position-capable`:
+
+- **Detected** (cyan circle) — every bright blob `find_centroids` found. On a
+  narrow LORRI frame near the galactic plane this is ~100 dots.
+- **Identified** (distance label) — a detected blob that cross-matches the
+  catalog by sky position, using a **tight ~2-pixel** match. These tend to be
+  the *distant* stars, because a nearby star is displaced tens of arcsec by
+  parallax and so misses the tight match.
+- **Position-capable** (big amber cross + name + distance, e.g. `Proxima Cen
+  (1.3 pc)`) — a star close enough that its parallax shift actually reveals the
+  spacecraft's position. These come from the **generous 120-arcsec navigation
+  match** that swallows parallax (Stage 4).
+
+That two-match split is the pedagogy: the tight identification picks up the far
+stars, the generous navigation match picks up the nearby position-capable ones.
+The honest lesson a judge should hear is that on a real frame you typically see
+something like `100 detected - 2 identified - 1 position-capable`: **almost
+everything you can see is too far away to navigate by.** Labelling nearly every
+dot would need a full-depth field catalog, not a nearby-star subset.
+
+Two catalogs are used, on purpose. The 12 baked-in New Horizons frames fix and
+age against the **frozen 20-pc catalog** (`data/gaia_dr3_nav_subset.csv`, 1,941
+stars) so the blessed 0.387 au / 4.286 yr numbers stay byte-reproducible. The
+**labels** — and the navigation path for **uploaded** frames — use the widest
+catalog available (`data/gaia_dr3_nav_100pc.csv`, ~174,700 stars out to 100 pc)
+if present, degrading gracefully to the 20-pc file if it is absent.
+
+---
+
+## Where in space — the 3-D view (`gui/web/where-in-space.html`)
+
+After any successful **Locate**, the web app opens a **"Where in space"** panel
+below the result. It is an interactive 3-D scene built on a **vendored, fully
+offline** copy of spacekit.js (MIT; bundles three.js) — everything loads from
+`/static/vendor/spacekit/**`, so nothing is fetched from the internet. It is
+loaded lazily, only on the first successful Locate, so the ~2.9 MB of assets
+never slow the initial page.
+
+There are two scenes behind a scale toggle:
+
+- **Solar system (au):** the Sun, the eight planets and Pluto with their orbits,
+  the asteroid and Kuiper belts, a heliopause shell (~120 au), Eris, the five
+  real escaping spacecraft (Voyager 1/2, Pioneer 10/11, New Horizons), and an
+  **amber marker at the recovered fix** — the measured `x_au` from `/api/locate`.
+- **Nearby stars (pc):** the project's real 1,941-star Gaia 20-pc catalog as a
+  point cloud, the five nearest famous stars labelled, and amber sightlines to
+  Proxima Cen and Wolf 359 — the picture of why interstellar navigation needs
+  *stars*, not solar-system landmarks.
+
+The fix is passed to the view in equatorial ICRS au and rotated into spacekit's
+ecliptic frame about +X by the mean obliquity 23.43928° (the distance `|x|` is
+rotation-invariant, so the "47 au" label is correct either way). **Honesty
+note:** the amber marker is the *measured* recovered position; the spacecraft
+and Eris markers are **approximate 2025–26 positions** (context, not
+measurements), cited in the vendored `SOURCES.md`.
+
+---
+
+## The chronometer — reading the year off an old photograph (`gui/age.py::drift_date`)
+
+The age scan above assumes at least two nearby stars (two lines that must cross).
+The **chronometer** is the single-star version: give it one fast-moving nearby
+star and it reads the **calendar year** the photo was taken, from drift alone. A
+single star cannot fix a *position* (that needs two), but its motion across the
+sky is a clock, and the chronometer reads it.
+
+The catalog is a J2016.0 snapshot, so a photograph from decades earlier has a
+**negative** catalog age — the stars must be run *backwards*. That needs no
+special code: the propagator is `r(t) = r0 + v·t` with a signed `t`, so a
+negative age just slides each star the other way. The scan sweeps a wide grid of
+candidate years; the year whose back-propagated star best lands on the detected
+dot is the plate epoch, and the curvature of the match gives a ± error bar. A
+built-in reliability guard refuses to answer when no catalogued star drifts
+clearly onto a detection, so it fails honestly rather than inventing a date.
+
+On real sky-survey plates the result is striking: a genuine **1953 Palomar
+Observatory Sky Survey (POSS-I) plate of Wolf 359 is dated to 1953.3**. Across a
+set of real Palomar and UK-Schmidt survey plates spanning **1950–1997**, the
+chronometer dates all six real survey plates (1950–1997) to within about a year.
+The one genuine trap — in a dense galactic-plane field an unrelated background
+star can masquerade as the drifted target — is **defused by the catalog**: a
+blob sitting exactly where a catalogued static star already sits cannot be the
+star that moved, so it is excluded (a very-high-proper-motion field star on a
+deep plate remains a documented residual edge case). (Those survey plates are
+credited to STScI/DSS; the full credit line is in the demo playbook and
+`journal/citations.md`.)
+
+---
+
 ## What this tool does NOT do (important, and mostly correct physics)
 
 - **It applies no stellar-aberration correction of its own — and on these
@@ -356,11 +460,15 @@ loaded image, so feeding all twelve builds twelve lines of position:
 
 | quantity | value |
 |---|---|
-| recovered position | `[12.694, −42.038, −16.926]` au (\|r\| = 47.06 au) |
+| recovered \|r\| | 47.05 au |
 | JPL Horizons truth | `[13.5495, −42.0195, −16.4573]` au |
-| **miss vs truth** | **0.976 au** |
+| **miss vs truth** | **0.98 au** (web app, one catalog age) / 0.976 au (`nh_demo`, per-frame age) |
 | 1-sigma error ellipsoid | `[1.08, 0.57, 0.504]` au (σ_θ = 0.44″) |
 | **catalog age estimate** | **4.336 ± 0.134 yr** (true 4.309 yr; \|diff\| 0.027 yr) |
+
+(The tiny 0.98-vs-0.976 gap is only the age model: the web app applies one
+catalog age to both frames, while the headless `nh_demo` ages each frame to its
+own epoch. Same physics, same ellipsoid, same age estimate.)
 
 The headline ellipsoid is exactly **√6 tighter** than the two-frame one
 (`[1.08, 0.57, 0.504] / √6 ≈ [0.441, 0.233, 0.206]`): six sightlines per star
@@ -384,7 +492,7 @@ to **0.3467 au** of the JPL ephemeris (six averaged, aberration-corrected
 sightlines per star). The GUI's twelve-frame **0.387 au** lands right on
 Lauer's 0.351 au — with nothing but quick 5-sigma centroids and no explicit
 aberration step, because the Gaia-calibrated WCS already absorbs the aberration.
-The two-frame **0.976 au** is larger only because it uses **one** frame per star
+The two-frame **~0.98 au** is larger only because it uses **one** frame per star
 instead of six; the difference is centroid-noise averaging, **not** aberration.
 The remaining ~0.39 au floor is **residual per-frame systematics**, not a
 missing aberration correction. Do not read the two-frame ~1 au as the project's

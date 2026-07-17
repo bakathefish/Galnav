@@ -192,7 +192,10 @@ def frames_payload():
     """
     _ensure_demo_index()
     out = []
-    for fid, path in _DEMO_INDEX.items():
+    # Snapshot both dicts before iterating: an /api/upload on another worker
+    # thread mutates _UPLOADS mid-iteration otherwise, and dict "changed size
+    # during iteration" would 500 the gallery. list() copies the item views.
+    for fid, path in list(_DEMO_INDEX.items()):
         rec = _demo_record(fid, path)
         out.append(
             {
@@ -202,7 +205,7 @@ def frames_payload():
                 "obs_age_yr": round(rec["obs_age_yr"], 4),
             }
         )
-    for uid, rec in _UPLOADS.items():
+    for uid, rec in list(_UPLOADS.items()):
         out.append(
             {
                 "id": uid,
@@ -512,7 +515,15 @@ def _lines_for(ids, age_yr, radius_arcsec, rv_kms, catalog_override=None):
     return lines, all_demo
 
 
-_EPOCH_SPAN_WARN_YR = 0.2  # frames farther apart than this are different observers
+# Threshold on OBSERVER DISPLACEMENT, not just calendar spread. A single-point
+# fix assumes one observer at one instant; Earth moves ~6.28 au/yr, so a baseline
+# of ~0.1 au (about the point where different-epoch lines stop crossing cleanly)
+# is reached in 0.1 au / 6.28 au/yr ~= 0.016 yr. We round to 0.02 yr: it flags
+# Earth-rate uploads a few days apart AND the decades-apart DSS/HST plates, while
+# the real New Horizons campaign (measured span 0.0032 yr = 1.2 days, one instant)
+# stays silent with 6x margin. (0.2 yr, the first pass, was observer-agnostic and
+# silently passed a 1.26 au Earth baseline.)
+_EPOCH_SPAN_WARN_YR = 0.02
 
 
 def _epoch_span_warning(ids):
@@ -520,12 +531,13 @@ def _epoch_span_warning(ids):
     epochs, else None.
 
     A single-point position fix assumes ONE observer at ONE instant. Frames
-    taken years apart are different observers at different places, so their
+    taken apart in time are different observers at different places, so their
     lines of position do not cross at a real point -- the fix comes back as a
     nonsense |r| (measured 22-35 au on mixed-era DSS/HST groups). The AGE
     estimate is unaffected (each frame still dates itself), so we steer the user
     there instead of hiding the hazard. Span is max-min of obs_age_yr (yr since
-    J2016.0) across the selection.
+    J2016.0) across the selection; the threshold is an Earth-displacement budget
+    (see _EPOCH_SPAN_WARN_YR).
     """
     epochs = [
         rec["obs_age_yr"] for fid in ids if (rec := _record_by_id(fid)) is not None
@@ -586,7 +598,12 @@ def locate_payload(ids, age_yr, radius_arcsec, rv_kms):
     }
 
 
-DRIFT_GRID = (-75.0, 25.0, 0.5)  # default single-star-drift scan (yr since J2016.0)
+DRIFT_GRID = (-75.0, 25.0, 0.1)  # default single-star-drift scan (yr since J2016.0)
+# 0.1 yr, NOT 0.5: a fast mover's true minimum is SHARP (Wolf 359's V is ~0.6 yr
+# wide), and a 0.5-yr grid under-samples the true bottom while the broad false
+# minima are well-sampled -- the recorded Wolf'95 "sparse-field" miss was really
+# this grid-undersampling (0.5 -> 0.1 recovers 1991.4 -> 1995.2 with no other
+# regression). drift_date's linear-propagation model keeps a 1000-node scan ~2 s.
 J2016_YEAR = 2016.0  # calendar year of the catalog epoch
 
 
@@ -648,7 +665,14 @@ def age_payload(ids, radius_arcsec, rv_kms, age_min, age_max, age_step):
     # Single-star drift dating. Scans a wide (default -75..+25 yr) grid unless the
     # caller already asked for negatives. Uses the frozen 20-pc catalog -- the
     # high-proper-motion nearby stars that can date a plate all live there.
-    lo, hi, step = (age_min, age_max, age_step) if age_min < 0 else DRIFT_GRID
+    # Drift always scans at a FINE step (<= 0.1 yr) so the sharp true minimum is
+    # resolved -- the user's step was chosen for the position-fit scan and may be
+    # too coarse. Range is the user's if they asked for negatives, else the wide
+    # default that reaches the old-plate epochs.
+    if age_min < 0:
+        lo, hi, step = age_min, age_max, min(age_step, DRIFT_GRID[2])
+    else:
+        lo, hi, step = DRIFT_GRID
     dgrid = np.arange(lo, hi + 1e-9, step)
     frames = [
         (rec["plate"], rec["centroids"]["xy"], rec["name"])
@@ -754,6 +778,11 @@ def handle_upload(filename, data_bytes, api_key=None):
 # --- HTTP layer (thin) ------------------------------------------------------
 class _Handler(BaseHTTPRequestHandler):
     server_version = "GalNavWeb/1.0"
+    # Per-connection socket timeout (seconds). Without it a slowloris client --
+    # a big Content-Length header followed by a trickle of body bytes -- pins a
+    # worker thread forever. socketserver arms this on the request socket and the
+    # resulting socket.timeout is already swallowed by the do_* try/except.
+    timeout = 30
 
     def log_message(self, *args):  # keep the console quiet
         pass

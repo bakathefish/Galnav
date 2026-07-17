@@ -311,3 +311,33 @@ def test_drift_date_static_star_exclusion_rejects_decoy():
     on = drift_date([(plate, cen, "synth")], grid, cat_fn, cone_fn=lambda p: cone)
     assert on["ok"] and abs(on["age_hat_yr"] - (-50.0)) < 1.0  # decoy masked
     assert on["best_sep_arcsec"] < 3.0
+
+
+def test_drift_date_default_threshold_rejects_unreliable_field():
+    """The reliability guard must fire at the DEFAULT threshold (3 arcsec): a
+    mover whose closest approach to any detection is ~10 arcsec is NOT a date.
+    Calls drift_date WITHOUT threshold_arcsec so it pins the 3.0 default -- a
+    mutant that widened it (3.0 -> 300) would wrongly accept this field."""
+    # offset 5 px x 2 arcsec/px = 10 arcsec closest approach (never within 3").
+    plate, cen, cat_fn, _sid = _drift_scene(-40.0, offset_px=5.0)
+    grid = np.arange(-75.0, 25.0 + 1e-9, 0.5)
+    d = drift_date([(plate, cen, "synth")], grid, cat_fn)  # DEFAULT threshold
+    assert d["ok"] is False and "no reliable drift date" in d["message"]
+
+
+def test_drift_date_sigma_is_grid_invariant_and_physical():
+    """The reported sigma must be the physical noise-propagated value
+    sigma_centroid/omega -- grid-INVARIANT (the old curvature sigma swung ~3x
+    with the step). Same scene at 0.5 and 0.1 yr steps must give the same sigma,
+    and it must match sigma_centroid_px * scale / omega."""
+    plate, cen, cat_fn, _sid = _drift_scene(-40.0, pmra=4.0, pmdec=-3.0, scale=2.0)
+    d_coarse = drift_date(
+        [(plate, cen, "synth")], np.arange(-75, 25 + 1e-9, 0.5), cat_fn
+    )
+    d_fine = drift_date([(plate, cen, "synth")], np.arange(-75, 25 + 1e-9, 0.1), cat_fn)
+    assert (
+        abs(d_coarse["sigma_age_yr"] - d_fine["sigma_age_yr"]) < 1e-3
+    )  # grid-invariant
+    omega = np.hypot(4.0, 3.0)  # total proper motion, arcsec/yr
+    expected = 0.3 * 2.0 / omega  # sigma_centroid_px * scale / omega
+    assert abs(d_fine["sigma_age_yr"] - expected) < 0.02

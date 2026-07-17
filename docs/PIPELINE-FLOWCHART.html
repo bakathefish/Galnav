@@ -270,6 +270,7 @@
       <a href="#flow">Data flow</a>
       <a href="#loop">Age loop</a>
       <a href="#results">Results</a>
+      <a href="#extras">3-D + year</a>
       <a href="#show">Showcase</a>
       <a href="#window">Window</a>
       <a href="#limits">Limits</a>
@@ -288,9 +289,9 @@
 
     <div class="runbox" id="open">
       <span class="k">Run it</span>
-      <span class="cmd"><span class="p">python</span> -m gui.app</span>
+      <span class="cmd"><span class="p">python</span> -m gui.webapp</span>
       <span class="k">then</span>
-      <span class="mono" style="font-size:13px;color:var(--dim)">Add image(s) &rarr; Solve fields &rarr; Locate / Estimate age</span>
+      <span class="mono" style="font-size:13px;color:var(--dim)">Full solve (12) &rarr; Locate &rarr; 3-D map &rarr; Estimate age</span>
     </div>
   </header>
 
@@ -530,8 +531,8 @@ w_i = (I - d_i d_i^T) / |p_i|^2</div>
     <div class="cards">
       <div class="card">
         <div class="ct">2 frames &mdash; teaching case</div>
-        <div class="big">0.976 au</div>
-        <div class="cs">miss vs JPL truth</div>
+        <div class="big">0.98 au</div>
+        <div class="cs">miss vs JPL truth (web app path)</div>
         <div class="row"><span class="lab">ellipsoid</span><span>[1.08, 0.57, 0.50] au</span></div>
         <div class="row"><span class="lab">age estimate</span><span>4.336 +/- 0.134 yr</span></div>
         <div class="row"><span class="lab">true age</span><span>4.309 yr</span></div>
@@ -563,43 +564,87 @@ w_i = (I - d_i d_i^T) / |p_i|^2</div>
     </div>
   </section>
 
+  <!-- ============ EXTRAS: 3-D + CHRONOMETER ============ -->
+  <section id="extras">
+    <div class="sec-h"><span class="sec-n">03b</span><h2>Two more outputs from the same fix</h2></div>
+    <p class="sec-sub">The web app (<span class="mono" style="font-size:13px">python -m gui.webapp</span>) adds two outputs on top of
+      the position and age &mdash; both reuse the pipeline above unchanged.</p>
+    <div class="cards">
+      <div class="card">
+        <div class="ct">after every Locate</div>
+        <div class="big" style="font-size:22px">Where in space &mdash; 3-D</div>
+        <div class="cs">an interactive view of the recovered fix</div>
+        <div class="row"><span class="lab">in</span><span>x_au from /api/locate</span></div>
+        <div class="row"><span class="lab">scene 1</span><span>Sun, planets, belts, 5 probes + amber fix</span></div>
+        <div class="row"><span class="lab">scene 2</span><span>1,941-star 20-pc cloud + sightlines</span></div>
+        <span class="badge ok">vendored spacekit.js &mdash; fully offline</span>
+      </div>
+      <div class="card head">
+        <div class="ct">the chronometer &mdash; gui/age.py :: drift_date</div>
+        <div class="big">1953.3</div>
+        <div class="cs">a real 1953 POSS-I plate, dated from one star's drift</div>
+        <div class="row"><span class="lab">input</span><span>one old sky-survey plate (no date)</span></div>
+        <div class="row"><span class="lab">how</span><span>scan candidate years; negative age = run stars backward</span></div>
+        <div class="row"><span class="lab">scope</span><span>six 1950&ndash;1997 plates to ~1 yr; dense-field decoys ruled out by the catalog</span></div>
+        <span class="badge head">reads the calendar year off the sky</span>
+      </div>
+    </div>
+    <div class="callout">
+      <b>Same math, run backwards:</b> a single fast-moving nearby star cannot fix a <em>position</em> (that needs two),
+      but its drift alone pins the <em>year</em>. The star catalog is a 2016 snapshot, so an old plate has a
+      <b>negative</b> catalog age &mdash; the propagator <span class="mono">r(t) = r0 + v&middot;t</span> just takes a signed t,
+      no special code. DSS survey plates credited to STScI/DSS (grant NAG&nbsp;W-2166; Oschin &amp; UK Schmidt Telescopes).
+    </div>
+  </section>
+
   <!-- ============ SHOWCASE ============ -->
   <section id="show">
     <div class="sec-h"><span class="sec-n">04</span><h2>How to showcase it at the booth</h2></div>
-    <p class="sec-sub">Six clicks, fully offline. The demo frames are in
-      <span class="mono" style="font-size:13px">data/e3_new_horizons/repo/lor_*_pwcs2.fits</span>.</p>
+    <p class="sec-sub">Six moves in the browser, fully offline. The demo frames are in
+      <span class="mono" style="font-size:13px">data/e3_new_horizons/repo/lor_*_pwcs2.fits</span>; the full booth
+      script (with the chronometer second finale) is in <span class="mono" style="font-size:13px">docs/ISEF-DEMO-PLAYBOOK.md</span>.</p>
     <div class="steps">
       <div class="step"><div class="sn">1</div><div>
         <h4>Launch</h4>
-        <p>Run <span class="act">python -m gui.app</span> &mdash; a window opens, no internet needed.</p></div></div>
+        <p>Double-click <span class="act">Start GalNav Demo.bat</span> (or run <span class="act">python -m gui.webapp</span>) &mdash; the demo opens in your browser, no internet needed.</p></div></div>
       <div class="step"><div class="sn">2</div><div>
-        <h4>Add image(s)&hellip;</h4>
-        <p>Pick the 12 <span class="act">lor_*_pwcs2.fits</span> frames (or just 2 for speed). The catalog-age
-          box auto-fills to ~4.31 yr from the photo's timestamp.</p></div></div>
+        <h4>Full solve (all 12)</h4>
+        <p>In the reproducible New Horizons card, click <span class="act">Full solve (all 12)</span>. The 12
+          <span class="act">lor_*_pwcs2.fits</span> frames plate-solve from their headers instantly (or click
+          <span class="act">Quick demo (2 frames)</span> for the ~1 au teaching version).</p></div></div>
       <div class="step"><div class="sn">3</div><div>
-        <h4>Solve fields</h4>
-        <p>Each row turns to <span class="act">[fits-header]</span> &mdash; the WCS was already inside the file, so it is instant.</p></div></div>
+        <h4>Read the star labels</h4>
+        <p>The preview labels every star in three tiers: <span class="dotc mono">cyan circles</span> = every
+          detected dot, distance labels = identified catalog stars,
+          <span class="dota mono">amber cross</span> = the position-capable nearby star ("Proxima Cen (1.3 pc)").
+          The caption reads e.g. <span class="act">100 detected - 2 identified - 1 position-capable</span>.</p>
+        <p class="say"><em>say</em> "Almost every dot here is too far to navigate by &mdash; the tool labels the one nearby star that actually carries our position."</p></div></div>
       <div class="step"><div class="sn">4</div><div>
-        <h4>Click a frame in the list</h4>
-        <p>The right panel shows the star field: <span class="dotc mono">cyan circles</span> = every detected star,
-          <span class="dota mono">orange cross</span> = the matched nearby star, labelled "Proxima Cen" or "Wolf 359".</p>
-        <p class="say"><em>say</em> "The tool just recognised a specific star, 4 light-years away, in a raw spacecraft photo."</p></div></div>
-      <div class="step"><div class="sn">5</div><div>
         <h4>Locate spacecraft</h4>
-        <p>Prints the 3-D position (~47 au from the Sun), the miss vs JPL, and the error ellipsoid.</p>
+        <p>Twelve lines of position give <span class="act">miss &asymp; 0.387 au</span> (|r| &asymp; 47.4 au), the 3-D
+          position and the error ellipsoid &mdash; under 0.1 s.</p>
         <p class="say"><em>say</em> "A real spacecraft, found from its own photos of the stars &mdash; to a third of an au with all twelve frames."</p></div></div>
+      <div class="step"><div class="sn">5</div><div>
+        <h4>See it in 3-D</h4>
+        <p>A <span class="act">Where in space</span> panel opens: the <span class="dota mono">amber marker</span> is the
+          recovered fix, out past Pluto near the real New Horizons. Toggle the scale for the nearby-stars cloud with
+          sightlines to Proxima and Wolf 359. Fully offline (vendored spacekit.js).</p>
+        <p class="say"><em>say</em> "There we are, out past Pluto &mdash; and here is that same fix against the nearby stars it was found from."</p></div></div>
       <div class="step"><div class="sn">6</div><div>
-        <h4>Estimate catalog age</h4>
-        <p>Draws the chi2-vs-age curve; prints <span class="act">age_hat +/- sigma</span> against the true age from the file.</p>
-        <p class="say"><em>say</em> "And it reads what <strong>year</strong> it is from how far the stars have drifted &mdash; to about three weeks."</p></div></div>
+        <h4>Estimate catalog age &mdash; and the chronometer</h4>
+        <p>Draws the chi2-vs-age curve; prints <span class="act">4.286 +/- 0.055 yr</span> against the true ~4.31 yr.
+          For the second finale, upload a real 1953 DSS plate and it dates the photo to <span class="act">1953.3</span>
+          from one star's drift (negative catalog age &mdash; the star run backwards).</p>
+        <p class="say"><em>say</em> "It reads what <strong>year</strong> it is from how far the stars have drifted &mdash; to about three weeks on the spacecraft frames, and it dated a seventy-year-old photograph to within a year."</p></div></div>
     </div>
   </section>
 
   <!-- ============ WINDOW MAP ============ -->
   <section id="window">
-    <div class="sec-h"><span class="sec-n">05</span><h2>What the window looks like</h2></div>
-    <p class="sec-sub">Controls on the left, a live picture on the right. This is the exact layout of
-      <span class="mono" style="font-size:13px">gui/app.py</span>.</p>
+    <div class="sec-h"><span class="sec-n">05</span><h2>What the desktop window looks like</h2></div>
+    <p class="sec-sub">The primary demo is now the browser web app (<span class="mono" style="font-size:13px">python -m gui.webapp</span>);
+      this is the older <span class="mono" style="font-size:13px">python -m gui.app</span> desktop window, kept as an
+      offline fallback &mdash; same controls, same pipeline.</p>
     <div class="win">
       <div class="win-l">
         <div class="wctl btn">Add image(s)&hellip;</div>
@@ -644,7 +689,7 @@ w_i = (I - d_i d_i^T) / |p_i|^2</div>
         <p>A raw PNG with no plate solution needs a blind solver: a free nova API key, or a local WSL
           astrometry.net install. Every demo frame already carries its WCS, so the booth runs offline.</p></div>
       <div class="limit"><h4>The ellipsoid is random noise only</h4>
-        <p>The 1-sigma error bar counts centroid scatter, not un-modelled systematics. The 0.976 au miss
+        <p>The 1-sigma error bar counts centroid scatter, not un-modelled systematics. The 0.98 au miss
           still sits inside its own ellipsoid (0.9 sigma), so it is honest.</p></div>
     </div>
   </section>
@@ -655,7 +700,7 @@ w_i = (I - d_i d_i^T) / |p_i|^2</div>
   <div class="wrap">
     <div class="prov">
       <span class="pill">spine: 84 tests green</span>
-      <span class="pill">gui: 26 tests green</span>
+      <span class="pill">gui: 71 tests green</span>
       <span class="pill">3 adversarial reviews, 0 fatal</span>
       <span class="pill">numbers reproduced x3</span>
     </div>

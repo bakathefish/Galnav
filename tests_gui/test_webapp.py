@@ -271,9 +271,21 @@ def test_epoch_span_warning_flags_mixed_era_frames(monkeypatch):
     assert "41" in w  # the measured span (62.7 - 20.8) rounds into the text
 
 
-def test_epoch_span_warning_silent_for_same_era(monkeypatch):
-    """A single-instant campaign (all frames within ~0.2 yr) must NOT warn."""
-    recs = {"a": {"obs_age_yr": 4.31}, "b": {"obs_age_yr": 4.33}}
+def test_epoch_span_warning_flags_few_year_span(monkeypatch):
+    """A few-years span (Earth has moved >10 au between frames) must warn at the
+    DEFAULT threshold. Pins the 0.02 yr default -- a mutant that widened it
+    (0.02 -> 20) would miss this 2.2 yr span while the decades-apart test above
+    would still pass, so this is the one that catches the mutant."""
+    recs = {"a": {"obs_age_yr": -1.0}, "b": {"obs_age_yr": 1.2}}  # 2.2 yr span
+    monkeypatch.setattr(webapp, "_record_by_id", lambda fid: recs.get(fid))
+    w = webapp._epoch_span_warning(["a", "b"])
+    assert w is not None and "span" in w and "age estimate" in w
+
+
+def test_epoch_span_warning_silent_for_same_instant_campaign(monkeypatch):
+    """A single-instant campaign (the NH frames span ~0.003 yr = ~1 day) must NOT
+    warn: its lines of position DO cross at a real point."""
+    recs = {"a": {"obs_age_yr": 4.31}, "b": {"obs_age_yr": 4.3132}}  # ~1.2 day span
     monkeypatch.setattr(webapp, "_record_by_id", lambda fid: recs.get(fid))
     assert webapp._epoch_span_warning(["a", "b"]) is None
     assert webapp._epoch_span_warning(["a"]) is None  # one frame: nothing to span

@@ -3203,3 +3203,36 @@ wrong.**
   `tests_gui/{test_age.py,test_webapp.py}`, `journal/{gui-wrapper.md,citations.md,
   logbook.md}`. No galnav/, tests/, golden_numbers, pytest.ini, docs/, or root
   README.md change; no frozen/golden value changed.
+
+- 2026-07-17 -- GUI adversarial sweep #2 fixes: security + chronometer honesty +
+  credit (3 Opus skeptics; no fatal, real issues).
+  WHAT: SECURITY (booth machine) -- (1) esc() HTML-escaping of all server strings
+  before innerHTML in `gui/web/app.js` (stored/DOM XSS via a crafted filename was
+  proven); (2) `_Handler.timeout = 30` in `gui/webapp.py` (slowloris); (3)
+  `list(...)` snapshots of `_UPLOADS`/`_DEMO_INDEX` in frames_payload (dict-race
+  500). PHYSICS/STATS -- (4) replaced the drift sigma with the physical,
+  grid-invariant sigma_age = sigma_centroid/omega_mover (Fisher-combined;
+  sigma_centroid = 0.3 px x scale; MC-validated N=300: Wolf'53 ratio 0.93,
+  Barnard'91 1.09); (5) Wolf'95 miss was GRID UNDER-SAMPLING not "sparse-field" --
+  drift grid 0.5 -> 0.1 yr + refine the GLOBAL min's vertex + guard on the refined
+  age; kept ~2 s via a linear-propagation model (sample the catalog at ages 0,1,
+  extrapolate r=r0+v*t); (6) epoch-span guard tightened 0.2 -> 0.02 yr (an ~0.1 au
+  Earth-displacement budget). (7) kept the static-mask HARD veto (documented why
+  exemption/soft-penalty backfire; noted the no-PM 52 mas/yr structural gap).
+  CREDIT -- [DSS] verbatim STScI acknowledgment + [HLA] + two CC photo credits in
+  citations.md; DSS acknowledgment in the web footer; corrected the wrong
+  Wolf'95 "sparse-field" story in the journal + candidates MANIFEST (grid bug).
+  WHY: XSS/DoS on an untrusted booth network; the reported uncertainty was a
+  grid-artifact fiction; a real true minimum was being under-sampled; the position
+  fix silently accepted year-apart Earth observers; DSS/HST/CC images legally
+  require attribution.
+  EVIDENCE: ALL SIX DSS plates now within 1 yr of truth (Wolf'95 1991.4 -> 1995.18;
+  both Barnard 1950.6/1991.5). sigma MC-validated to ~10%. NH frozen 0.38659 au /
+  4.2856 yr UNCHANGED (drift path untouched by the multi-star NH set). Mixed-era
+  Barnard'91+Wolf'95 -> |r| 35 au WITH the epoch warning; NH (0.003 yr span) silent.
+  app.js `node --check` clean. tests_gui 71 -> 74; spine `pytest -q` 84 held.
+  COMMIT: uncommitted (orchestrator will commit). Changed: `gui/{age,app,webapp}.py`,
+  `gui/web/{app.js,style.css,index.html}`, `tests_gui/{test_age.py,test_webapp.py}`,
+  `journal/{gui-wrapper.md,citations.md,logbook.md}`, and (lead-requested, git-
+  ignored, task-#15-owned) `data/candidates/MANIFEST.md`. No galnav/, tests/,
+  golden_numbers, pytest.ini, docs/, or root README.md change; no frozen value moved.

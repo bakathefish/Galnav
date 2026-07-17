@@ -652,10 +652,12 @@ survives masking and becomes the global minimum.
   | poss1red barnard 1950   | 1950.5 | 2035.6 FALSE | **1950.6** | FIXED            |
   | poss2red barnard 1991   | 1991.5 | 2035.6 FALSE | **1991.5** | FIXED            |
 
-  Wolf'95 is a *different* failure (a sparse high-latitude field where Wolf 359's
-  slower 4.7 arcsec/yr track over a short 21-yr baseline gives a shallow V with a
-  competing minimum 3.8 yr away); static exclusion neither helps nor hurts it, as
-  the brief required. Left honest, not papered over.
+  Wolf'95's 1991.4 miss was recorded here as a "sparse-field ambiguity." THAT
+  DIAGNOSIS WAS WRONG (corrected in the 2026-07-17 sweep-#2 entry below): the true
+  minimum IS present and deeper, but Wolf 359's sharp V was UNDER-SAMPLED by this
+  0.5-yr grid while the broad false minimum was well-sampled. A 0.1-yr grid
+  resolves it -> 1995.18 (err 0.02 yr), with no regression on the other five.
+  Static exclusion is orthogonal to this (it neither caused nor fixed it).
 
   What it does NOT do: it does not add a new dependency, touch the position-fit
   (chi2-scan) path, or change any NH demo number -- the NH frames are position-fit
@@ -715,3 +717,110 @@ NaN gap cadence) proves `load_grayscale` returns the FLUX median (peak on the
 injected star, not a flat mask) and that it centroids; a plain image FITS is
 unaffected. The epoch-span warning fires on a spread-out pair and stays None on a
 same-era pair and on the real 12 NH frames. tests_gui 64 -> 71; spine 84 held.
+
+## 2026-07-17 -- adversarial sweep #2 fixes (security + chronometer honesty)
+
+Three Opus skeptics found no fatal bug but real issues. Fixed, booth-machine
+security first.
+
+### Security (a booth machine on an untrusted network)
+
+- *Stored/DOM XSS (proven).* `gui/web/app.js` injected server-supplied strings
+  (uploaded filename, r.message, r.warning, star_name, image) into innerHTML
+  unescaped -- a file named `<img src=x onerror=alert(1)>.fits` executed. Added
+  an `esc()` that escapes the five HTML-significant characters (safe in attribute
+  context too) and wrapped every such string; URL params (age/radius/id) go
+  through encodeURIComponent. The upload path already used textContent.
+- *Slowloris.* The stdlib handler had no read timeout, so a big Content-Length
+  with a trickle body pinned a worker forever. Set `_Handler.timeout = 30`
+  (socketserver arms it; the resulting socket.timeout is already caught).
+- *Dict race.* `frames_payload` iterated `_UPLOADS`/`_DEMO_INDEX` live while an
+  upload on another thread mutated them ("changed size during iteration" 500s
+  the gallery). Snapshot with `list(...)` before iterating.
+
+### The chronometer: a physical, grid-invariant uncertainty (was fiction)
+
+The old drift sigma was a curve-curvature half-width normalised so reduced
+chi-squared == 1 by construction -- it swung ~3x with the grid step the USER
+picks and matched neither the noise-propagated error nor reality (it understated
+Wolf'53 5.7x, overstated Barnard'91 2.5x). Replaced with the physical closed form
+
+    sigma_age = sigma_centroid / omega_mover                 (one mover)
+    sigma_age = 1 / sqrt( sum_i (omega_i / sigma_centroid_i)^2 )   (general)
+
+one symbol at a time: *omega_mover* is the mover's on-sky angular speed (its total
+proper motion) in arcsec/yr, computed at the fitted age as |P x dP/da|/|P|^2 from
+the same linear propagation; *sigma_centroid* is the centroiding 1-sigma in
+arcsec, taken as 0.3 px x the plate scale (a conservative survey-typical floor,
+DOCUMENTED as the one defensible assumption); *sum_i* combines independent
+frames/stars in inverse-variance (Fisher). Derivation: a wrong age moves the
+predicted position omega arcsec per year, so a centroiding error sigma_centroid
+maps to an age error sigma_centroid/omega. This is grid-INVARIANT by construction.
+MC-VALIDATED (perturb every centroid by 0.3 px, N=300, re-fit): Wolf'53
+sigma_analytic 0.108 vs sigma_MC 0.101 (ratio 0.93); Barnard'91 0.030 vs 0.032
+(ratio 1.09) -- ~10% on real plates, and a test pins that the same scene gives
+the same sigma at 0.5 and 0.1 yr steps and equals sigma_centroid*scale/omega.
+
+### Wolf'95 was a GRID BUG, not a "sparse-field ambiguity" (my earlier story was wrong)
+
+The skeptic proved the true minimum is present and deeper (−20.82/1995.18, sep
+0.196") -- the coarse 0.5-yr grid simply UNDER-SAMPLED the sharp true minimum
+while the broad false one was well-sampled. Fix: (1) the drift grid is now 0.1 yr
+(default and the negative-range path, which caps the user's step at 0.1); (2)
+`drift_date` refines the GLOBAL grid minimum's parabola vertex (not a refine
+around a coarse local node -- that refines the wrong one) and the reliability
+guard + reported separation use that REFINED age, not a grid node. PERF: a
+1000-node scan stays ~2 s because the navigator ages positions linearly
+(r=r0+v*t, Cartesian), so drift_date samples the catalog only at ages 0 and 1 to
+get (r0, v) and computes r(a) analytically -- skipping load_aged_catalog's
+1941-star re-propagation (and its unused ra/dec/dist) at every age.
+
+  Six-plate table, single-star drift @0.1 yr, cone exclusion, physical sigma:
+
+  | plate (star)           | truth  | year   | sigma | sep    | verdict |
+  |------------------------|--------|--------|-------|--------|---------|
+  | poss1red wolf359 1953  | 1953.3 | 1953.31| 0.108 | 0.09"  | OK      |
+  | poss2blue proxima 1976 | 1976.2 | 1975.95| 0.132 | 0.22"  | OK      |
+  | poss2red proxima 1997  | 1997.2 | 1996.95| 0.078 | 1.41"  | OK      |
+  | poss2red wolf359 1995  | 1995.2 | 1995.18| 0.064 | 0.17"  | OK (was 1991.4) |
+  | poss1red barnard 1950  | 1950.5 | 1950.64| 0.049 | 1.61"  | OK      |
+  | poss2red barnard 1991  | 1991.5 | 1991.50| 0.030 | 0.76"  | OK      |
+
+  ALL SIX now within 1 yr of truth. NH position-fit unchanged (4.2856 yr /
+  0.38659 au -- the drift path is never taken by the multi-star NH set).
+
+### Epoch-span guard on OBSERVER DISPLACEMENT, not calendar spread
+
+0.2 yr was observer-agnostic: Earth moves 6.28 au/yr, so 0.2 yr is a 1.26 au
+baseline passed silently. Tightened to 0.02 yr = an ~0.1 au Earth-displacement
+budget (0.1 au / 6.28 au/yr ~= 0.016, rounded up). The real NH campaign spans a
+measured 0.0032 yr (1.2 days -- one instant) so it stays silent with 6x margin;
+decades-apart DSS/HST groups are caught (a mixed Barnard'91+Wolf'95 pair still
+returns |r| 35 au WITH the warning). A test pins a 2.2-yr span warns at the
+default (a mutant widening 0.02 -> 20 would miss it, which the decades-apart test
+would not catch).
+
+### Static-mask brittleness (item 7) -- kept the hard veto, documented WHY
+
+The cone has no proper-motion column, so the mask leans on the 2-px tolerance
+(safe for the < ~52 mas/yr field stars that make decoys). A true blob landing
+within 2 px of a cataloged star is a genuine POSITION-ONLY ambiguity. I kept the
+HARD veto rather than the two suggested softenings because each backfires:
+exempting "the mover's best-matched centroid at each age" REVIVES the decoy (at
+the false epoch the decoy IS the best match); a uniform soft penalty needs a
+value simultaneously > the true-epoch separation (to demote decoys) and < the
+off-epoch separations (so a close-but-masked true blob beats a far-but-clean one)
+-- a window that does not exist in a dense field. The honest veto is correct on
+all six real plates; the residual ambiguity is fundamental without PM data and is
+documented in `drift_date`'s docstring and `static_occupied_centroids`.
+
+### Credit
+
+`journal/citations.md` gains [DSS] (verbatim STScI acknowledgment), [HLA], and
+the two CC photo credits, each "where used"; the DSS acknowledgment also appears
+in the web footer (`gui/web/index.html` `.credits`) since a DSS plate is shown.
+The HLA WFPC2 SIP warning stays noted-not-patched (cosmetic).
+
+tests_gui 71 -> 74 (+ default-threshold drift guard, + grid-invariant sigma,
++ few-year epoch span; the same-instant test now uses NH's real ~0.003 yr span).
+spine 84 held; NH frozen 0.38659 / 4.2856 unchanged.

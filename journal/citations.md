@@ -301,6 +301,41 @@ Zenodo, doi:10.5281/zenodo.16051178 (v2.1.0, 2025-07).
 - Retrieval note: verified 2026-07-17 against a real MAST TESScut cutout of
   Proxima (Sector 11, 30x30 px) held only in git-ignored `data/candidates/`.
 
+**[DSS]** STScI Digitized Sky Survey (POSS-I Palomar Schmidt; POSS-II Oschin
+Schmidt; AAO/UKST southern). https://archive.stsci.edu/cgi-bin/dss_form
+- REQUIRED ACKNOWLEDGMENT (verbatim, STScI DSS copyright terms): "The Digitized
+  Sky Surveys were produced at the Space Telescope Science Institute under U.S.
+  Government grant NAG W-2166. The images of these surveys are based on
+  photographic data obtained using the Oschin Schmidt Telescope on Palomar
+  Mountain and the UK Schmidt Telescope."
+- Used for: the six real POSS/DSS plate cutouts (Wolf 359, Proxima, Barnard) that
+  stress-test the single-star drift chronometer (negative catalog ages, dense-field
+  false-minimum fix). WCS read straight from each header.
+- Where used: displayed in the web demo when a DSS plate is loaded, so the
+  acknowledgment also appears verbatim in the page footer (`gui/web/index.html`,
+  `.credits`); data in git-ignored `data/candidates/dss/` (see its MANIFEST.md).
+- License: public domain (US Gov/STScI); free for research per the DSS copyright
+  terms. Retrieved 2026-07-17.
+
+**[HLA]** Hubble Legacy Archive (STScI), WFPC2 F814W drizzled product
+`hst_05132_08_wfpc2_f814w_wf` (Proposal 5132, WFPC2 astrometry; TARGNAME
+BD+4D3561 = Barnard's Star, DATE-OBS 1995-04-22). https://hla.stsci.edu
+- Used for: a real HST frame in the candidate stress-test set (plate-solves via
+  header WCS; trips a cosmetic astropy SIP/CTYPE warning noted in the journal).
+- Where used: `data/candidates/hst/` (git-ignored); credit NASA/ESA HST, HLA/STScI.
+- License: public domain. Retrieved 2026-07-17.
+
+**[CC-Centaurus]** Till Credner (AlltheSky.com), "Constellation Centaurus,"
+Wikimedia Commons, CC BY-SA 3.0.
+https://commons.wikimedia.org/wiki/File:Constellation_Centaurus.jpg
+- Where used: `data/candidates/raw_photos/centaurus_alphacen_credner.jpg`
+  (git-ignored), a no-WCS wide-field photo exercising the blind-solve tier.
+
+**[CC-Orion]** "Madonka," "Constellation Orion," Wikimedia Commons, CC0 (public
+domain). https://commons.wikimedia.org/wiki/File:Constellation_Orion.jpg
+- Where used: `data/candidates/raw_photos/orion_credner.jpg` (git-ignored),
+  a no-WCS wide-field photo exercising the blind-solve tier.
+
 ## Historical
 
 **[Gauss1809]** Gauss, C. F. (1809). *Theoria Motus Corporum Coelestium*.

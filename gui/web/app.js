@@ -8,6 +8,17 @@ function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
+// HTML-escape any server-supplied string before it goes into innerHTML. A file
+// named `<img src=x onerror=alert(1)>.fits` would otherwise execute (stored/DOM
+// XSS on this booth machine). Escapes the five HTML-significant characters,
+// which also makes it safe inside a double-quoted attribute. Plain names should
+// prefer .textContent; this is for the template-literal innerHTML paths.
+const esc = (s) =>
+  String(s ?? "").replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])
+  );
+
 function toast(msg) {
   const t = document.createElement("div");
   t.className = "toast";
@@ -43,11 +54,12 @@ function renderGallery() {
     const el = document.createElement("button");
     el.className = "frame" + (sel ? " sel" : "") + (state.focus === f.id ? " focus" : "");
     el.setAttribute("aria-pressed", sel ? "true" : "false");
-    const age = $("age").value || "4.31";
-    const radius = $("radius").value || "120";
+    const age = encodeURIComponent($("age").value || "4.31");
+    const radius = encodeURIComponent($("radius").value || "120");
+    const fid = encodeURIComponent(f.id);
     el.innerHTML =
-      `<img loading="lazy" alt="" src="/api/image?id=${f.id}&age=${age}&radius=${radius}&thumb=1">` +
-      `<span class="meta"><span class="fname">${f.name}</span><br>${fieldTag(f.field)}</span>` +
+      `<img loading="lazy" alt="" src="/api/image?id=${fid}&age=${age}&radius=${radius}&thumb=1">` +
+      `<span class="meta"><span class="fname">${esc(f.name)}</span><br>${fieldTag(f.field)}</span>` +
       `<input class="ck" type="checkbox" tabindex="-1" ${sel ? "checked" : ""} aria-hidden="true">`;
     el.addEventListener("click", () => toggleFrame(f.id));
     g.appendChild(el);
@@ -76,10 +88,10 @@ function updatePreview() {
     $("caption").textContent = "";
     return;
   }
-  const age = $("age").value || "4.31";
-  const radius = $("radius").value || "120";
+  const age = encodeURIComponent($("age").value || "4.31");
+  const radius = encodeURIComponent($("radius").value || "120");
   const f = state.frames.find((x) => x.id === state.focus);
-  wrap.innerHTML = `<img alt="frame ${f.name}" src="/api/image?id=${state.focus}&age=${age}&radius=${radius}&t=${Date.now()}">`;
+  wrap.innerHTML = `<img alt="frame ${esc(f.name)}" src="/api/image?id=${encodeURIComponent(state.focus)}&age=${age}&radius=${radius}&t=${Date.now()}">`;
   $("caption").textContent = `${f.name} - ${f.field} field - cyan = detected star, amber = identified nearby star`;
 }
 
@@ -105,9 +117,9 @@ async function locate() {
 }
 
 function renderLocate(r) {
-  const warn = r.warning ? `<div class="warnbar">${r.warning}</div>` : "";
+  const warn = r.warning ? `<div class="warnbar">${esc(r.warning)}</div>` : "";
   if (!r.ok) {
-    $("results").innerHTML = `<div class="resultcard">${warn}<div class="pos">${r.message}</div></div>`;
+    $("results").innerHTML = `<div class="resultcard">${warn}<div class="pos">${esc(r.message)}</div></div>`;
     hideSpacePanel();
     return;
   }
@@ -117,7 +129,7 @@ function renderLocate(r) {
     ? '<div><div class="k">miss</div><div class="v">n/a (not the NH set)</div></div>'
     : `<div><div class="k">miss vs JPL truth</div><div class="v cyan">${r.miss_au.toFixed(3)} au</div></div>`;
   const lines = r.lines.map(
-    (l) => `<span class="sn">${l.star_name}</span> in ${l.image} &mdash; residual ${l.resid_arcsec}"`
+    (l) => `<span class="sn">${esc(l.star_name)}</span> in ${esc(l.image)} &mdash; residual ${Number(l.resid_arcsec)}"`
   ).join("<br>");
   $("results").innerHTML =
     `<div class="resultcard">
@@ -177,7 +189,7 @@ async function estimateAge() {
 function renderAge(r) {
   hideSpacePanel();  // age result is not a position fix
   if (!r.ok) {
-    $("results").innerHTML = `<div class="resultcard"><div class="pos">${r.message}</div></div>`;
+    $("results").innerHTML = `<div class="resultcard"><div class="pos">${esc(r.message)}</div></div>`;
     return;
   }
   const sig = r.sigma_age_yr === null ? "" : " ± " + r.sigma_age_yr.toFixed(2);
@@ -186,7 +198,7 @@ function renderAge(r) {
   const best = r.best_sep_arcsec ? ` · best separation ${r.best_sep_arcsec.toFixed(2)}″` : "";
   const truth = (r.truth_yr === null || r.truth_yr === undefined) ? ""
     : ` &nbsp;vs true ${(2016 + r.truth_yr).toFixed(2)}`;
-  const note = r.note ? `<div class="linelist">${r.note}</div>` : "";
+  const note = r.note ? `<div class="linelist">${esc(r.note)}</div>` : "";
   // Show the calendar YEAR headline (lands harder than "-62.7 yr"); age below.
   const year = (r.year_hat === null || r.year_hat === undefined) ? null : r.year_hat;
   const yearLine = year === null ? "" :
