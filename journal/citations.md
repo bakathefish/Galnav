@@ -495,6 +495,36 @@ lattice point problem." *Combinatorica*, 6(1), 1–13. doi:10.1007/BF02579403
   (Springer Nature Link, ACM DL, Semantic Scholar); students should sight the
   Babai original before the paper's methods section is finalized.
 
+**[AstrometryNet]** Lang, D., Hogg, D. W., Mierle, K., Blanton, M., &
+Roweis, S. (2010). "Astrometry.net: Blind astrometric calibration of
+arbitrary astronomical images." *The Astronomical Journal*, 139, 1782–1800.
+doi:10.1088/0004-6256/139/5/1782
+- Used for: the blind plate-solver behind the GUI demo's world-coordinate
+  step (`gui/platesolve.py`). The tool reads a WCS three ways — straight from
+  a solved FITS header (the New Horizons "pwcs2" frames), from a local
+  astrometry.net `solve-field` run via WSL, or from the nova.astrometry.net
+  web service — all three being astrometry.net-family solutions. NOT part of
+  the science spine; a demo-layer convenience so a user can upload a raw
+  star-field image and get RA/Dec per pixel.
+- Where in repo: `gui/platesolve.py` (fits_header_solution, wsl_solve,
+  nova_solve, solve_image); `journal/gui-wrapper.md`; `gui/README.md`.
+- Verified: canonical astrometry.net paper (AJ 139, 1782), citation as used
+  by the astrometry.net project itself; students should sight the original
+  before any paper mention of the demo tool.
+
+**[NovaAPI]** Astrometry.net. "nova.astrometry.net API documentation."
+http://nova.astrometry.net/api_help (client protocol: session login,
+image upload, submission/job polling, WCS-file download).
+- Used for: the exact request sequence `gui/platesolve.py::nova_solve`
+  implements with stdlib `urllib` (POST request-json login → multipart
+  upload → poll `/api/submissions/{id}` then `/api/jobs/{id}` → download
+  `/wcs_file/{id}`), mirroring the repo's stdlib-urllib data-fetch precedent.
+- Where in repo: `gui/platesolve.py` (nova_solve and its `_http_json` /
+  `_nova_multipart` helpers); `journal/gui-wrapper.md`; `gui/README.md`.
+- Verified: API endpoint shapes taken from the public api_help page and the
+  astrometry.net `client.py` reference protocol; the parse is covered offline
+  by `tests_gui/test_platesolve.py` against a monkeypatched urlopen.
+
 ## Related work (prior-art re-sweep 2026-07-16 — positioning, not method sources)
 
 **[Deng13]** Deng, X. P., Hobbs, G., You, X. P., et al. (2013). "Interplanetary

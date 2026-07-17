@@ -2773,3 +2773,56 @@ wrong.**
   executed as a 30-leg plan trimmed to 18 at the user's token budget;
   agents implemented, main session verified and integrated - the AI
   workflow this logbook openly documents.
+
+## 2026-07-17 - GUI DEMO WRAPPER: upload a star-field image, get the spacecraft position (+ catalog age both ways)
+- WHAT: a new top-level demo layer `gui/` (7 modules) + `tests_gui/` (5 test
+  files, 21 tests) + docs, sitting ABOVE the finished spine. A tkinter app
+  (`python -m gui.app`) lets a user upload spacecraft star-field image(s),
+  plate-solve each (WCS from FITS header / local astrometry.net via WSL / the
+  nova.astrometry.net web API), centroid the stars, identify nearby (<=20 pc)
+  Gaia catalog stars in the frame, accumulate one line of position per matched
+  star across all images, and fix the spacecraft position (au + 1-sigma error
+  ellipsoid). Catalog AGE is handled BOTH ways: SET (propagate the catalog
+  forward by a user age before matching) and ESTIMATE (chi2-vs-age scan whose
+  minimum marks the image epoch, because nearby stars' huge proper motions make
+  a wrong age shift each star many pixels). All physics reuses the spine:
+  `galnav.nav.catalog` (aging), `galnav.nav.triangulate.n_star_solve` (the
+  line-of-position intersection, x = (sum w)^-1 sum w p, w = q/|p|^2), and
+  `galnav.units`. Zero new pip dependencies (tkinter is stdlib; Pillow rides in
+  with matplotlib). Full detail in `journal/gui-wrapper.md`; user guide in
+  `gui/README.md`.
+- WHY: a presentable, hands-on artifact for ISEF that makes the abstract
+  navigation idea tangible ("here is a photo, here is where the ship is") while
+  reusing — not re-deriving — the vetted spine navigator. The two age modes are
+  the E6 catalog-aging story turned interactive.
+- TRUTH WALL: the GUI is navigator-side. It imports ONLY stdlib/numpy/scipy/
+  astropy/matplotlib and the navigator surface (galnav.nav.*, galnav.units,
+  galnav.geometry, galnav.parallax) — NEVER galnav.truth. Enforced by a new
+  AST test `tests_gui/test_wall.py` (a copy of the spine's wall-test style, not
+  an edit of it) that also asserts gui/ touches no non-navigator galnav module.
+- EVIDENCE: `python -m pytest -q` = 84 passed (spine untouched); `python -m
+  pytest tests_gui -q` = 21 passed, 0 skipped, 0 warnings; `python -c "import
+  gui.app"` clean (no window). Real-data smoke `python -m gui.nh_demo` on two
+  real New Horizons LORRI frames (Proxima lor_0449855930, Wolf 359
+  lor_0449933827): recovered x = [12.694, -42.038, -16.926] au (|r| 47.06 au),
+  miss vs JPL Horizons = 0.976 au, 1-sigma ellipsoid [1.08, 0.57, 0.504] au;
+  age estimate age_hat = 4.336 +/- 0.134 yr vs true 4.309 yr (|diff| 0.027 yr).
+  The ~1 au miss is expected and printed honestly: single raw frames, quick
+  5-sigma centroids, and NO aberration correction (~10" at NH's ~14 km/s),
+  whereas Lauer's 0.35 au used 6 averaged, aberration-corrected sightlines per
+  star. Test tolerances are named constants justified from measured values
+  (centroid recovery 0.0014 px << 0.3 px gate; exact-line fix ~1e-10 au << 1e-6
+  gate; synthetic age recovery 0.001 yr << 0.5 yr gate) — golden_numbers.py
+  untouched.
+- DEVIATIONS (all documented in the journal + final report): (1) the Wolf-359
+  frame is selected by which target its WCS centre actually contains — the
+  brief's glob `lor_04499*` also matches lor_0449913531, which points at the
+  PROXIMA field; (2) LORRI frames carry their UTC in SPCUTCAL, not DATE-OBS, so
+  `gui/fitsmeta.py` tries several time keys; (3) `estimate_age` gained an
+  optional `rmssig_arcsec` so the delta-chi2=1 sigma is a PROPER age error
+  (n_star_solve's chi2 is weighted by 1/|p|^2 and must be divided by the
+  per-measurement angular variance) — a strict superset of the brief signature,
+  same rmssig that scales the position ellipsoid.
+- COMMIT: uncommitted (orchestrator will commit). New files under gui/ and
+  tests_gui/; appends only to journal/citations.md ([AstrometryNet], [NovaAPI])
+  and this logbook.
