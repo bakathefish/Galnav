@@ -1,0 +1,667 @@
+<title>GalNav - how a star photo becomes a position</title>
+<meta charset="utf-8">
+<style>
+  /* ---- token sets --------------------------------------------------- */
+  :root{
+    --bg:#eef2f7; --panel:#ffffff; --panel2:#f2f6fb; --inset:#e9eff7;
+    --ink:#111a27; --dim:#55677e; --faint:#8a99ad; --line:#d5deec;
+    --cyan:#0e7ea6; --cyanbg:rgba(14,126,166,.10);
+    --amber:#a95d08; --amberbg:rgba(169,93,8,.10);
+    --good:#1c8a5b; --goodbg:rgba(28,138,91,.10);
+    --crit:#bd3b3b; --critbg:rgba(189,59,59,.10);
+    --shadow:rgba(24,44,74,.10);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0a0e16; --panel:#121a28; --panel2:#0e1522; --inset:#1a2436;
+      --ink:#e7eefa; --dim:#93a6bf; --faint:#6f7f96; --line:#263248;
+      --cyan:#3fcbef; --cyanbg:rgba(63,203,239,.12);
+      --amber:#f2b444; --amberbg:rgba(242,180,68,.12);
+      --good:#3ddc97; --goodbg:rgba(61,220,151,.12);
+      --crit:#ff7d7d; --critbg:rgba(255,125,125,.12);
+      --shadow:rgba(0,0,0,.45);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#eef2f7; --panel:#ffffff; --panel2:#f2f6fb; --inset:#e9eff7;
+    --ink:#111a27; --dim:#55677e; --faint:#8a99ad; --line:#d5deec;
+    --cyan:#0e7ea6; --cyanbg:rgba(14,126,166,.10);
+    --amber:#a95d08; --amberbg:rgba(169,93,8,.10);
+    --good:#1c8a5b; --goodbg:rgba(28,138,91,.10);
+    --crit:#bd3b3b; --critbg:rgba(189,59,59,.10);
+    --shadow:rgba(24,44,74,.10);
+  }
+  :root[data-theme="dark"]{
+    --bg:#0a0e16; --panel:#121a28; --panel2:#0e1522; --inset:#1a2436;
+    --ink:#e7eefa; --dim:#93a6bf; --faint:#6f7f96; --line:#263248;
+    --cyan:#3fcbef; --cyanbg:rgba(63,203,239,.12);
+    --amber:#f2b444; --amberbg:rgba(242,180,68,.12);
+    --good:#3ddc97; --goodbg:rgba(61,220,151,.12);
+    --crit:#ff7d7d; --critbg:rgba(255,125,125,.12);
+    --shadow:rgba(0,0,0,.45);
+  }
+
+  *{box-sizing:border-box}
+  html{ -webkit-text-size-adjust:100% }
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.6; font-size:16px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{ font-family:ui-monospace,"Cascadia Code","JetBrains Mono","SF Mono",Menlo,Consolas,monospace }
+  .wrap{ max-width:1060px; margin:0 auto; padding:0 20px }
+
+  /* ---- top bar ------------------------------------------------------ */
+  .topbar{
+    position:sticky; top:0; z-index:20; background:color-mix(in srgb,var(--bg) 88%,transparent);
+    backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+  }
+  .topbar .wrap{ display:flex; align-items:center; gap:14px; height:52px; flex-wrap:wrap }
+  .brand{ font-weight:700; letter-spacing:.02em; white-space:nowrap }
+  .brand .dot{ color:var(--cyan) }
+  .navlinks{ display:flex; gap:4px; flex-wrap:wrap; margin-left:auto }
+  .navlinks a{
+    font:600 12px/1 ui-monospace,Consolas,monospace; letter-spacing:.04em; text-transform:uppercase;
+    color:var(--dim); text-decoration:none; padding:7px 9px; border-radius:7px;
+  }
+  .navlinks a:hover{ color:var(--ink); background:var(--panel2) }
+  .navlinks a:focus-visible{ outline:2px solid var(--cyan); outline-offset:2px }
+
+  /* ---- hero --------------------------------------------------------- */
+  header.hero{ padding:56px 0 28px }
+  .eyebrow{
+    font:600 12px/1 ui-monospace,Consolas,monospace; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--cyan); margin:0 0 18px;
+  }
+  h1{
+    font-size:clamp(28px,4.6vw,46px); line-height:1.08; letter-spacing:-.02em;
+    margin:0 0 16px; text-wrap:balance; font-weight:800;
+  }
+  h1 .u{ color:var(--cyan) } h1 .a{ color:var(--amber) }
+  .lede{ font-size:clamp(16px,1.9vw,19px); color:var(--dim); max-width:64ch; margin:0 }
+
+  .runbox{
+    margin-top:28px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:16px 18px; box-shadow:0 1px 0 var(--shadow);
+  }
+  .runbox .k{ font:600 11px/1 ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--dim) }
+  .cmd{
+    font-family:ui-monospace,Consolas,monospace; font-size:15px; color:var(--ink);
+    background:var(--inset); border:1px solid var(--line); border-radius:8px; padding:9px 14px;
+  }
+  .cmd .p{ color:var(--cyan) }
+
+  /* ---- section shell ------------------------------------------------ */
+  section{ padding:34px 0; border-top:1px solid var(--line) }
+  .sec-h{ display:flex; align-items:baseline; gap:12px; margin:0 0 6px }
+  .sec-n{ font:700 13px/1 ui-monospace,monospace; color:var(--cyan) }
+  h2{ font-size:clamp(20px,2.6vw,27px); margin:0; letter-spacing:-.01em; font-weight:750 }
+  .sec-sub{ color:var(--dim); margin:2px 0 24px; max-width:70ch }
+
+  /* ---- glance strip ------------------------------------------------- */
+  .glance{ overflow-x:auto; padding-bottom:6px }
+  .glance-row{ display:flex; align-items:stretch; gap:0; min-width:max-content }
+  .gchip{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:10px 14px; min-width:118px; text-align:center;
+  }
+  .gchip .gi{ font:600 10px/1 ui-monospace,monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--dim) }
+  .gchip .gt{ font-weight:700; font-size:14px; margin-top:4px }
+  .gchip.endpoint{ border-color:var(--cyan); background:var(--cyanbg) }
+  .gchip.answer{ border-color:var(--amber); background:var(--amberbg) }
+  .garr{ align-self:center; color:var(--faint); padding:0 6px; font-family:ui-monospace,monospace; font-weight:700 }
+
+  /* ---- legend ------------------------------------------------------- */
+  .legend{ display:flex; gap:16px; flex-wrap:wrap; margin:18px 0 2px }
+  .legend span{ display:inline-flex; align-items:center; gap:7px; font-size:13px; color:var(--dim) }
+  .sw{ width:13px; height:13px; border-radius:4px; border:1px solid var(--line) }
+  .sw.data{ background:var(--cyanbg); border-color:var(--cyan) }
+  .sw.reuse{ background:var(--amberbg); border-color:var(--amber) }
+  .sw.ok{ background:var(--goodbg); border-color:var(--good) }
+
+  /* ---- flow nodes --------------------------------------------------- */
+  .flow{ display:flex; flex-direction:column; align-items:center; gap:0 }
+  .node{
+    width:100%; background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    box-shadow:0 1px 2px var(--shadow); overflow:hidden;
+    transition:transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  }
+  .node:hover{ transform:translateY(-2px); box-shadow:0 8px 22px var(--shadow); border-color:color-mix(in srgb,var(--cyan) 40%,var(--line)) }
+  .node.join{ border-color:color-mix(in srgb,var(--amber) 35%,var(--line)) }
+  .node-head{ display:flex; align-items:center; gap:14px; padding:14px 18px; border-bottom:1px solid var(--line); background:var(--panel2) }
+  .num{
+    font:800 15px/1 ui-monospace,monospace; color:var(--cyan);
+    border:1.5px solid var(--cyan); border-radius:9px; padding:8px 9px; min-width:38px; text-align:center;
+  }
+  .node.join .num{ color:var(--amber); border-color:var(--amber) }
+  .node-head h3{ margin:0; font-size:18px; font-weight:700; letter-spacing:-.01em }
+  .ref{ font-family:ui-monospace,Consolas,monospace; font-size:12px; color:var(--dim) }
+  .tag{ margin-left:auto; font:600 10px/1 ui-monospace,monospace; letter-spacing:.08em; text-transform:uppercase;
+        padding:6px 9px; border-radius:20px; white-space:nowrap }
+  .tag.op{ color:var(--cyan); background:var(--cyanbg) }
+  .tag.reuse{ color:var(--amber); background:var(--amberbg) }
+
+  .node-body{ display:grid; grid-template-columns:1fr 1.5fr 1fr; gap:0 }
+  .io{ padding:16px 18px; display:flex; flex-direction:column; gap:8px; justify-content:center }
+  .io.in{ background:var(--panel2) }
+  .io.out{ background:var(--panel2) }
+  .io-label{ font:700 10px/1 ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--faint) }
+  .data{ font-family:ui-monospace,Consolas,monospace; font-size:13px; font-weight:600; color:var(--ink);
+         background:var(--inset); border:1px solid var(--line); border-radius:9px; padding:10px 12px; }
+  .data .shape{ display:block; font-weight:400; font-size:12px; color:var(--dim); margin-top:3px }
+  .data.hl{ border-color:var(--cyan); background:var(--cyanbg) }
+  .op{ padding:16px 18px; border-left:1px solid var(--line); border-right:1px solid var(--line); display:flex; flex-direction:column; gap:10px }
+  .op .what{ margin:0; font-size:14.5px }
+  .op .formula{ font-family:ui-monospace,Consolas,monospace; font-size:12.5px; color:var(--ink);
+                background:var(--inset); border:1px solid var(--line); border-left:3px solid var(--cyan);
+                border-radius:6px; padding:9px 11px; overflow-x:auto }
+  .op .why{ margin:0; font-size:13px; color:var(--dim) }
+  .op .why b{ color:var(--amber); font-weight:700; text-transform:uppercase; font-size:10px; letter-spacing:.1em; margin-right:6px }
+  .chips{ display:flex; gap:6px; flex-wrap:wrap }
+  .pchip{ font:600 11px/1 ui-monospace,monospace; color:var(--dim); background:var(--inset); border:1px solid var(--line);
+          border-radius:6px; padding:6px 8px }
+
+  /* ---- edges between nodes ----------------------------------------- */
+  .edge{ display:flex; flex-direction:column; align-items:center; padding:2px 0 }
+  .edge .stem{ width:2px; height:16px; background:var(--line) }
+  .payload{
+    font:600 12px/1.3 ui-monospace,Consolas,monospace; color:var(--cyan);
+    background:var(--cyanbg); border:1px solid color-mix(in srgb,var(--cyan) 45%,var(--line));
+    border-radius:20px; padding:7px 13px; text-align:center; max-width:92%;
+  }
+  .edge .tri{ width:0; height:0; border-left:7px solid transparent; border-right:7px solid transparent;
+              border-top:9px solid color-mix(in srgb,var(--cyan) 55%,var(--line)); margin-top:2px }
+
+  .joinbar{
+    width:100%; background:var(--amberbg); border:1px dashed color-mix(in srgb,var(--amber) 50%,var(--line));
+    border-radius:12px; padding:12px 16px; display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:4px 0;
+  }
+  .joinbar .jl{ font:700 10px/1 ui-monospace,monospace; letter-spacing:.12em; text-transform:uppercase; color:var(--amber) }
+  .joinbar .ji{ font:600 12px/1 ui-monospace,monospace; color:var(--ink); background:var(--panel); border:1px solid var(--line);
+                border-radius:7px; padding:7px 10px }
+
+  /* ---- loop diagram ------------------------------------------------- */
+  .loop{ background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; box-shadow:0 1px 2px var(--shadow) }
+  .loop-steps{ display:flex; align-items:stretch; gap:0; flex-wrap:wrap }
+  .lstep{ flex:1 1 150px; min-width:150px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; padding:12px 14px }
+  .lstep .li{ font:700 10px/1 ui-monospace,monospace; letter-spacing:.1em; text-transform:uppercase; color:var(--cyan); margin-bottom:6px }
+  .lstep p{ margin:0; font-size:13px }
+  .lstep .code{ font-family:ui-monospace,monospace; font-size:11.5px; color:var(--dim) }
+  .larr{ align-self:center; color:var(--faint); font-family:ui-monospace,monospace; font-weight:700; padding:0 8px }
+  .loopback{ margin-top:14px; font:600 12px/1.4 ui-monospace,monospace; color:var(--amber); background:var(--amberbg);
+             border:1px dashed color-mix(in srgb,var(--amber) 50%,var(--line)); border-radius:9px; padding:10px 14px }
+
+  /* ---- result cards ------------------------------------------------- */
+  .cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:13px; padding:18px; box-shadow:0 1px 2px var(--shadow) }
+  .card.head{ border-color:var(--amber) }
+  .card .ct{ font:600 11px/1 ui-monospace,monospace; letter-spacing:.08em; text-transform:uppercase; color:var(--dim) }
+  .card .big{ font-size:34px; font-weight:800; letter-spacing:-.02em; margin:8px 0 2px; font-variant-numeric:tabular-nums }
+  .card.head .big{ color:var(--amber) }
+  .card .cs{ font-size:13px; color:var(--dim) }
+  .card .row{ display:flex; justify-content:space-between; gap:8px; font-size:13px; padding:5px 0; border-top:1px solid var(--line); font-variant-numeric:tabular-nums }
+  .card .row:first-of-type{ border-top:0 }
+  .card .row .lab{ color:var(--dim) }
+  .badge{ display:inline-block; font:600 10px/1 ui-monospace,monospace; letter-spacing:.06em; text-transform:uppercase;
+          padding:5px 8px; border-radius:6px; margin-top:10px }
+  .badge.head{ color:var(--amber); background:var(--amberbg) }
+  .badge.ok{ color:var(--good); background:var(--goodbg) }
+  .callout{ margin-top:16px; background:var(--panel2); border:1px solid var(--line); border-left:3px solid var(--amber);
+            border-radius:8px; padding:14px 16px; font-size:14px }
+  .callout b{ color:var(--amber) }
+
+  /* ---- showcase steps ---------------------------------------------- */
+  .steps{ display:flex; flex-direction:column; gap:12px }
+  .step{ display:grid; grid-template-columns:44px 1fr; gap:14px; background:var(--panel); border:1px solid var(--line);
+         border-radius:12px; padding:14px 16px; box-shadow:0 1px 2px var(--shadow) }
+  .step .sn{ font:800 16px/1 ui-monospace,monospace; color:var(--cyan); border:1.5px solid var(--cyan); border-radius:10px;
+             height:40px; display:flex; align-items:center; justify-content:center }
+  .step h4{ margin:0 0 3px; font-size:16px }
+  .step p{ margin:0; font-size:14px; color:var(--dim) }
+  .step .act{ font-family:ui-monospace,Consolas,monospace; font-size:12.5px; color:var(--ink);
+              background:var(--inset); border:1px solid var(--line); border-radius:6px; padding:2px 6px }
+  .step .say{ margin-top:8px; font-size:13.5px; color:var(--ink); border-left:3px solid var(--amber); padding-left:11px }
+  .step .say em{ color:var(--amber); font-style:normal; font-weight:600; text-transform:uppercase; font-size:10px; letter-spacing:.1em; margin-right:6px }
+
+  /* ---- window map --------------------------------------------------- */
+  .win{ display:grid; grid-template-columns:280px 1fr; gap:0; border:1px solid var(--line); border-radius:12px; overflow:hidden; box-shadow:0 1px 2px var(--shadow) }
+  .win-l{ background:var(--panel2); padding:16px; border-right:1px solid var(--line) }
+  .win-r{ background:var(--panel); padding:16px; display:flex; flex-direction:column; gap:12px }
+  .wctl{ font:600 12px/1 ui-monospace,monospace; color:var(--ink); background:var(--panel); border:1px solid var(--line);
+         border-radius:8px; padding:9px 11px; margin-bottom:7px; display:flex; align-items:center; gap:8px }
+  .wctl.btn{ border-color:var(--cyan); color:var(--cyan) }
+  .wctl.btn.amber{ border-color:var(--amber); color:var(--amber) }
+  .wctl .h{ font-size:10px; color:var(--faint); text-transform:uppercase; letter-spacing:.1em; margin:12px 0 6px }
+  .panelbox{ border:1px dashed var(--line); border-radius:9px; padding:22px 14px; text-align:center; color:var(--dim); font-size:13px; background:var(--inset) }
+  .panelbox .t{ font-weight:700; color:var(--ink); margin-bottom:4px }
+  .dotc{ color:var(--cyan) } .dota{ color:var(--amber) }
+
+  /* ---- limits ------------------------------------------------------- */
+  .limits{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px }
+  .limit{ background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:15px 16px }
+  .limit h4{ margin:0 0 5px; font-size:14.5px; display:flex; align-items:center; gap:8px }
+  .limit h4::before{ content:""; width:8px; height:8px; border-radius:50%; background:var(--amber); flex:none }
+  .limit p{ margin:0; font-size:13.5px; color:var(--dim) }
+
+  /* ---- footer ------------------------------------------------------- */
+  footer{ border-top:1px solid var(--line); padding:26px 0 60px; color:var(--dim); font-size:13px }
+  footer .prov{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px }
+  footer .pill{ font:600 12px/1 ui-monospace,monospace; color:var(--good); background:var(--goodbg);
+                border:1px solid color-mix(in srgb,var(--good) 40%,var(--line)); border-radius:20px; padding:7px 12px }
+  footer code{ font-family:ui-monospace,monospace; color:var(--ink) }
+
+  @media (max-width:760px){
+    .node-body{ grid-template-columns:1fr }
+    .op{ border-left:0; border-right:0; border-top:1px solid var(--line); border-bottom:1px solid var(--line) }
+    .win{ grid-template-columns:1fr }
+    .win-l{ border-right:0; border-bottom:1px solid var(--line) }
+  }
+  @media (prefers-reduced-motion:reduce){ *{ transition:none !important } }
+</style>
+
+<div class="topbar">
+  <div class="wrap">
+    <span class="brand">GalNav<span class="dot">.</span>pipeline</span>
+    <nav class="navlinks">
+      <a href="#open">Open</a>
+      <a href="#glance">Map</a>
+      <a href="#flow">Data flow</a>
+      <a href="#loop">Age loop</a>
+      <a href="#results">Results</a>
+      <a href="#show">Showcase</a>
+      <a href="#window">Window</a>
+      <a href="#limits">Limits</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header class="hero">
+    <p class="eyebrow">GalNav // demo pipeline</p>
+    <h1>A photo of stars goes in.<br><span class="u">Where you are</span> and <span class="a">what year it is</span> come out.</h1>
+    <p class="lede">This is the whole demo app as a data-flow graph: every stage, the exact data that
+      passes between them, and the one command that runs it. Nothing here is new physics &mdash; each
+      hard sum is borrowed unchanged from the tested navigator (the "spine").</p>
+
+    <div class="runbox" id="open">
+      <span class="k">Run it</span>
+      <span class="cmd"><span class="p">python</span> -m gui.app</span>
+      <span class="k">then</span>
+      <span class="mono" style="font-size:13px;color:var(--dim)">Add image(s) &rarr; Solve fields &rarr; Locate / Estimate age</span>
+    </div>
+  </header>
+
+  <!-- ============ GLANCE ============ -->
+  <section id="glance">
+    <div class="sec-h"><span class="sec-n">00</span><h2>The whole pipeline at a glance</h2></div>
+    <p class="sec-sub">Five stages turn pixels into a position. Stages 1, 2 and 3 run independently, then
+      stage 4 joins them; stage 5 does the geometry. Read the detailed graph below for the data on every arrow.</p>
+    <div class="glance">
+      <div class="glance-row">
+        <div class="gchip"><div class="gi">input</div><div class="gt">Star photo</div></div>
+        <div class="garr">&rarr;</div>
+        <div class="gchip"><div class="gi">stage 1</div><div class="gt">Plate&nbsp;solve</div></div>
+        <div class="garr">&rarr;</div>
+        <div class="gchip"><div class="gi">stage 2</div><div class="gt">Centroids</div></div>
+        <div class="garr">&rarr;</div>
+        <div class="gchip"><div class="gi">stage 3</div><div class="gt">Age&nbsp;catalog</div></div>
+        <div class="garr">&rarr;</div>
+        <div class="gchip answer"><div class="gi">stage 4</div><div class="gt">Identify</div></div>
+        <div class="garr">&rarr;</div>
+        <div class="gchip"><div class="gi">stage 5</div><div class="gt">Fix</div></div>
+        <div class="garr">&rarr;</div>
+        <div class="gchip endpoint"><div class="gi">output</div><div class="gt">Position + age</div></div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i class="sw data"></i> data / measurement (what the app draws in cyan)</span>
+      <span><i class="sw reuse"></i> reuses the tested spine navigator</span>
+      <span><i class="sw ok"></i> verified this session</span>
+    </div>
+  </section>
+
+  <!-- ============ DATA FLOW ============ -->
+  <section id="flow">
+    <div class="sec-h"><span class="sec-n">01</span><h2>The data-flow graph</h2></div>
+    <p class="sec-sub">Each node shows what data comes <span class="mono">in</span>, the transform, and what
+      goes <span class="mono">out</span>. The pill on every arrow is the exact data payload &mdash; its type and
+      shape &mdash; handed to the next stage.</p>
+
+    <div class="flow">
+
+      <!-- input -->
+      <div class="node">
+        <div class="node-head"><span class="num">IN</span>
+          <div><h3>The image</h3><span class="ref">gui/app.py :: load_grayscale</span></div>
+          <span class="tag op">source</span></div>
+        <div class="node-body">
+          <div class="io in"><span class="io-label">from</span>
+            <div class="data">FITS / PNG / JPG<span class="shape">a file on disk</span></div></div>
+          <div class="op">
+            <p class="what">A spacecraft star-field photo, read as a plain grid of brightness numbers.</p>
+            <p class="why"><b>why</b> every later stage works on this 2-D array of pixel values.</p>
+          </div>
+          <div class="io out"><span class="io-label">out</span>
+            <div class="data hl">image<span class="shape">(H x W) float array &mdash; e.g. 256 x 256</span></div></div>
+        </div>
+      </div>
+
+      <div class="edge"><div class="stem"></div>
+        <div class="payload">image (H x W) float&nbsp;&mdash;&nbsp;fans out to stages 1 and 2</div>
+        <div class="tri"></div></div>
+
+      <!-- 1 plate solve -->
+      <div class="node">
+        <div class="node-head"><span class="num">01</span>
+          <div><h3>Plate solve &mdash; "which way was the camera pointing?"</h3>
+            <span class="ref">gui/platesolve.py :: solve_image</span></div>
+          <span class="tag op">transform</span></div>
+        <div class="node-body">
+          <div class="io in"><span class="io-label">in</span>
+            <div class="data">image<span class="shape">(H x W) float</span></div></div>
+          <div class="op">
+            <p class="what">Attach a <b>WCS</b> (world coordinate system): a function that turns any pixel
+              (x, y) into a sky direction (RA, Dec).</p>
+            <p class="why"><b>why</b> a pixel is just a brightness number until you know where the camera looked.</p>
+            <div class="chips"><span class="pchip">1. FITS header WCS</span><span class="pchip">2. WSL astrometry.net</span><span class="pchip">3. nova web API</span></div>
+          </div>
+          <div class="io out"><span class="io-label">out</span>
+            <div class="data hl">PlateSolution<span class="shape">{ wcs, source, width, height }</span></div></div>
+        </div>
+      </div>
+
+      <div class="edge"><div class="stem"></div>
+        <div class="payload">WCS: pixel(x,y) -&gt; (RA, Dec)</div>
+        <div class="tri"></div></div>
+
+      <!-- 2 centroids -->
+      <div class="node">
+        <div class="node-head"><span class="num">02</span>
+          <div><h3>Centroids &mdash; "where exactly are the star dots?"</h3>
+            <span class="ref">gui/centroids.py :: find_centroids</span></div>
+          <span class="tag op">transform</span></div>
+        <div class="node-body">
+          <div class="io in"><span class="io-label">in</span>
+            <div class="data">image<span class="shape">(H x W) float</span></div></div>
+          <div class="op">
+            <p class="what">Find the bright blobs and their sub-pixel centres.</p>
+            <div class="formula">bg = median(image)
+noise = 1.4826 * MAD(image)
+keep pixels &gt; bg + 5 * noise
+label blobs -&gt; flux-weighted centre of each</div>
+            <p class="why"><b>why</b> turns a picture into a precise list of star positions (to ~0.1 px).</p>
+          </div>
+          <div class="io out"><span class="io-label">out</span>
+            <div class="data hl">centroids<span class="shape">{ xy: (M x 2) px, flux: (M,) } &mdash; M dots</span></div></div>
+        </div>
+      </div>
+
+      <div class="edge"><div class="stem"></div>
+        <div class="payload">M star dots: (M x 2) pixel coords</div>
+        <div class="tri"></div></div>
+
+      <!-- 3 age catalog -->
+      <div class="node">
+        <div class="node-head"><span class="num">03</span>
+          <div><h3>Age the catalog &mdash; "where are the stars <em>now</em>?"</h3>
+            <span class="ref">gui/locate.py :: load_aged_catalog &nbsp;(reuses Spec&nbsp;10)</span></div>
+          <span class="tag reuse">reuses spine</span></div>
+        <div class="node-body">
+          <div class="io in"><span class="io-label">in</span>
+            <div class="data">Gaia catalog + age t<span class="shape">1941 stars within 20 pc, t = years since 2016</span></div></div>
+          <div class="op">
+            <p class="what">Rebuild each star's 3-D velocity from its public motion, then slide it forward
+              along a straight line to the chosen age.</p>
+            <div class="formula">v = v_r*u + d*(mu_a*e_east + mu_d*e_north)
+r(t) = r0 + v * t</div>
+            <p class="why"><b>why</b> the star map is a 2016 snapshot; stars drift; move them to "now" before matching.</p>
+          </div>
+          <div class="io out"><span class="io-label">out</span>
+            <div class="data hl">aged catalog<span class="shape">{ positions_au: (1941 x 3), source_id: (1941,) }</span></div></div>
+        </div>
+      </div>
+
+      <!-- join bar -->
+      <div class="joinbar">
+        <span class="jl">stage 4 joins</span>
+        <span class="ji">WCS &nbsp;(from 1)</span>
+        <span class="ji">centroids (M x 2) &nbsp;(from 2)</span>
+        <span class="ji">aged positions (1941 x 3) &nbsp;(from 3)</span>
+      </div>
+
+      <div class="edge"><div class="stem"></div>
+        <div class="payload">three inputs meet here</div>
+        <div class="tri"></div></div>
+
+      <!-- 4 identify -->
+      <div class="node join">
+        <div class="node-head"><span class="num">04</span>
+          <div><h3>Identify &mdash; "which dots are <em>our</em> stars?"</h3>
+            <span class="ref">gui/locate.py :: identify_in_frame</span></div>
+          <span class="tag reuse">join</span></div>
+        <div class="node-body">
+          <div class="io in"><span class="io-label">in</span>
+            <div class="data">WCS + centroids + aged positions + radius<span class="shape">match radius = 120 arcsec</span></div></div>
+          <div class="op">
+            <p class="what">Project every aged star through the WCS to a predicted pixel; keep those inside the
+              frame; match each to the nearest centroid within the radius, one-to-one, closest wins.</p>
+            <p class="why"><b>why</b> 120 arcsec swallows parallax &mdash; a star at distance d seen from range r
+              shifts by up to r/d (36 arcsec for Proxima at 47 au). That shift <em>is</em> the signal stage 5 uses.</p>
+          </div>
+          <div class="io out"><span class="io-label">out</span>
+            <div class="data hl">matches<span class="shape">[ { star_index, centroid_index, sep_arcsec } ]</span></div></div>
+        </div>
+      </div>
+
+      <div class="edge"><div class="stem"></div>
+        <div class="payload">for each match: line of position { star_pos_au (3,), direction_unit (3,) }</div>
+        <div class="tri"></div></div>
+
+      <!-- 5 fix -->
+      <div class="node">
+        <div class="node-head"><span class="num">05</span>
+          <div><h3>Fix &mdash; "so where are we?"</h3>
+            <span class="ref">gui/locate.py :: fix_position &rarr; galnav/nav/triangulate.py :: n_star_solve</span></div>
+          <span class="tag reuse">reuses spine</span></div>
+        <div class="node-body">
+          <div class="io in"><span class="io-label">in</span>
+            <div class="data">lines of position<span class="shape">&ge; 2, from &ge; 2 different stars</span></div></div>
+          <div class="op">
+            <p class="what">Each star + measured direction is a line the craft must lie on. Weighted least
+              squares finds the point closest to all the lines.</p>
+            <div class="formula">x = (sum_i w_i)^-1 (sum_i w_i p_i)
+w_i = (I - d_i d_i^T) / |p_i|^2</div>
+            <p class="why"><b>why</b> distant stars are down-weighted by 1/|p|^2 (Lauer 2025's estimator, reused unchanged).</p>
+          </div>
+          <div class="io out"><span class="io-label">out</span>
+            <div class="data hl">fix<span class="shape">{ x_au: (3,), cov: (3x3), ellipsoid_au: (3,), chi2 }</span></div></div>
+        </div>
+      </div>
+
+      <div class="edge"><div class="stem"></div>
+        <div class="payload" style="color:var(--amber);background:var(--amberbg);border-color:color-mix(in srgb,var(--amber) 45%,var(--line))">POSITION: x (3,) au&nbsp;+&nbsp;1-sigma error ellipsoid</div>
+        <div class="tri" style="border-top-color:color-mix(in srgb,var(--amber) 55%,var(--line))"></div></div>
+
+      <div class="node" style="border-color:var(--amber)">
+        <div class="node-head" style="background:var(--amberbg)"><span class="num" style="color:var(--amber);border-color:var(--amber)">OUT</span>
+          <div><h3>You are here.</h3><span class="ref">printed in the results box, drawn on the image</span></div></div>
+        <div class="node-body" style="grid-template-columns:1fr">
+          <div class="op" style="border:0">
+            <p class="what mono" style="font-size:13px">position = [13.386, -42.369, -16.486] au &nbsp; |r| = 47.39 au &nbsp; ellipsoid = [0.441, 0.233, 0.206] au</p>
+            <p class="why">The age loop below reuses this same stack to answer the second question: <em>what year is it?</em></p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ AGE LOOP ============ -->
+  <section id="loop">
+    <div class="sec-h"><span class="sec-n">02</span><h2>The age loop &mdash; "what year is it?"</h2></div>
+    <p class="sec-sub">Same five stages, run once per candidate age. A wrong age propagates the stars to the
+      wrong place, so their lines miss each other &mdash; high chi2. The best age is the bottom of the curve.</p>
+    <div class="loop">
+      <div class="loop-steps">
+        <div class="lstep"><div class="li">for each age</div><p>grid of candidate ages, e.g. 0 to 25 yr step 0.25</p></div>
+        <div class="larr">&rarr;</div>
+        <div class="lstep"><div class="li">re-run 3&ndash;5</div><p>age the catalog, identify, fix</p><p class="code">gui/age.py :: estimate_age</p></div>
+        <div class="larr">&rarr;</div>
+        <div class="lstep"><div class="li">record</div><p>the fix's chi2 (how badly the lines miss a common point)</p></div>
+        <div class="larr">&rarr;</div>
+        <div class="lstep" style="border-color:var(--amber)"><div class="li" style="color:var(--amber)">pick minimum</div><p>lowest-chi2 age; parabola curvature gives the +/- error bar</p></div>
+      </div>
+      <div class="loopback">loops over the whole age grid &mdash; unmatchable ages score chi2 = infinity (guarded, never crashes)
+        &nbsp;=&gt;&nbsp; out: age_hat +/- sigma_yr</div>
+      <p class="why" style="margin:14px 2px 0;color:var(--dim);font-size:14px">
+        It works because nearby stars move fast: Proxima drifts 3.85 arcsec/yr, Wolf 359 4.7 arcsec/yr &mdash;
+        a 4-year drift is several LORRI pixels, easily measured.</p>
+    </div>
+  </section>
+
+  <!-- ============ RESULTS ============ -->
+  <section id="results">
+    <div class="sec-h"><span class="sec-n">03</span><h2>What it does on real New Horizons photos</h2></div>
+    <p class="sec-sub">The repo ships 12 real LORRI frames of Proxima Cen and Wolf 359 (2020, spacecraft at 47 au).
+      Every number below was reproduced independently by three review agents this session.</p>
+    <div class="cards">
+      <div class="card">
+        <div class="ct">2 frames &mdash; teaching case</div>
+        <div class="big">0.976 au</div>
+        <div class="cs">miss vs JPL truth</div>
+        <div class="row"><span class="lab">ellipsoid</span><span>[1.08, 0.57, 0.50] au</span></div>
+        <div class="row"><span class="lab">age estimate</span><span>4.336 +/- 0.134 yr</span></div>
+        <div class="row"><span class="lab">true age</span><span>4.309 yr</span></div>
+        <span class="badge ok">fast demo, ~1 s</span>
+      </div>
+      <div class="card head">
+        <div class="ct">all 12 frames &mdash; headline</div>
+        <div class="big">0.387 au</div>
+        <div class="cs">miss vs JPL &mdash; matches Lauer 2025's own 0.351 au</div>
+        <div class="row"><span class="lab">ellipsoid</span><span>[0.44, 0.23, 0.21] au</span></div>
+        <div class="row"><span class="lab">age estimate</span><span>4.286 +/- 0.055 yr</span></div>
+        <div class="row"><span class="lab">true age</span><span>4.310 yr</span></div>
+        <span class="badge head">sqrt(6) tighter</span>
+      </div>
+      <div class="card">
+        <div class="ct">sanity check</div>
+        <div class="big" style="color:var(--good)">1.149 au</div>
+        <div class="cs">point it at Earth-telescope photos &mdash; it fixes <b>Earth</b></div>
+        <div class="row"><span class="lab">meaning</span><span>Earth is 1 au from the Sun</span></div>
+        <div class="row"><span class="lab">lesson</span><span>it finds whoever took the picture</span></div>
+        <span class="badge ok">never mix Earth + spacecraft frames</span>
+      </div>
+    </div>
+    <div class="callout">
+      <b>Why 12 beats 2:</b> six sightlines per star average the random centroid noise down by ~sqrt(6),
+      shrinking the ellipsoid exactly that much. It is <b>not</b> uncorrected aberration &mdash; the plate solution
+      already removes that (a review proved it two ways). The honest booth line: <em>"one frame per star vs Lauer's
+      six averaged &mdash; use all twelve and we land on his 0.351 au, with nothing but quick 5-sigma centroids."</em>
+    </div>
+  </section>
+
+  <!-- ============ SHOWCASE ============ -->
+  <section id="show">
+    <div class="sec-h"><span class="sec-n">04</span><h2>How to showcase it at the booth</h2></div>
+    <p class="sec-sub">Six clicks, fully offline. The demo frames are in
+      <span class="mono" style="font-size:13px">data/e3_new_horizons/repo/lor_*_pwcs2.fits</span>.</p>
+    <div class="steps">
+      <div class="step"><div class="sn">1</div><div>
+        <h4>Launch</h4>
+        <p>Run <span class="act">python -m gui.app</span> &mdash; a window opens, no internet needed.</p></div></div>
+      <div class="step"><div class="sn">2</div><div>
+        <h4>Add image(s)&hellip;</h4>
+        <p>Pick the 12 <span class="act">lor_*_pwcs2.fits</span> frames (or just 2 for speed). The catalog-age
+          box auto-fills to ~4.31 yr from the photo's timestamp.</p></div></div>
+      <div class="step"><div class="sn">3</div><div>
+        <h4>Solve fields</h4>
+        <p>Each row turns to <span class="act">[fits-header]</span> &mdash; the WCS was already inside the file, so it is instant.</p></div></div>
+      <div class="step"><div class="sn">4</div><div>
+        <h4>Click a frame in the list</h4>
+        <p>The right panel shows the star field: <span class="dotc mono">cyan circles</span> = every detected star,
+          <span class="dota mono">orange cross</span> = the matched nearby star, labelled "Proxima Cen" or "Wolf 359".</p>
+        <p class="say"><em>say</em> "The tool just recognised a specific star, 4 light-years away, in a raw spacecraft photo."</p></div></div>
+      <div class="step"><div class="sn">5</div><div>
+        <h4>Locate spacecraft</h4>
+        <p>Prints the 3-D position (~47 au from the Sun), the miss vs JPL, and the error ellipsoid.</p>
+        <p class="say"><em>say</em> "A real spacecraft, found from its own photos of the stars &mdash; to a third of an au with all twelve frames."</p></div></div>
+      <div class="step"><div class="sn">6</div><div>
+        <h4>Estimate catalog age</h4>
+        <p>Draws the chi2-vs-age curve; prints <span class="act">age_hat +/- sigma</span> against the true age from the file.</p>
+        <p class="say"><em>say</em> "And it reads what <strong>year</strong> it is from how far the stars have drifted &mdash; to about three weeks."</p></div></div>
+    </div>
+  </section>
+
+  <!-- ============ WINDOW MAP ============ -->
+  <section id="window">
+    <div class="sec-h"><span class="sec-n">05</span><h2>What the window looks like</h2></div>
+    <p class="sec-sub">Controls on the left, a live picture on the right. This is the exact layout of
+      <span class="mono" style="font-size:13px">gui/app.py</span>.</p>
+    <div class="win">
+      <div class="win-l">
+        <div class="wctl btn">Add image(s)&hellip;</div>
+        <div class="wctl">image list &nbsp;[status]</div>
+        <div class="wctl btn">Solve fields</div>
+        <div class="h">settings</div>
+        <div class="wctl">Catalog age (yr since J2016.0)</div>
+        <div class="wctl">RV fill (km/s)</div>
+        <div class="wctl">Match radius (arcsec)</div>
+        <div class="wctl">nova API key &nbsp;(blind solve)</div>
+        <div class="wctl btn amber">Locate spacecraft</div>
+        <div class="wctl">Age scan &nbsp;min / max / step</div>
+        <div class="wctl btn amber">Estimate catalog age</div>
+        <div class="h">results log</div>
+        <div class="wctl" style="height:56px;align-items:flex-start;color:var(--dim)">position, ellipsoid, age printed here</div>
+      </div>
+      <div class="win-r">
+        <div class="panelbox">
+          <div class="t">image (log stretch)</div>
+          <span class="dotc">o</span> cyan circles = detected stars &nbsp;&middot;&nbsp;
+          <span class="dota">+</span> orange cross = matched nearby star
+        </div>
+        <div class="panelbox">
+          <div class="t">chi2 vs catalog age</div>
+          the age curve, with a red line at the best-fit year
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LIMITS ============ -->
+  <section id="limits">
+    <div class="sec-h"><span class="sec-n">06</span><h2>What it does <em>not</em> do (say this before a judge asks)</h2></div>
+    <div class="limits">
+      <div class="limit"><h4>A random sky photo gives pointing only</h4>
+        <p>It contains none of the 1941 within-20-pc stars, so there is nothing near enough to shift with
+          viewpoint. That is correct physics, not a bug &mdash; only nearby stars carry position.</p></div>
+      <div class="limit"><h4>One image = a line, not a point</h4>
+        <p>A single star fixes you to a line of position. You need two images of two <em>different</em>
+          nearby stars to pin a point. The tool says so plainly.</p></div>
+      <div class="limit"><h4>WCS-less images need a backend</h4>
+        <p>A raw PNG with no plate solution needs a blind solver: a free nova API key, or a local WSL
+          astrometry.net install. Every demo frame already carries its WCS, so the booth runs offline.</p></div>
+      <div class="limit"><h4>The ellipsoid is random noise only</h4>
+        <p>The 1-sigma error bar counts centroid scatter, not un-modelled systematics. The 0.976 au miss
+          still sits inside its own ellipsoid (0.9 sigma), so it is honest.</p></div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="prov">
+      <span class="pill">spine: 84 tests green</span>
+      <span class="pill">gui: 26 tests green</span>
+      <span class="pill">3 adversarial reviews, 0 fatal</span>
+      <span class="pill">numbers reproduced x3</span>
+    </div>
+    <p>Companion docs: <code>docs/GUI-EXPLAINED.md</code> (the same walkthrough in prose) &middot;
+      <code>docs/ISEF-DEMO-PLAYBOOK.md</code> (booth script + judge Q&amp;A) &middot;
+      <code>gui/README.md</code> (install &amp; backends). The physics lives in <code>gui/*.py</code>;
+      the truth wall keeps the navigator blind to the simulator, enforced by an un-editable test.</p>
+  </div>
+</footer>
