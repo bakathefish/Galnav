@@ -3061,3 +3061,42 @@ wrong.**
   section), `journal/gui-wrapper.md`, this logbook. No galnav/, tests/,
   golden_numbers, pytest.ini, docs/, or golden-value change. `data/gaia_cones/`
   is git-ignored.
+
+## 2026-07-17 — "Where in space" 3-D view integrated (vendored spacekit)
+- WHAT: Integrated the scout's accepted spacekit.js bundle into the web app.
+  Copied `vendor/` -> `gui/web/vendor/spacekit/` (3.5 MB: spacekit.js + assets +
+  bsc.json + gaia_20pc.json + SOURCES.md + bake_gaia.py). New
+  `gui/web/where-in-space.html` = the two-scene view (au solar system + pc
+  nearby-stars, scale toggle) ported close to as-is from `poc.html`, reading the
+  fix from `?x=`. `gui/webapp.py` static route extended to serve the whole
+  `gui/web/vendor/` subtree (+ where-in-space.html) with a traversal guard.
+  `gui/web/{index.html,style.css,app.js}` add a "Where in space" panel under the
+  result card, hosting the view in a LAZY iframe (src set only on first Locate).
+- WHY: the final "where in space" deliverable — turn the recovered au position
+  into an intuitive 3-D picture, and contrast the solar-system scale against the
+  interstellar one (the whole solar system collapses to a dot; only nearby stars
+  navigate). Iframe + lazy src keeps the initial page light (~2.9 MB loads only
+  when the panel first appears) and isolates spacekit's full-screen CSS. Frame:
+  /api/locate is equatorial ICRS, spacekit is ecliptic -> rotate about +X by
+  23.43928 deg; |x| invariant so the distance label is frame-correct.
+- EVIDENCE: `python -m pytest -q` -> 84 passed (spine untouched); `python -m
+  pytest tests_gui -q` -> 54 passed (was 51; +3: where-in-space.html serves,
+  vendored subtree serves with right Content-Types, traversal/absolute/missing
+  rejected), 0 skips. Extended HTTP self-test over a real socket: GET /
+  (space-panel present), /static/where-in-space.html (text/html),
+  /static/vendor/spacekit/spacekit.js (750287 B, application/javascript),
+  gaia_20pc.json (1941 stars), eso_milkyway.jpg (2.36 MB, image/jpeg); locate x12
+  still 0.38659 / 47.389, x_au [13.381,-42.366,-16.484]; server shut down. Live
+  browser drive (Playwright, WebGL): panel appears after the 12-frame Locate,
+  iframe src = the real fix, au scene canvas + 19 labels incl. RECOVERED, NASA
+  Eyes link shown for the demo set; toggle builds the pc scene (2nd canvas) with
+  the 5 famous-star labels + collapse caption. Two scene screenshots saved to the
+  scratchpad. Offline: basePath set, no external host contacted.
+- COMMIT: uncommitted (orchestrator will commit). New:
+  `gui/web/vendor/spacekit/**` (vendored bundle + bake_gaia.py),
+  `gui/web/where-in-space.html`. Changed: `gui/webapp.py`,
+  `gui/web/{index.html,style.css,app.js}`, `tests_gui/test_webapp.py`,
+  `gui/web/README.md`, `journal/{citations.md,gui-wrapper.md}`, this logbook. No
+  galnav/, tests/, golden_numbers, pytest.ini, docs/, README.md (repo root), or
+  golden-value change. The vendored bundle is COMMITTED (it is the offline booth
+  asset, not a re-fetchable cache).

@@ -84,6 +84,24 @@
 
   <div class="results" id="results" aria-live="polite"></div>
 
+  <!-- 3-D "Where in Space" view: revealed after a successful Locate, hosting the
+       vendored spacekit scene in a lazy iframe (its src is set only on first
+       show, so the ~2.9 MB payload never loads on the initial page). -->
+  <section id="space-panel" class="card space-panel" hidden aria-label="3-D position view">
+    <div class="space-head">
+      <h2>Where in space</h2>
+      <span id="space-r" class="mono"></span>
+      <a id="nasa-eyes" class="btn" target="_blank" rel="noopener"
+         href="https://eyes.nasa.gov/apps/solar-system/#/sc_new_horizons" hidden
+      >Open in NASA Eyes (online) &rarr;</a>
+    </div>
+    <div class="space-frame"><iframe id="space-iframe" title="Where in space 3-D view"></iframe></div>
+    <p class="cap" style="text-align:left;color:var(--faint);margin-top:8px">
+      Drag to orbit, scroll to zoom. <span style="color:var(--amber)">Amber</span> = your
+      recovered position; the toggle at the top of the view switches to the 1,941-star
+      nearby-stars scene. Spacecraft markers are approximate 2025-26 positions (cited).</p>
+  </section>
+
   <footer id="how">
     <strong>How it works &amp; honest limits.</strong> Five stages: plate-solve &rarr; centroid
     &rarr; age the catalog &rarr; identify nearby stars &rarr; intersect the lines of position.

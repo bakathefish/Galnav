@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="data:," /><!-- suppress favicon.ico request (offline) -->
+<title>GalNav - Where in Space</title>
+<!--
+  The 3-D "Where in Space" view, served standalone and hosted in an <iframe> by
+  the GalNav web app (gui/web/app.js) after a successful /api/locate. Ported
+  close to as-is from the scout's proven poc.html (see
+  gui/web/vendor/spacekit/SOURCES.md and the integration recipe). Two scenes
+  behind a scale toggle, fully offline: everything loads from
+  ./vendor/spacekit/** which the app serves locally.
+
+  The recovered fix is passed in the query string as ?x=<x,y,z> in au,
+  EQUATORIAL ICRS (exactly /api/locate .x_au); it defaults to the New Horizons
+  demo fix. spacekit renders in the ecliptic frame, so we rotate about +X by the
+  mean obliquity 23.43928 deg. |x| is rotation-invariant, so the distance label
+  is correct in either frame.
+-->
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden;
+               font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  .scene { position: absolute; inset: 0; }
+
+  .hud { position: absolute; z-index: 10; color: #dfe7f2;
+         text-shadow: 0 1px 3px #000; pointer-events: none; }
+  #title { top: 14px; left: 16px; }
+  #title h1 { margin: 0; font-size: 15px; letter-spacing: .5px; font-weight: 600; }
+  #title p  { margin: 3px 0 0; font-size: 12px; color: #8fa3bf; }
+
+  /* scale toggle */
+  #toggle { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 20;
+            width: max-content; display: flex; gap: 0; pointer-events: auto;
+            border: 1px solid #2b3d59; border-radius: 8px; overflow: hidden; }
+  #toggle button { background: #0b1220dd; color: #9fb2ce; border: 0;
+            font: 600 12px/1 inherit; padding: 9px 14px; cursor: pointer; }
+  #toggle button.active { background: #1c3a63; color: #eaf2ff; }
+
+  .legend { bottom: 14px; left: 16px; font-size: 12px; line-height: 1.65;
+            background: #0b1220cc; border: 1px solid #24344d; border-radius: 8px;
+            padding: 10px 12px; backdrop-filter: blur(3px); max-width: 250px; }
+  .legend .row { display: flex; align-items: center; gap: 8px; }
+  .legend .dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto;
+                 box-shadow: 0 0 6px currentColor; }
+  .amber  { color: #ffb000; background: #ffb000; }
+  .earthc { color: #4fd2ff; background: #4fd2ff; }
+  .sunc   { color: #ffd76b; background: #ffd76b; }
+  .planetc{ color: #9aa7bd; background: #9aa7bd; }
+  .craftc { color: #7ad3e6; background: #7ad3e6; }
+  .beltc  { color: #6a86b0; background: #6a86b0; }
+  .starc  { color: #cfe0ff; background: #cfe0ff; }
+
+  #hint { bottom: 14px; right: 16px; font-size: 11px; color: #7f93b0; text-align: right; }
+
+  #caption-pc { bottom: 66px; left: 50%; transform: translateX(-50%); z-index: 12;
+    max-width: 680px; text-align: center; font-size: 13px; color: #ffd9a0;
+    background: #1a1206cc; border: 1px solid #6b4d16; border-radius: 8px;
+    padding: 9px 14px; display: none; }
+
+  /* spacekit label styling + per-class accents */
+  .spacekit__object-label { font-family: inherit !important; z-index: 5; }
+  .nh-recovered-label div { color: #ffb000 !important; font-weight: 700 !important;
+        letter-spacing: .3px; border-color: #ffb000 !important; }
+  .earth-label { z-index: 6 !important; }
+  .earth-label div { color: #4fd2ff !important; font-weight: 700 !important;
+        border-color: #4fd2ff !important; background: #001522ee !important; }
+  .craft-label div { color: #a9e6f4 !important; border-color: #3f5f6b !important;
+        font-size: 11px !important; }
+  .annot-label div { color: #9fb0c9 !important; border-color: #33465f !important;
+        font-size: 11px !important; background: #0a1220cc !important; }
+  .gaia-label div { color: #dfeaff !important; border-color: #3a4a66 !important;
+        font-size: 11px !important; }
+  .los-label div { color: #ffb000 !important; font-weight: 700 !important;
+        border-color: #ffb000 !important; }
+
+  #err { position:absolute; inset:0; display:none; place-items:center;
+         color:#ff8080; font-size:14px; z-index:30; text-align:center; padding:2rem; }
+</style>
+</head>
+<body>
+  <div id="scene-au" class="scene"></div>
+  <div id="scene-pc" class="scene" style="display:none"></div>
+
+  <div id="title" class="hud">
+    <h1>GalNav &middot; Where in Space</h1>
+    <p id="subtitle">Solar system (au) &middot; spacecraft at 2025-2026 positions &middot; amber = recovered fix</p>
+  </div>
+
+  <div id="toggle">
+    <button id="btn-au" class="active">Solar system (au)</button>
+    <button id="btn-pc">Nearby stars (pc)</button>
+  </div>
+
+  <!-- AU legend -->
+  <div id="legend-au" class="legend hud">
+    <div class="row"><span class="dot amber"></span><span id="lg-fix">Recovered fix</span></div>
+    <div class="row"><span class="dot craftc"></span>Spacecraft today (V1/V2, Pioneer, NH)</div>
+    <div class="row"><span class="dot earthc"></span>Earth</div>
+    <div class="row"><span class="dot sunc"></span>Sun</div>
+    <div class="row"><span class="dot planetc"></span>Planets + Pluto + Eris (orbits shown)</div>
+    <div class="row"><span class="dot beltc"></span>Asteroid + Kuiper belts, heliopause ~120 au</div>
+  </div>
+
+  <!-- PC legend -->
+  <div id="legend-pc" class="legend hud" style="display:none">
+    <div class="row"><span class="dot sunc"></span>Sun (origin)</div>
+    <div class="row"><span class="dot starc"></span>1,941 stars within 20 pc (Gaia DR3)</div>
+    <div class="row"><span class="dot amber"></span>Sightlines: Proxima Cen &amp; Wolf 359</div>
+  </div>
+
+  <div id="caption-pc" class="hud">At interstellar scale the entire solar system &mdash; planets,
+    spacecraft, the recovered fix &mdash; collapses onto the single dot at the Sun. Nearby stars
+    are the only currency of position out here.</div>
+
+  <div id="hint" class="hud">drag = orbit &middot; scroll = zoom &middot; right-drag = pan</div>
+  <div id="err"></div>
+
+  <script src="./vendor/spacekit/spacekit.js"></script>
+  <script>
+  (function () {
+    const errEl = document.getElementById('err');
+    if (typeof Spacekit === 'undefined') {
+      errEl.style.display = 'grid';
+      errEl.textContent = 'spacekit.js failed to load from ./vendor/spacekit/';
+      return;
+    }
+    const T = Spacekit.THREE;
+    const BASE = './vendor/spacekit';
+    const TILT = 23.43928 * Math.PI / 180;   // IAU 1976 mean obliquity at J2000
+
+    // ---- frame transforms -------------------------------------------------
+    // equatorial ICRS -> heliocentric ecliptic J2000 (rotate about +X by tilt)
+    function eqToEcl(x, y, z) {
+      return [x, Math.cos(TILT)*y + Math.sin(TILT)*z, -Math.sin(TILT)*y + Math.cos(TILT)*z];
+    }
+    // sky direction (deg) + distance -> ecliptic cartesian (same units as distance)
+    function skyToEcl(dist, raDeg, decDeg) {
+      const ra = raDeg*Math.PI/180, dec = decDeg*Math.PI/180;
+      return eqToEcl(dist*Math.cos(dec)*Math.cos(ra),
+                     dist*Math.cos(dec)*Math.sin(ra),
+                     dist*Math.sin(dec));
+    }
+
+    // ---- recovered fix (equatorial ICRS au) from ?x=<x,y,z>, else NH demo ---
+    const q = new URLSearchParams(location.search).get('x') || '';
+    const parsed = q.split(',').map(Number).filter(v => isFinite(v));
+    const X_EQ_AU = parsed.length === 3 ? parsed : [13.386, -42.369, -16.486];
+    const X_EC_AU = eqToEcl(X_EQ_AU[0], X_EQ_AU[1], X_EQ_AU[2]);
+    const R_FIX = Math.hypot(X_EQ_AU[0], X_EQ_AU[1], X_EQ_AU[2]);
+    document.getElementById('lg-fix').textContent = 'Recovered fix · ' + R_FIX.toFixed(1) + ' au';
+
+    // ---- spacecraft: heliocentric distance (au) + sky dir (equatorial deg), 2025-2026
+    //   (positions/citations in gui/web/vendor/spacekit/SOURCES.md -> Scene data provenance)
+    const PROBES = [
+      { name: 'Voyager 1 (~172 au)',  d: 172,  ra: 259.06, dec:  12.37 },
+      { name: 'Voyager 2 (~140 au)',  d: 140,  ra: 303.75, dec: -59.71 },
+      { name: 'Pioneer 10 (~139 au)', d: 139,  ra:  68.98, dec:  16.51 },
+      { name: 'Pioneer 11 (~117 au)', d: 117,  ra: 283.0,  dec:  -8.0  },
+      { name: 'New Horizons today (~64 au)', d: 64.5, ra: 289.62, dec: -20.17 },
+    ];
+    const ERIS = { name: 'Eris (~95 au)', d: 95, ra: 26.0, dec: -2.0 };
+
+    function annotate(viz, id, pos, text, cls, color, scale) {
+      viz.createObject(id, {
+        labelText: text, hideOrbit: true, position: pos,
+        textureUrl: '{{assets}}/sprites/fuzzyparticle.png',
+        theme: { color: color }, scale: [scale, scale, scale],
+      });
+      requestAnimationFrame(() => {
+        document.querySelectorAll('.spacekit__object-label').forEach(el => {
+          if (el.textContent.trim() === text) el.classList.add(cls);
+        });
+      });
+    }
+
+    // ======================================================================
+    // SCENE 1 - solar system (au)
+    // ======================================================================
+    let vizAu = null;
+    function buildAu() {
+      const viz = new Spacekit.Simulation(document.getElementById('scene-au'), {
+        basePath: BASE, jd: 2458962.5, startPaused: true, unitsPerAu: 1.0,
+        camera: { initialPosition: [0, -300, 235], enableDrift: false },
+      });
+      viz.createSkybox(Spacekit.SkyboxPresets.ESO_GIGAGALAXY);
+      viz.createStars();
+
+      // belts (flat rings in the ecliptic XY plane) + heliopause shell
+      const scene = viz.getScene();
+      function ring(inner, outer, color, opacity) {
+        const m = new T.Mesh(new T.RingGeometry(inner, outer, 160),
+          new T.MeshBasicMaterial({ color, transparent: true, opacity,
+            side: T.DoubleSide, depthWrite: false }));
+        scene.add(m);
+      }
+      ring(2.2, 3.3, 0x8a7a5a, 0.22);     // asteroid belt
+      ring(30, 50, 0x4a6a95, 0.13);       // Kuiper belt
+      const helio = new T.Mesh(new T.SphereGeometry(120, 36, 22),
+        new T.MeshBasicMaterial({ color: 0x2a6cff, transparent: true, opacity: 0.035,
+          wireframe: true, depthWrite: false }));
+      scene.add(helio);
+
+      // Sun + planets + Pluto
+      viz.createObject('sun', Object.assign({}, Spacekit.SpaceObjectPresets.SUN,
+        { labelText: 'Sun', scale: [5, 5, 5], theme: { color: 0xffe08a } }));
+      ['MERCURY','VENUS','EARTH','MARS','JUPITER','SATURN','URANUS','NEPTUNE','PLUTO']
+        .forEach(name => {
+          const pretty = name.charAt(0) + name.slice(1).toLowerCase();
+          viz.createObject(name.toLowerCase(), Object.assign(
+            { labelText: pretty, particleSize: name === 'EARTH' ? 26 : 18 },
+            Spacekit.SpaceObjectPresets[name]));
+        });
+
+      // Eris (static dwarf-planet marker)
+      annotate(viz, 'eris', skyToEcl(ERIS.d, ERIS.ra, ERIS.dec), ERIS.name,
+        'annot-label', 0xccc0b0, 2.5);
+
+      // spacecraft (muted cyan)
+      PROBES.forEach((p, i) => {
+        viz.createObject('craft_' + i, {
+          labelText: p.name, hideOrbit: true,
+          position: skyToEcl(p.d, p.ra, p.dec),
+          textureUrl: '{{assets}}/sprites/smallparticle.png',
+          theme: { color: 0x7ad3e6 }, scale: [2.4, 2.4, 2.4],
+        });
+      });
+      requestAnimationFrame(() => {
+        document.querySelectorAll('.spacekit__object-label').forEach(el => {
+          const t = el.textContent.trim();
+          if (t.indexOf('Voyager') === 0 || t.indexOf('Pioneer') === 0 || t.indexOf('New Horizons') === 0)
+            el.classList.add('craft-label');
+        });
+      });
+
+      // belt / heliopause annotations
+      annotate(viz, 'kuiper_lbl', [0, -42, 0], 'Kuiper belt (30-50 au)', 'annot-label', 0x6a86b0, 1.2);
+      annotate(viz, 'helio_lbl', [0, -120, 0], 'heliopause ~120 au (Voyager 1 crossed 2012)',
+        'annot-label', 0x6aa0ff, 1.2);
+
+      // the amber recovered fix
+      viz.createObject('recovered', {
+        labelText: 'RECOVERED · ' + R_FIX.toFixed(1) + ' au',
+        hideOrbit: true, position: X_EC_AU,
+        textureUrl: '{{assets}}/sprites/fuzzyparticle.png',
+        theme: { color: 0xffb000 }, scale: [4, 4, 4],
+      });
+      requestAnimationFrame(() => {
+        document.querySelectorAll('.spacekit__object-label').forEach(el => {
+          const t = el.textContent.trim();
+          if (t.indexOf('RECOVERED') !== -1) el.classList.add('nh-recovered-label');
+          else if (t === 'Earth') el.classList.add('earth-label');
+        });
+      });
+      return viz;
+    }
+
+    // ======================================================================
+    // SCENE 2 - nearby stars (parsecs), built lazily on first toggle
+    // ======================================================================
+    let vizPc = null;
+    async function buildPc() {
+      const viz = new Spacekit.Simulation(document.getElementById('scene-pc'), {
+        basePath: BASE, startPaused: true, unitsPerAu: 1.0,
+        camera: { initialPosition: [0, -8.5, 6], enableDrift: false },
+      });
+      viz.createSkybox(Spacekit.SkyboxPresets.ESO_GIGAGALAXY);
+
+      // Sun at origin (the whole solar system is this dot)
+      viz.createObject('sun_pc', {
+        labelText: 'Sun', hideOrbit: true, position: [0, 0, 0],
+        textureUrl: '{{assets}}/sprites/lensflare0.png',
+        theme: { color: 0xffe08a }, scale: [0.35, 0.35, 0.35],
+      });
+
+      // Gaia 20 pc cloud (baked ecliptic pc coords, served locally)
+      const cat = await (await fetch('./vendor/spacekit/data/gaia_20pc.json')).json();
+      viz.createStaticParticles('gaia20pc', cat.points, { defaultColor: 0xcfe0ff, size: 10 });
+
+      // labeled famous stars
+      Object.keys(cat.labels).forEach(name => {
+        const s = cat.labels[name];
+        viz.createObject('star_' + name.replace(/\W/g, ''), {
+          labelText: name + ' (' + s.dist_pc.toFixed(2) + ' pc)',
+          hideOrbit: true, position: s.xyz,
+          textureUrl: '{{assets}}/sprites/fuzzyparticle.png',
+          theme: { color: 0xdfeaff }, scale: [0.18, 0.18, 0.18],
+        });
+      });
+
+      // amber sightline rays: Sun -> Proxima, Sun -> Wolf 359 (the demo's lines of position)
+      const scene = viz.getScene();
+      function sightline(name) {
+        const s = cat.labels[name];
+        if (!s) return;
+        const e = s.xyz, k = 1.25;   // extend past the star
+        const geo = new T.BufferGeometry().setFromPoints([
+          new T.Vector3(0, 0, 0), new T.Vector3(e[0]*k, e[1]*k, e[2]*k)]);
+        scene.add(new T.Line(geo, new T.LineBasicMaterial({
+          color: 0xffb000, transparent: true, opacity: 0.9 })));
+      }
+      sightline('Proxima Centauri');
+      sightline('Wolf 359');
+
+      // accent labels
+      requestAnimationFrame(() => {
+        document.querySelectorAll('.spacekit__object-label').forEach(el => {
+          const t = el.textContent.trim();
+          if (t.indexOf('Proxima') === 0 || t.indexOf('Wolf 359') === 0) el.classList.add('los-label');
+          else if (t.indexOf('pc)') !== -1) el.classList.add('gaia-label');
+        });
+        window.__pcReady = true;
+      });
+      return viz;
+    }
+
+    // ======================================================================
+    // toggle
+    // ======================================================================
+    const btnAu = document.getElementById('btn-au'), btnPc = document.getElementById('btn-pc');
+    function show(which) {
+      const au = which === 'au';
+      document.getElementById('scene-au').style.display = au ? 'block' : 'none';
+      document.getElementById('scene-pc').style.display = au ? 'none' : 'block';
+      document.getElementById('legend-au').style.display = au ? 'block' : 'none';
+      document.getElementById('legend-pc').style.display = au ? 'none' : 'block';
+      document.getElementById('caption-pc').style.display = au ? 'none' : 'block';
+      btnAu.classList.toggle('active', au);
+      btnPc.classList.toggle('active', !au);
+      document.getElementById('subtitle').textContent = au
+        ? 'Solar system (au) · spacecraft at 2025-2026 positions · amber = recovered fix'
+        : 'Solar neighborhood (parsecs) · 1,941 stars within 20 pc (Gaia DR3)';
+      if (!au && !vizPc) { buildPc().then(v => { vizPc = v;
+        window.dispatchEvent(new Event('resize')); }); }
+      window.dispatchEvent(new Event('resize'));
+    }
+    btnAu.onclick = () => show('au');
+    btnPc.onclick = () => show('pc');
+
+    vizAu = buildAu();
+    window.vizAu = vizAu;
+    window.__auReady = true;
+  })();
+  </script>
+</body>
+</html>

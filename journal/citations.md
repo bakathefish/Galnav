@@ -525,6 +525,35 @@ image upload, submission/job polling, WCS-file download).
   astrometry.net `client.py` reference protocol; the parse is covered offline
   by `tests_gui/test_platesolve.py` against a monkeypatched urlopen.
 
+**[Spacekit]** Ian Webster, "spacekit.js" — JavaScript library for 3-D space
+visualizations. MIT License, © 2019 Ian Webster. Vendored from
+github.com/typpo/spacekit, master @ aa93d3f (build:
+typpo.github.io/spacekit/build/spacekit.js), retrieved 2026-07-17. Bundles
+three.js (MIT). Used for the "Where in Space" demo view (gui/web). Skybox image:
+ESO GigaGalaxy Milky Way panorama, credit ESO/S. Brunier (CC BY). Bright stars:
+Yale Bright Star Catalog. Equatorial-ICRS -> ecliptic conversion applied at
+23.43928 deg obliquity.
+- Where in repo: `gui/web/vendor/spacekit/` (spacekit.js + assets + data +
+  `SOURCES.md` with the full per-file provenance table + LICENSE terms);
+  `gui/web/where-in-space.html` (the two-scene view); `gui/web/app.js` (lazy
+  iframe wiring); `journal/gui-wrapper.md`.
+- Verified: offline (basePath set to `./vendor/spacekit`, so no external host is
+  contacted — the recipe's headless network log showed 8/8 requests local); the
+  static-serving + traversal guard is covered by `tests_gui/test_webapp.py`, and
+  a browser drive confirmed both scenes render (WebGL canvas, 19 au-scene labels,
+  the 5 famous-star pc labels).
+
+**[WhereInSpace-data]** Nearby-stars scene: Gaia DR3, GalNav
+`data/gaia_dr3_nav_subset.csv` (1,941 stars within 20 pc; `dist_pc =
+1000/parallax`), baked to ecliptic XYZ by `gui/web/vendor/spacekit/bake_gaia.py`.
+Spacecraft positions (Voyager 1/2, Pioneer 10/11, New Horizons) and Eris are
+approximate 2025-2026 values from NASA/JHUAPL mission pages, Wikipedia, and
+TheSkyLive — full per-object sources in
+`gui/web/vendor/spacekit/SOURCES.md` ("Scene data provenance").
+- Where in repo: `gui/web/vendor/spacekit/data/gaia_20pc.json` (baked cloud),
+  `gui/web/where-in-space.html` (hardcoded spacecraft markers, labelled "~N au"
+  and framed as approximate), `gui/web/vendor/spacekit/SOURCES.md`.
+
 ## Related work (prior-art re-sweep 2026-07-16 — positioning, not method sources)
 
 **[Deng13]** Deng, X. P., Hobbs, G., You, X. P., et al. (2013). "Interplanetary

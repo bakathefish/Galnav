@@ -220,3 +220,38 @@ def test_demo_locate_uses_frozen_catalog_even_if_wide_present(monkeypatch, tmp_p
     monkeypatch.setattr(webapp, "_BAD_WIDE_MTIME", set())
     r = webapp.locate_payload(_demo_ids(), 4.31, 120, 19.57)
     assert r["ok"] and abs(r["miss_au"] - MISS_12_AU) < 1e-3
+
+
+# --- 3-D view: vendored spacekit static serving + traversal guard -----------
+
+
+def test_static_serves_where_in_space_html():
+    """The iframe page must be servable as HTML from the static route."""
+    got = webapp.static_file("where-in-space.html")
+    assert got is not None and got[0].startswith("text/html")
+    assert b"Where in Space" in got[1]
+
+
+def test_static_serves_vendored_spacekit_subtree():
+    """Vendored spacekit files (js/json/png/jpg) serve verbatim with the right
+    Content-Type, so the offline 3-D view has everything locally."""
+    js = webapp.static_file("vendor/spacekit/spacekit.js")
+    assert js is not None and js[0].startswith("application/javascript")
+    assert len(js[1]) > 1000
+    j = webapp.static_file("vendor/spacekit/data/gaia_20pc.json")
+    assert j is not None and j[0].startswith("application/json")
+    png = webapp.static_file("vendor/spacekit/assets/sprites/fuzzyparticle.png")
+    assert png is not None and png[0] == "image/png"
+    assert bytes(png[1][:8]) == b"\x89PNG\r\n\x1a\n"
+    jpg = webapp.static_file("vendor/spacekit/assets/skybox/eso_milkyway.jpg")
+    assert jpg is not None and jpg[0] == "image/jpeg"
+
+
+def test_static_vendor_guard_rejects_escape_and_missing():
+    """The vendor route must reject traversal (.., absolute) and 404 a path that
+    is not a real file -- no arbitrary reads outside gui/web/vendor/."""
+    assert webapp.static_file("vendor/../webapp.py") is None  # ".."
+    assert webapp.static_file("vendor/spacekit/../../README.md") is None
+    assert webapp.static_file("/etc/passwd") is None  # absolute
+    assert webapp.static_file("vendor/spacekit/nope.js") is None  # missing file
+    assert webapp.static_file("vendor/") is None  # a directory, not a file

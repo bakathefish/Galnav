@@ -107,6 +107,7 @@ async function locate() {
 function renderLocate(r) {
   if (!r.ok) {
     $("results").innerHTML = `<div class="resultcard"><div class="pos">${r.message}</div></div>`;
+    hideSpacePanel();
     return;
   }
   const x = r.x_au.map((v) => v.toFixed(3)).join(", ");
@@ -130,6 +131,28 @@ function renderLocate(r) {
        </div>
        <div class="linelist">${lines}</div>
      </div>`;
+  showSpacePanel(r);
+}
+
+// --- 3-D "Where in Space" panel (lazy iframe) -------------------------------
+function showSpacePanel(r) {
+  $("space-r").textContent = "RECOVERED POSITION · " + r.r_au.toFixed(1) + " au";
+  // The NASA Eyes deep-link is New-Horizons-specific: show it only when the
+  // whole selection is the baked demo set (ids "f0".."f11"), not for uploads.
+  const ids = [...state.selected];
+  const isDemo = ids.length > 0 && ids.every((id) => id.startsWith("f"));
+  $("nasa-eyes").hidden = !isDemo;
+  // Set the iframe src (lazy: spacekit.js loads only now). x_au is equatorial
+  // ICRS au straight from /api/locate; the view rotates it to ecliptic itself.
+  const src = "/static/where-in-space.html?x=" + encodeURIComponent(r.x_au.join(","));
+  const iframe = $("space-iframe");
+  if (iframe.getAttribute("src") !== src) iframe.setAttribute("src", src);
+  $("space-panel").hidden = false;
+}
+
+function hideSpacePanel() {
+  const p = $("space-panel");
+  if (p) p.hidden = true;
 }
 
 async function estimateAge() {
@@ -150,6 +173,7 @@ async function estimateAge() {
 }
 
 function renderAge(r) {
+  hideSpacePanel();  // age result is not a position fix
   if (!r.ok) {
     $("results").innerHTML = `<div class="resultcard"><div class="pos">${r.message}</div></div>`;
     return;
@@ -251,7 +275,7 @@ function init() {
     selectPreset(["f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11"]));
   $("clear-sel").addEventListener("click", () => {
     state.selected.clear(); state.focus = null; renderGallery(); updatePreview();
-    $("results").innerHTML = "";
+    $("results").innerHTML = ""; hideSpacePanel();
   });
   $("locate").addEventListener("click", locate);
   $("estimate").addEventListener("click", estimateAge);

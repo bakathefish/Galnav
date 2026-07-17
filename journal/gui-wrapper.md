@@ -441,3 +441,47 @@ faint/artefact blobs stay unmatched). Dim labels are still capped at the 25
 brightest for readability; the caption reports the full counts. The rendered
 Proxima preview shows the amber "Proxima Cen (1.3 pc)" plus muted distances on
 the bright field stars and one honest "G 11.6" where the parallax was junk.
+
+**"Where in space" — the 3-D view.** After any successful Locate the web app
+shows an interactive 3-D scene built on the vendored **spacekit.js** (MIT,
+bundles three.js). It is the scout's proven `poc.html` ported close to as-is into
+`gui/web/where-in-space.html`, hosted in an `<iframe>` under the result card. Two
+scenes behind a scale toggle: the solar system in au (Sun, planets + Pluto with
+orbits, asteroid + Kuiper belts, heliopause shell, Eris, the five escaping
+spacecraft at ~2025-26 positions, and an **amber marker at the recovered fix**),
+and the solar neighbourhood in pc (the project's real 1,941-star Gaia 20-pc cloud
+built lazily on first toggle, the five nearest famous stars labelled, amber
+sightlines to Proxima and Wolf 359, and a caption on why the whole solar system
+collapses to one dot at interstellar scale).
+
+- *The one frame subtlety.* `/api/locate` returns EQUATORIAL ICRS au; spacekit
+  renders in the ECLIPTIC frame. The view rotates the fix about +X by the mean
+  obliquity 23.43928° (`x` unchanged, `(y,z)` rotated) — the same transform the
+  baked star cloud uses. `|x|` is rotation-invariant, so the distance label
+  ("47.4 au") is right in either frame.
+- *Why an iframe, and lazy.* The iframe isolates spacekit's full-screen CSS and
+  global from the app, and its `src` is set only on the FIRST successful Locate
+  (with the fix passed as `?x=<x,y,z>`), so the ~2.9 MB payload (spacekit.js +
+  the 2.36 MB skybox JPEG) never loads on the initial page. `app.js` reveals the
+  panel on a good fix and hides it on a failed fix, an age result, or Clear.
+- *Static serving + guard.* `gui/webapp.py`'s static route now serves the whole
+  `gui/web/vendor/` subtree verbatim (Content-Type by extension) with a traversal
+  guard: no `..`, no absolute path, and the resolved target must stay inside
+  `gui/web/vendor/`. Three tests pin it (vendored asset serves with the right
+  type; `..`/absolute/missing all rejected). `basePath` is set to
+  `./vendor/spacekit`, so the scene contacts NO external host — fully offline.
+- *Honesty.* The amber marker is the measured fix; the spacecraft/Eris markers
+  are approximate 2025-26 positions (distance + published heading), labelled
+  "~N au" and cited in `gui/web/vendor/spacekit/SOURCES.md`. The pc cloud is baked
+  from the repo's own frozen 20-pc CSV by `vendor/spacekit/bake_gaia.py` (paths
+  made repo-relative so it regenerates the JSON in place). Citations added to
+  `journal/citations.md`: [Spacekit] (typpo/spacekit @ aa93d3f, MIT; three.js;
+  ESO skybox; Yale BSC) and [WhereInSpace-data].
+- *Proof.* A headless browser drive at the running server confirmed: the panel
+  appears after the 12-frame Locate; the iframe `src` carries the real fix
+  (`x=13.38,-42.37,-16.48`); the au scene renders a WebGL canvas with 19 labels
+  (Sun, all planets, Pluto, Eris, Voyager 1, RECOVERED) and the "RECOVERED
+  POSITION · 47.4 au" header; the NASA Eyes link shows for the demo set; toggling
+  builds the pc scene (second canvas) with the five famous-star labels (Proxima
+  1.30, Barnard's 1.83, Wolf 359 2.41, Lalande 2.55, Ross 154 2.98 pc) and the
+  collapse caption. Screenshots of both scenes saved for review.

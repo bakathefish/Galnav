@@ -83,6 +83,22 @@ _LINE = "#263248"
 _STATIC_ALLOW = {
     "app.js": "application/javascript; charset=utf-8",
     "style.css": "text/css; charset=utf-8",
+    "where-in-space.html": "text/html; charset=utf-8",
+}
+
+# The vendored spacekit 3-D view (gui/web/vendor/) is served verbatim under
+# /static/vendor/... . Content types keyed by extension; unknown -> octet-stream.
+VENDOR_DIR = WEB_DIR / "vendor"
+_VENDOR_CTYPES = {
+    ".js": "application/javascript; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".html": "text/html; charset=utf-8",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".map": "application/json; charset=utf-8",
+    ".md": "text/plain; charset=utf-8",
 }
 
 # --- frame cache ------------------------------------------------------------
@@ -146,13 +162,27 @@ def _record_by_id(fid):
 def static_file(name):
     """Return (content_type, bytes) for an allowed static file, else None.
 
-    The ONLY guard for the /static/ route: rejects any name not in the explicit
-    allowlist or containing a path separator or "..", so no traversal is
-    possible. Used directly by the handler AND by the tests.
+    Two kinds are served: the top-level allowlist (app.js, style.css,
+    where-in-space.html) and the vendored spacekit subtree under vendor/. Both
+    reject traversal: no "..", no absolute path, no NUL; and a vendor path must
+    resolve to a real file that stays inside gui/web/vendor/. Used directly by
+    the handler AND by the tests.
     """
-    if name not in _STATIC_ALLOW or "/" in name or "\\" in name or ".." in name:
+    if ".." in name or name.startswith(("/", "\\")) or "\x00" in name:
         return None
-    return _STATIC_ALLOW[name], (WEB_DIR / name).read_bytes()
+    if name in _STATIC_ALLOW:
+        return _STATIC_ALLOW[name], (WEB_DIR / name).read_bytes()
+    if name.startswith("vendor/"):
+        target = (WEB_DIR / name).resolve()
+        try:
+            target.relative_to(VENDOR_DIR.resolve())
+        except ValueError:
+            return None
+        if not target.is_file():
+            return None
+        ctype = _VENDOR_CTYPES.get(target.suffix.lower(), "application/octet-stream")
+        return ctype, target.read_bytes()
+    return None
 
 
 def frames_payload():
