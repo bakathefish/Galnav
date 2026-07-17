@@ -537,3 +537,53 @@ one round.
    here with its numbers. Unit tests pin the method regardless: a clean synthetic
    Gaussian is recovered to <0.05 px with refine=True, and a saturated flat-top
    star falls back to the moment centroid (identical to refine=False).
+
+**Single-star drift dating -- the F12 chronometer made tangible.** The science
+spine's F12 "catalog chronometer" shows that a star's Gaia proper motion lets you
+recover WHEN an image was taken from how far the star has drifted. This makes it
+something a student can do in the browser: date a real 1953 photographic plate.
+
+The physics. A position FIX needs >= 2 nearby stars whose sight-lines cross. An
+old sky-survey plate often shows just ONE fast-moving nearby star (a 1953 POSS-I
+plate of Wolf 359). You can still date it: propagate the star's Gaia position to
+the wrong epoch and it lands off the detected blob; propagate to the right epoch
+and it lands on it. So `gui/age.py::drift_date` scans the age grid and, for each
+nearby catalogued star, tracks its predicted-position -> nearest-centroid
+separation (arcsec); the epoch is where that separation is minimised. Multiple
+stars/frames sum squared separations (chi2-like); the minimum is parabola-refined.
+
+- *Automatic mode switch.* `age_payload` tries the position-fit chi2 scan first
+  and uses it whenever the fix ever runs (>= 2 distinct crossing lines, e.g. the
+  New Horizons set -- unchanged, still 4.2856 yr). If the fix can NEVER run
+  (a single nearby star), it falls back to `drift_date`. Two subtleties made this
+  correct: (a) the age scan builds its lines from the sparse frozen 20-pc nearby
+  catalog, not the dense widest catalog -- otherwise a deep plate spuriously
+  matches two far stars within the radius and fakes a position fit; (b) the drift
+  grid defaults to a wide -75..+25 yr (NEGATIVE ages -- epochs before 2016) so it
+  reaches the plate era.
+- *The sigma, honestly.* It is the parabola's delta-chi2 = 1 half-width after
+  normalising the separation objective by the best-age RMS residual (so reduced
+  chi2 == 1 at the minimum by construction). It is a RESIDUAL-CURVATURE,
+  SINGLE-STAR sigma: it measures how sharply the separation rises around the
+  minimum and ASSUMES the star is the correct match there. The real safety check
+  is the reliability guard: if the best RMS separation over the whole scan is
+  >= 3 arcsec, no star tracks a detection well enough -- "no reliable drift date".
+- *Negative ages everywhere.* Propagation is linear in age and already handled
+  negatives (a test pins it: the -50 yr state equals the epoch minus 50x the 1 yr
+  velocity). The UI age input lost its `min=0`; the separation-vs-age curve plots
+  negative x; and the result shows the calendar YEAR (2016.0 + age) headline --
+  "1953.3" lands harder than "-62.7 yr".
+- *Old-plate headers.* Digitised POSS/DSS headers sometimes carry a nonstandard
+  time (decimal minutes "06:75" in a 1950 Barnard header) that astropy rejects;
+  `gui/fitsmeta.py` now falls back to the DATE part alone, so the truth year still
+  shows.
+
+*Measured, real plate.* The 1953-04-15 POSS-I Wolf 359 plate (WCS in header)
+runs through /api/estimate_age in single-star-drift mode and returns **age
+-62.69 +/- 0.19 yr -> year 1953.3**, best separation **0.89 arcsec**, versus the
+DATE-OBS truth 1953.29 -- reproducing the hand measurement (1953.4, 0.9 arcsec).
+Verified in the browser (year headline, mode, and the negative-age separation
+curve all render). Tests are synthetic-only (a one-star scene recovers an
+injected -48.5 yr to <1 yr; the guard fires on a starless field; negative
+propagation is linear; fitsmeta tolerates the decimal-minute date) -- nothing
+depends on the git-ignored data/candidates/ plates.

@@ -178,21 +178,30 @@ function renderAge(r) {
     $("results").innerHTML = `<div class="resultcard"><div class="pos">${r.message}</div></div>`;
     return;
   }
-  const sig = r.sigma_age_yr === null ? "n/a" : "± " + r.sigma_age_yr.toFixed(3);
-  const truth = r.truth_yr === null ? "" : ` &nbsp;vs true ${r.truth_yr.toFixed(3)} yr`;
+  const sig = r.sigma_age_yr === null ? "" : " ± " + r.sigma_age_yr.toFixed(2);
+  const mode = r.mode === "single-star drift"
+    ? "single-star drift dating" : "position-fit χ² scan";
+  const best = r.best_sep_arcsec ? ` · best separation ${r.best_sep_arcsec.toFixed(2)}″` : "";
+  const truth = (r.truth_yr === null || r.truth_yr === undefined) ? ""
+    : ` &nbsp;vs true ${(2016 + r.truth_yr).toFixed(2)}`;
   const note = r.note ? `<div class="linelist">${r.note}</div>` : "";
+  // Show the calendar YEAR headline (lands harder than "-62.7 yr"); age below.
+  const year = (r.year_hat === null || r.year_hat === undefined) ? null : r.year_hat;
+  const yearLine = year === null ? "" :
+    `<div class="big-r">${year.toFixed(1)}</div>
+     <div class="pos">estimated year the image was taken${truth}</div>`;
   $("results").innerHTML =
     `<div class="resultcard">
-       <div class="k mono" style="color:var(--faint);letter-spacing:.1em">CATALOG AGE FROM IMAGE GEOMETRY</div>
-       <div class="big-r">${r.age_hat_yr.toFixed(3)} ${sig} yr</div>
-       <div class="pos">chi2-vs-age scan${truth}</div>
+       <div class="k mono" style="color:var(--faint);letter-spacing:.1em">IMAGE EPOCH FROM STAR MOTION</div>
+       ${yearLine}
+       <div class="pos">age ${r.age_hat_yr.toFixed(2)}${sig} yr since J2016.0 · ${mode}${best}</div>
        <div class="agebox"><canvas id="curve" width="900" height="200"></canvas></div>
        ${note}
      </div>`;
-  drawCurve(r);
+  drawCurve(r, r.curve_label || "chi2");
 }
 
-function drawCurve(r) {
+function drawCurve(r, ylabel) {
   const c = $("curve"), ctx = c.getContext("2d");
   const W = c.width, H = c.height, pad = 34;
   ctx.clearRect(0, 0, W, H);
@@ -236,7 +245,7 @@ function drawCurve(r) {
   ctx.fillStyle = dim; ctx.font = "11px ui-monospace,monospace";
   ctx.fillText("age (yr) →", W - pad - 70, H - pad + 22);
   ctx.save(); ctx.translate(12, H / 2); ctx.rotate(-Math.PI / 2);
-  ctx.fillText("chi2", 0, 0); ctx.restore();
+  ctx.fillText(ylabel || "chi2", 0, 0); ctx.restore();
 }
 
 const UPLOAD_STAGES = ["Solving field…", "Identifying stars…", "Locating…"];

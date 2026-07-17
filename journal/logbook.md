@@ -3133,3 +3133,39 @@ wrong.**
   `journal/{gui-wrapper.md,logbook.md}`. No galnav/, tests/, golden_numbers,
   pytest.ini, docs/, or root README.md change; no frozen/golden value changed
   (PSF trial was a null result).
+
+## 2026-07-17 — Single-star drift dating + negative ages (F12 chronometer, live)
+- WHAT: The web GUI can now date an image with only ONE nearby star, over
+  NEGATIVE ages (epochs before 2016). New `gui/age.py::drift_date` scans the age
+  grid tracking each nearby star's predicted-position -> nearest-centroid
+  separation and finds the epoch that minimises it (parabola-refined, 3-arcsec
+  reliability guard). New `gui/locate.py::star_seps_in_frame` is the per-star
+  projector. `age_payload` auto-selects mode: position-fit chi2 scan when >= 2
+  distinct nearby stars ever cross, else single-star drift over a wide -75..+25
+  yr grid; it now reports "mode" and "year_hat" (2016 + age). `gui/fitsmeta.py`
+  tolerates nonstandard plate time fields (decimal minutes) by falling back to
+  the date part. UI: age input lost min=0, the curve plots negative ages with a
+  mode-aware y-label, and the result card leads with the calendar YEAR.
+- WHY: makes the F12 catalog-chronometer result something a student reproduces
+  by hand -- dating a real 1953 POSS-I plate. Two correctness subtleties: the age
+  scan must build lines from the SPARSE 20-pc catalog (the dense widest catalog
+  fakes a fix on a deep plate), and the drift grid must reach back decades.
+- EVIDENCE: `python -m pytest -q` -> 84 passed (spine untouched). `python -m
+  pytest tests_gui -q` -> 64 passed (was 58: +3 drift/age [recovers injected
+  -48.5 yr <1 yr; guard fires on a starless field; negative-age propagation is
+  linear], +3 fitsmeta [decimal-minute tolerated; plain date + full datetime
+  still parse; no-key None]), 0 skips (6 benign ErfaWarnings on the 1950 date).
+  MANUAL, real plate through the running server /api/estimate_age (browser drive,
+  fits-header WCS, no solver): the 1953-04-15 POSS-I Wolf 359 plate ->
+  mode "single-star drift", **age -62.69 +/- 0.19 yr, YEAR 1953.3**, best
+  separation 0.89 arcsec, vs DATE-OBS truth 1953.29 -- reproduces the hand
+  measurement. Screenshot saved (drift_1953_result.png: year headline + mode +
+  negative-age separation curve). HTTP self-test still green; import clean; NH
+  12-frame position-fit still 4.2856 yr / 0.38659 au (mode detection preserves
+  it). Note: another agent (task #15) reorganised data/candidates/ mid-run;
+  tests are synthetic-only and never touch those git-ignored plates.
+- COMMIT: uncommitted (orchestrator will commit). New: `tests_gui/test_fitsmeta.py`.
+  Changed: `gui/age.py`, `gui/locate.py`, `gui/fitsmeta.py`, `gui/webapp.py`,
+  `gui/web/{index.html,app.js}`, `tests_gui/test_age.py`,
+  `journal/{gui-wrapper.md,logbook.md}`. No galnav/, tests/, golden_numbers,
+  pytest.ini, docs/, or root README.md change; no frozen/golden value changed.

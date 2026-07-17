@@ -6,8 +6,10 @@ be convex at the minimum.
 """
 
 import numpy as np
+from astropy.coordinates import SkyCoord
 
-from gui.age import estimate_age
+from galnav.units import deg_to_rad, radec_to_unit
+from gui.age import drift_date, estimate_age
 from gui.centroids import find_centroids
 from gui.locate import (
     LineOfPosition,
@@ -15,7 +17,17 @@ from gui.locate import (
     load_aged_catalog,
     measured_direction,
 )
-from tests_gui.synth import BARNARD_ID, PROXIMA_ID, REAL_CSV, Scene, build_synthetic
+from gui.platesolve import PlateSolution
+from tests_gui.synth import (
+    BARNARD_ID,
+    PROXIMA_ID,
+    REAL_CSV,
+    Scene,
+    _tan_wcs,
+    build_synthetic,
+)
+
+AU_PER_PC = 206264.806
 
 R_TRUE = np.array([13.5, -42.0, -16.5])
 # Deliberately OFF-grid (grid step 0.25, nodes at ...4.5, 4.75...): the true age
@@ -138,3 +150,83 @@ def test_estimate_age_edge_or_infneighbor_falls_back_to_nan_sigma():
     assert abs(res["age_hat_yr"] - 5.0) < 1e-9  # grid node, no sub-grid shift
     assert np.isnan(res["sigma_age_yr"])
     assert res["note"]  # non-empty explanation the app can print
+
+
+# --- single-star drift dating (negative ages) -------------------------------
+
+
+def _drift_scene(
+    true_age,
+    pmra=4.0,
+    pmdec=-3.0,
+    dist_pc=3.0,
+    sid=900123,
+    ra0=150.0,
+    dec0=20.0,
+    scale=2.0,
+    nx=128,
+    ny=128,
+    offset_px=0.25,
+):
+    """A one-star drift scene: a catalog fn for a star drifting at (pmra, pmdec)
+    arcsec/yr, a plate centred on the star's position at `true_age`, and one
+    centroid at the star's projected pixel (nudged offset_px for a realistic V).
+    No parallax (observer at the barycentre), matching a ground plate's ~0.4 arcsec."""
+
+    def cat_fn(a):
+        dec = dec0 + a * pmdec / 3600.0
+        ra = ra0 + a * pmra / 3600.0 / np.cos(np.radians(dec0))
+        u = radec_to_unit(deg_to_rad(ra), deg_to_rad(dec))
+        return {
+            "positions_au": (u * dist_pc * AU_PER_PC).reshape(1, 3),
+            "source_id": np.array([sid], dtype=np.int64),
+        }
+
+    u = cat_fn(true_age)["positions_au"][0]
+    u = u / np.linalg.norm(u)
+    ra_t = float(np.degrees(np.arctan2(u[1], u[0])))
+    dec_t = float(np.degrees(np.arcsin(u[2])))
+    plate = PlateSolution(
+        wcs=_tan_wcs(ra_t, dec_t, scale, nx, ny), source="mock", width=nx, height=ny
+    )
+    px, py = plate.wcs.world_to_pixel(SkyCoord(ra_t, dec_t, unit="deg"))
+    cen = np.array([[float(px) + offset_px, float(py)]])
+    return plate, cen, cat_fn, sid
+
+
+def test_drift_date_recovers_injected_negative_age():
+    """A single fast-moving star dates the plate by drift: the scan minimum must
+    land on the injected NEGATIVE epoch (an old plate) to <1 yr, with a finite
+    residual-curvature sigma. This is the F12 chronometer on one star."""
+    true_age = -48.5  # off-grid, decades before the catalog epoch
+    plate, cen, cat_fn, _sid = _drift_scene(true_age)
+    grid = np.arange(-75.0, 25.0 + 1e-9, 0.5)
+    d = drift_date([(plate, cen, "synth")], grid, cat_fn, threshold_arcsec=3.0)
+    assert d["ok"] and d["mode"] == "single-star drift"
+    assert abs(d["age_hat_yr"] - true_age) < 1.0
+    assert d["best_sep_arcsec"] < 3.0
+    assert np.isfinite(d["sigma_age_yr"]) and d["sigma_age_yr"] > 0
+
+
+def test_drift_date_guard_fires_on_starless_field():
+    """When no catalogued star drifts near a detection, the guard must refuse a
+    date (ok:False) rather than report a spurious minimum."""
+    plate, _cen, cat_fn, _sid = _drift_scene(-48.5)
+    far_detection = np.array([[123.0, 5.0]])  # nowhere near the star's swept track
+    grid = np.arange(-75.0, 25.0 + 1e-9, 0.5)
+    d = drift_date(
+        [(plate, far_detection, "synth")], grid, cat_fn, threshold_arcsec=3.0
+    )
+    assert d["ok"] is False and "no reliable drift date" in d["message"]
+
+
+def test_negative_age_catalog_propagation_is_linear():
+    """Propagation must handle NEGATIVE ages: positions are linear in age, so the
+    -50 yr state equals the epoch state minus 50x the 1 yr velocity. Kills a
+    sign/abs bug that would break dating anything before 2016."""
+    c0 = load_aged_catalog(REAL_CSV, 0.0, rv_fill_kms=0.0)["positions_au"]
+    c1 = load_aged_catalog(REAL_CSV, 1.0, rv_fill_kms=0.0)["positions_au"]
+    cm = load_aged_catalog(REAL_CSV, -50.0, rv_fill_kms=0.0)["positions_au"]
+    vel = c1 - c0  # au/yr
+    assert np.allclose(cm, c0 - 50.0 * vel, rtol=1e-9, atol=1e-6)
+    assert np.max(np.linalg.norm(cm - c0, axis=1)) > 0  # motion is real

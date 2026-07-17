@@ -36,3 +36,7 @@ data/gaia_dr3_nav_100pc.csv
 # not source -- never committed. See data/README.md.
 data/gaia_cones/
 .playwright-mcp/
+
+# Fresh candidate images for demo pre-testing (re-fetchable; DSS/TESS/HST/NH/photos).
+# Cache, not source -- see data/candidates/MANIFEST.md for provenance + fetch URLs.
+data/candidates/

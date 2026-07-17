@@ -29,10 +29,21 @@ def header_observation_jd(header):
         val = header.get(key)
         if not val:
             continue
+        s = str(val).strip()
         try:
-            return float(Time(str(val), scale="utc").tdb.jd)
+            return float(Time(s, scale="utc").tdb.jd)
         except (ValueError, TypeError):
-            continue
+            pass
+        # Digitised sky-survey plates (POSS/DSS) sometimes carry a nonstandard
+        # time field -- e.g. decimal minutes "06:75" in a 1950 Barnard header --
+        # that astropy rejects, but the DATE is still good. Retry with the date
+        # part alone (before 'T' or a space) so the observation year survives.
+        date_part = s.split("T")[0].split()[0]
+        if date_part and date_part != s:
+            try:
+                return float(Time(date_part, scale="utc").tdb.jd)
+            except (ValueError, TypeError):
+                pass
     return None
 
 

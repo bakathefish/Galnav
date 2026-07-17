@@ -15,7 +15,7 @@ images were actually taken.
 import numpy as np
 
 from galnav.units import arcsec_to_rad
-from gui.locate import fix_position
+from gui.locate import fix_position, star_seps_in_frame
 
 
 def estimate_age(build_lines_fn, age_grid_yr, rmssig_arcsec=1.0):
@@ -111,4 +111,122 @@ def estimate_age(build_lines_fn, age_grid_yr, rmssig_arcsec=1.0):
         "ages": ages,
         "chi2s": chi2s,
         "note": "",
+    }
+
+
+def drift_date(frames, age_grid_yr, aged_catalog_fn, threshold_arcsec=3.0):
+    """Date an image by SINGLE-STAR DRIFT when a position fix is impossible.
+
+    A position fix needs >= 2 distinct nearby stars whose lines of sight cross.
+    An old plate often shows just ONE fast-moving nearby star (e.g. a 1953 POSS
+    plate with Wolf 359). We can still date it: a nearby star's Gaia position,
+    propagated to the wrong epoch, lands off the detected blob; propagated to the
+    right epoch, it lands on it. So for each nearby catalog star we scan the age
+    grid and track its predicted-position -> nearest-centroid separation
+    (arcsec); the epoch is where that separation is minimised.
+
+    Multiple stars/frames are combined by SUMMING squared separations, so the
+    objective is chi2-like. The minimum is parabola-refined for a sub-grid age.
+    The reported sigma is the parabola's delta-chi2 = 1 half-width AFTER
+    normalising the objective by the best-age RMS separation (so reduced chi2 == 1
+    at the minimum by construction). CAVEAT -- this is a RESIDUAL-CURVATURE,
+    SINGLE-STAR sigma: it measures how sharply the separation rises around the
+    minimum, and it ASSUMES the star is the correct match at that minimum. It is
+    not an independent accuracy guarantee; a mis-identified star could give a
+    sharp-but-wrong minimum. The reliability guard (below) is the real check.
+
+    Guard: if the best RMS separation over the whole scan is >= threshold_arcsec,
+    no star tracks a detection well enough to trust -- return ok=False.
+
+    frames: list of (plate, centroids_xy, name) tuples.
+    age_grid_yr: 1-D array of candidate ages (Julian yr since J2016.0), evenly
+        spaced; NEGATIVE ages (epochs before 2016) are the whole point here.
+    aged_catalog_fn: callable age_yr -> dict with positions_au (N,3) and
+        source_id (N,); the caller closes over the catalog + rv choice.
+    threshold_arcsec: reliability threshold on the best RMS separation.
+    Returns: dict with either
+        {ok:False, message:<why>} if no star dates the image reliably, or
+        {ok:True, mode:"single-star drift", age_hat_yr, sigma_age_yr (or NaN),
+         ages, sep_arcsec (RMS-separation curve, arcsec, +inf where the candidate
+         set is not all in frame), best_sep_arcsec, n_stars, note}.
+    """
+    ages = np.asarray(age_grid_yr, dtype=float)
+    per_key = {}  # (frame_index, source_id) -> separation array over ages
+    for k, a in enumerate(ages):
+        cat = aged_catalog_fn(float(a))
+        pos, sids = cat["positions_au"], cat["source_id"]
+        for fi, (plate, cen_xy, _name) in enumerate(frames):
+            for sid, sep in star_seps_in_frame(plate, cen_xy, pos, sids).items():
+                arr = per_key.get((fi, sid))
+                if arr is None:
+                    arr = np.full(len(ages), np.nan)
+                    per_key[(fi, sid)] = arr
+                arr[k] = sep
+
+    cand = {
+        key: arr
+        for key, arr in per_key.items()
+        if np.isfinite(arr).any() and np.nanmin(arr) < threshold_arcsec
+    }
+    if not cand:
+        return {
+            "ok": False,
+            "message": (
+                f"no reliable drift date: no catalogued nearby star drifts to "
+                f"within {threshold_arcsec:.0f} arcsec of a detection anywhere in "
+                f"the {ages[0]:.0f}..{ages[-1]:.0f} yr scan."
+            ),
+        }
+
+    stack = np.vstack(list(cand.values()))  # (C, A)
+    n = stack.shape[0]
+    sq = stack**2
+    obj = np.where(np.all(np.isfinite(sq), axis=0), np.sum(sq, axis=0), np.inf)
+    if not np.isfinite(obj).any():
+        return {
+            "ok": False,
+            "message": "no reliable drift date: candidate stars are never all in "
+            "frame at a single age.",
+        }
+
+    i = int(np.argmin(obj))
+    best_sep = float(np.sqrt(obj[i] / n))
+    if best_sep >= threshold_arcsec:
+        return {
+            "ok": False,
+            "message": (
+                f"no reliable drift date: best separation {best_sep:.1f} arcsec "
+                f"exceeds the {threshold_arcsec:.0f} arcsec reliability threshold."
+            ),
+        }
+
+    sep_curve = np.sqrt(obj / n)  # RMS separation per age (arcsec); +inf stays inf
+    # Normalise by the best-age RMS separation so reduced chi2 == n at the
+    # minimum; floor it so a (synthetic) near-perfect fit does not divide by zero.
+    denom = max(best_sep, 1e-3) ** 2
+    chi2 = obj / denom
+    note = ""
+    if i == 0 or i == len(ages) - 1:
+        age_hat, sigma_age = float(ages[i]), float("nan")
+        note = "sigma unavailable (drift minimum at a scan edge -- widen the range)"
+    else:
+        y0, y1, y2 = float(chi2[i - 1]), float(chi2[i]), float(chi2[i + 1])
+        curv = y0 - 2.0 * y1 + y2
+        if not np.all(np.isfinite([y0, y1, y2])) or curv <= 0.0:
+            age_hat, sigma_age = float(ages[i]), float("nan")
+            note = "sigma unavailable (drift curve not parabolic at the minimum)"
+        else:
+            h = float(ages[i + 1] - ages[i])
+            age_hat = float(ages[i] + h * (y0 - y2) / (2.0 * curv))
+            sigma_age = float(np.sqrt(2.0 / (curv / (h * h))))
+    return {
+        "ok": True,
+        "mode": "single-star drift",
+        "age_hat_yr": age_hat,
+        "sigma_age_yr": sigma_age,
+        "ages": ages,
+        "sep_arcsec": sep_curve,
+        "best_sep_arcsec": best_sep,
+        "n_stars": n,
+        "note": note,
     }

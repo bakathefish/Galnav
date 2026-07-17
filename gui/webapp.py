@@ -38,7 +38,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from gui import gaiacone
-from gui.age import estimate_age
+from gui.age import drift_date, estimate_age
 from gui.app import CATALOG_CSV, STAR_NAMES, load_grayscale
 from gui.centroids import find_centroids
 from gui.fitsmeta import age_yr_since_j2016, observation_jd
@@ -468,19 +468,25 @@ def render_frame_png(fid, age_yr, radius_arcsec, full_labels=True):
     return buf.getvalue()
 
 
-def _lines_for(ids, age_yr, radius_arcsec, rv_kms):
+def _lines_for(ids, age_yr, radius_arcsec, rv_kms, catalog_override=None):
     """Build lines of position across the given frames at one catalog age.
 
-    Catalog choice: if EVERY selected frame is a demo (known-JPL) frame, the
-    frozen 20-pc file is used so the blessed fix stays byte-reproducible; if any
-    frame is uploaded, the widest usable catalog is used. Returns (lines,
-    all_demo) -- all_demo gates the miss-vs-JPL computation in locate_payload.
+    Catalog choice: if catalog_override is given, that file is used (the age scan
+    passes the frozen 20-pc nearby file, because a position fix is a NEARBY-star
+    technique -- using the dense widest catalog would let a deep field spuriously
+    match two far stars within the radius and fake a fix). Otherwise: if EVERY
+    selected frame is a demo (known-JPL) frame, the frozen 20-pc file keeps the
+    blessed fix byte-reproducible; if any frame is uploaded, the widest usable
+    catalog is used. Returns (lines, all_demo) -- all_demo gates the miss-vs-JPL
+    computation in locate_payload.
     """
     recs = [(fid, _record_by_id(fid)) for fid in ids]
     all_demo = all(
         rec is not None and rec.get("is_demo") for _, rec in recs if rec is not None
     ) and any(rec is not None for _, rec in recs)
-    if all_demo:
+    if catalog_override is not None:
+        cat = load_aged_catalog(str(catalog_override), age_yr, rv_fill_kms=rv_kms)
+    elif all_demo:
         cat = load_aged_catalog(str(CATALOG_CSV), age_yr, rv_fill_kms=rv_kms)
     else:
         cat, _ = labeling_catalog(age_yr, rv_kms)
@@ -544,37 +550,98 @@ def locate_payload(ids, age_yr, radius_arcsec, rv_kms):
     }
 
 
-def age_payload(ids, radius_arcsec, rv_kms, age_min, age_max, age_step):
-    """Estimate the catalog age from the frame geometry over a grid.
+DRIFT_GRID = (-75.0, 25.0, 0.5)  # default single-star-drift scan (yr since J2016.0)
+J2016_YEAR = 2016.0  # calendar year of the catalog epoch
 
-    Returns: {ok, age_hat_yr, sigma_age_yr, ages, chi2s, note, truth_yr} or
-    {ok:False, message} if the grid produces no fittable minimum at all.
+
+def age_payload(ids, radius_arcsec, rv_kms, age_min, age_max, age_step):
+    """Estimate the image epoch, choosing the estimator automatically.
+
+    POSITION-FIT mode (>= 2 distinct nearby stars, e.g. the New Horizons set):
+    the chi2-of-fix vs age scan (estimate_age) over the requested grid. If the
+    fix can never run (fewer than 2 distinct position-capable stars -- e.g. one
+    old plate showing a single nearby star), fall back to SINGLE-STAR DRIFT mode
+    (drift_date) over a wide grid reaching back decades (default -75..+25 yr),
+    which reaches the plate epochs. "mode" reports which ran; "year_hat"
+    (2016.0 + age) is the calendar year the image was taken.
+
+    Returns: {ok, mode, age_hat_yr, year_hat, sigma_age_yr, ages, chi2s,
+    curve_label, best_sep_arcsec, note, truth_yr} or {ok:False, message}.
     """
     grid = np.arange(age_min, age_max + 1e-9, age_step)
     if grid.size < 3:
         return {"ok": False, "message": "age grid needs at least 3 points"}
-    try:
-        res = estimate_age(
-            lambda a: _lines_for(ids, a, radius_arcsec, rv_kms)[0],
-            grid,
-            rmssig_arcsec=RMSSIG_ARCSEC,
-        )
-    except ValueError as exc:
-        return {"ok": False, "message": str(exc)}
     truth = [
         _record_by_id(fid)["obs_age_yr"]
         for fid in ids
         if _record_by_id(fid) is not None
     ]
-    chi2s = [None if not np.isfinite(c) else float(c) for c in res["chi2s"]]
+    truth_yr = float(np.mean(truth)) if truth else None
+
+    # Try the position fix first: it succeeds (some chi2 is finite) only if the
+    # frames ever yield >= 2 distinct crossing lines of position.
+    try:
+        res = estimate_age(
+            lambda a: _lines_for(
+                ids, a, radius_arcsec, rv_kms, catalog_override=CATALOG_CSV
+            )[0],
+            grid,
+            rmssig_arcsec=RMSSIG_ARCSEC,
+        )
+    except ValueError:
+        res = None
+    if res is not None and np.any(np.isfinite(res["chi2s"])):
+        chi2s = [None if not np.isfinite(c) else float(c) for c in res["chi2s"]]
+        age_hat = res["age_hat_yr"]
+        return {
+            "ok": True,
+            "mode": "position-fit",
+            "age_hat_yr": age_hat,
+            "year_hat": J2016_YEAR + age_hat,
+            "sigma_age_yr": None
+            if np.isnan(res["sigma_age_yr"])
+            else res["sigma_age_yr"],
+            "ages": [float(a) for a in res["ages"]],
+            "chi2s": chi2s,
+            "curve_label": "chi2 of fix",
+            "best_sep_arcsec": None,
+            "note": res.get("note", ""),
+            "truth_yr": truth_yr,
+        }
+
+    # Single-star drift dating. Scans a wide (default -75..+25 yr) grid unless the
+    # caller already asked for negatives. Uses the frozen 20-pc catalog -- the
+    # high-proper-motion nearby stars that can date a plate all live there.
+    lo, hi, step = (age_min, age_max, age_step) if age_min < 0 else DRIFT_GRID
+    dgrid = np.arange(lo, hi + 1e-9, step)
+    frames = [
+        (rec["plate"], rec["centroids"]["xy"], rec["name"])
+        for fid in ids
+        if (rec := _record_by_id(fid)) is not None
+    ]
+    d = drift_date(
+        frames,
+        dgrid,
+        lambda a: load_aged_catalog(
+            str(CATALOG_CSV), a, rv_fill_kms=rv_kms or DEFAULT_RV_FILL_KMS
+        ),
+    )
+    if not d["ok"]:
+        return {"ok": False, "message": d["message"]}
+    age_hat = d["age_hat_yr"]
+    sep = [None if not np.isfinite(s) else float(s) for s in d["sep_arcsec"]]
     return {
         "ok": True,
-        "age_hat_yr": res["age_hat_yr"],
-        "sigma_age_yr": None if np.isnan(res["sigma_age_yr"]) else res["sigma_age_yr"],
-        "ages": [float(a) for a in res["ages"]],
-        "chi2s": chi2s,
-        "note": res.get("note", ""),
-        "truth_yr": float(np.mean(truth)) if truth else None,
+        "mode": "single-star drift",
+        "age_hat_yr": age_hat,
+        "year_hat": J2016_YEAR + age_hat,
+        "sigma_age_yr": None if np.isnan(d["sigma_age_yr"]) else d["sigma_age_yr"],
+        "ages": [float(a) for a in d["ages"]],
+        "chi2s": sep,
+        "curve_label": "separation (arcsec)",
+        "best_sep_arcsec": d["best_sep_arcsec"],
+        "note": d.get("note", ""),
+        "truth_yr": truth_yr,
     }
 
 

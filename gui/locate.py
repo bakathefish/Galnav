@@ -196,6 +196,63 @@ def identify_in_frame(
     return matches
 
 
+def star_seps_in_frame(
+    plate, centroids_xy, aged_positions_au, source_ids, gate_margin_arcsec=180.0
+):
+    """Nearest-centroid separation (arcsec) for every catalog star that projects
+    inside the frame -- the primitive for single-star drift dating.
+
+    Same barycentric-direction -> WCS projection as identify_in_frame, but for
+    the drift scan we want each in-frame star's raw nearest-centroid distance (no
+    match radius, no one-to-one assignment): as a star's catalog age is varied,
+    its predicted position sweeps across the frame and this separation traces a
+    V whose minimum marks the epoch the image was taken. An angular pre-gate
+    keeps the WCS inversion to the handful of stars near the field.
+
+    plate: PlateSolution. centroids_xy: (M,2) detected pixels.
+    aged_positions_au: (N,3) aged catalog positions, au. source_ids: (N,) ids.
+    gate_margin_arcsec: extra angular margin beyond the frame half-diagonal for
+        the pre-gate (a star just outside can still project in-frame).
+    Returns: dict {source_id: nearest_centroid_sep_arcsec} for in-frame stars.
+    """
+    positions = np.atleast_2d(np.asarray(aged_positions_au, dtype=float))
+    dist = np.linalg.norm(positions, axis=1)
+    units = positions / dist[:, None]
+    cen = np.atleast_2d(np.asarray(centroids_xy, dtype=float))
+    ids = np.atleast_1d(np.asarray(source_ids))
+    out = {}
+    if cen.shape[0] == 0:
+        return out
+
+    cra, cdec = plate.center_radec_deg
+    center_unit = radec_to_unit(deg_to_rad(cra), deg_to_rad(cdec))
+    cosang = units @ center_unit
+    half_diag_arcsec = (
+        0.5 * np.hypot(plate.width, plate.height) * plate.scale_arcsec_per_px
+    )
+    gate_rad = arcsec_to_rad(half_diag_arcsec + gate_margin_arcsec)
+    near = np.nonzero(cosang > np.cos(gate_rad))[0]
+    if near.size == 0:
+        return out
+
+    sky = _unit_to_skycoord(units[near])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        px, py = plate.wcs.celestial.world_to_pixel(sky)
+    px = np.atleast_1d(np.asarray(px, dtype=float))
+    py = np.atleast_1d(np.asarray(py, dtype=float))
+    scale = plate.scale_arcsec_per_px
+    for j, si in enumerate(near):
+        x, y = px[j], py[j]
+        if not (np.isfinite(x) and np.isfinite(y)):
+            continue
+        if x < -0.5 or x > plate.width - 0.5 or y < -0.5 or y > plate.height - 0.5:
+            continue
+        d_px = float(np.hypot(cen[:, 0] - x, cen[:, 1] - y).min())
+        out[int(ids[si])] = d_px * scale
+    return out
+
+
 def measured_direction(plate, centroid_xy):
     """Measured spacecraft->star unit direction from a centroid pixel.
 
