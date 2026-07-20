@@ -603,6 +603,21 @@ TheSkyLive — full per-object sources in
   `gui/web/where-in-space.html` (hardcoded spacecraft markers, labelled "~N au"
   and framed as approximate), `gui/web/vendor/spacekit/SOURCES.md`.
 
+**[OpenSpace]** OpenSpace project — open-source (MIT) astrovisualization
+software, NASA/AMNH/LiU-funded, openspaceproject.com; v0.22.0 (2026-06-12),
+Windows build from data.openspaceproject.com/release/0.22.0/. NOT vendored and
+NOT part of the pipeline or any result: it is the optional booth SHOW layer.
+GalNav exports a fix into it via `gui/openspace_export.py`. Frame facts used
+(from the OpenSpace source): scene graph is galactic-frame METRES with
+solar-system objects parented to `SolarSystemBarycenter`; the J2000-equatorial
+<-> galactic rotation it ships (modules/skybrowser/src/utility.cpp) is the
+Hipparcos Vol. 1 Sect. 1.5.3 matrix, which `gui/openspace_export.py` mirrors.
+- Where in repo: `gui/openspace_export.py` (exporter + CLI),
+  `tests_gui/test_openspace_export.py`, `journal/gui-openspace.md`.
+- Verified: rotation cross-checked against astropy's independent galactic
+  frame (worst 0.025 arcsec definition-level disagreement, measured, see the
+  test docstring); norm preservation exact; asset text pinned by tests.
+
 ## Related work (prior-art re-sweep 2026-07-16 — positioning, not method sources)
 
 **[Deng13]** Deng, X. P., Hobbs, G., You, X. P., et al. (2013). "Interplanetary

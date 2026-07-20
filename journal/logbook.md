@@ -3236,3 +3236,32 @@ wrong.**
   `journal/{gui-wrapper.md,citations.md,logbook.md}`, and (lead-requested, git-
   ignored, task-#15-owned) `data/candidates/MANIFEST.md`. No galnav/, tests/,
   golden_numbers, pytest.ini, docs/, or root README.md change; no frozen value moved.
+
+## 2026-07-20 — OpenSpace booth layer: fix exported into a real planetarium
+
+DECISION (student): the booth show layer is OpenSpace (open-source
+NASA/AMNH planetarium; SpaceEngine rejected — closed/paid, no astrometric
+guarantees, not reproducible; own-engine rejected — out of scope before
+freeze). OpenSpace displays only; nothing computes there.
+
+BUILT (strict TDD, RED ImportError captured first): `gui/openspace_export.py`
+— barycentric-ICRS-au fix -> OpenSpace .asset (galactic-frame metres under
+SolarSystemBarycenter, the frame OpenSpace's own source uses; Hipparcos
+1.5.3 rotation matrix mirrored from modules/skybrowser/src/utility.cpp).
+Amber recovered sphere + cyan truth sphere (8x8 PNG textures — OpenSpace
+spheres refuse plain colours) + RenderableNodeLine between them: the
+0.387 au miss drawn as a flyable object. CLI in module docstring.
+
+MEASURED: rotation vs astropy's independent galactic frame — worst
+disagreement 1.19e-7 relative = 0.025 arcsec across 50 random directions
+(definition-level: astropy chains through FK4 B1950; Hipparcos matrix is
+direct). Tolerance set just above the measured floor, documented in the
+test. Norm preservation exact to 1e-14 rel. Booth asset generated from
+the frozen 12-frame NH numbers (nh_demo re-run this box: recovered
+[13.386, -42.369, -16.486] au, |r| 47.39 au, miss 0.387 au vs JPL).
+
+EVIDENCE: tests_gui 96 passed (7 new in test_openspace_export.py; suite
+includes the paused sprint's uncommitted test_space_view.py), spine 84
+passed untouched. Journal gui-openspace.md; citations [OpenSpace].
+OpenSpace 0.22.0 Windows package downloading at close (install +
+in-planetarium verification of the marker pending).
