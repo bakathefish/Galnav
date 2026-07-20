@@ -10,17 +10,24 @@
 
 <div class="topbar"><div class="wrap">
   <span class="brand">Gal<span class="dot">Nav</span></span>
-  <span class="mono" style="color:var(--dim);font-size:12px">pipeline &middot; step 5 of 6</span>
+  <span class="topsub">pipeline &middot; step 5 of 6</span>
   <span class="spacer"></span>
   <a class="nav" href="/">&larr; back to app</a>
   <span id="os-chip" class="os-chip" data-state="unknown">checking OpenSpace&hellip;</span>
 </div></div>
 
 <div class="wrap">
-  <div class="stepper">
-    <span class="steplbl">Step 5 of 6 &mdash; Lines of position</span>
-    <span class="dots"><i></i><i></i><i></i><i></i><i class="on"></i><i></i></span>
-  </div>
+  <nav class="rail" aria-label="pipeline progress">
+    <ol class="rail-track">
+      <li class="rail-node done"><span class="rail-num">1</span><span class="rail-tag">Raw</span></li>
+      <li class="rail-node done"><span class="rail-num">2</span><span class="rail-tag">Detect</span></li>
+      <li class="rail-node done"><span class="rail-num">3</span><span class="rail-tag">Identify</span></li>
+      <li class="rail-node done"><span class="rail-num">4</span><span class="rail-tag">Angles</span></li>
+      <li class="rail-node current" aria-current="step"><span class="rail-num">5</span><span class="rail-tag">Lines</span></li>
+      <li class="rail-node"><span class="rail-num">6</span><span class="rail-tag">Fix</span></li>
+    </ol>
+    <p class="rail-cap"><span class="steplbl">Step 5 of 6</span> &mdash; Lines of position</p>
+  </nav>
 
   <p class="pipe-lede">A direction alone is not a position. But a direction <em>to a star whose position we
     know</em> is a <strong>line of position</strong>: the spacecraft must lie on the line that runs from the
@@ -31,7 +38,7 @@
 direction to it. One star pins a line; you need two lines from two <em>different</em> nearby stars to cross
 at a point.</span></div>
 
-  <div class="os-actions" style="margin:12px 0">
+  <div class="os-actions pipe-actions">
     <button class="btn answer" data-stage="lines">Show the line(s) in OpenSpace</button>
   </div>
 

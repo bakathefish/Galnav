@@ -215,7 +215,7 @@ function renderLocate(r) {
   $("results").innerHTML =
     `<div class="resultcard">
        ${warn}
-       <div class="k mono" style="color:var(--faint);letter-spacing:.1em">SPACECRAFT POSITION</div>
+       <div class="rc-kicker">SPACECRAFT POSITION</div>
        <div class="big-r">|r| = ${r.r_au.toFixed(2)} au</div>
        <div class="pos">x = [${x}] au &nbsp;(${r.r_pc.toExponential(3)} pc)</div>
        <div class="kv">
@@ -245,7 +245,7 @@ function renderLineOfPosition(r, warn) {
   $("results").innerHTML =
     `<div class="resultcard">
        ${warn}
-       <div class="k mono" style="color:var(--faint);letter-spacing:.1em">LINE OF POSITION</div>
+       <div class="rc-kicker">LINE OF POSITION</div>
        <div class="big-r">a line, not a point</div>
        <div class="pos">One nearby star (${esc(name)}) fixes you to a line of position through
          space, not a single point. Add a frame with a second, different nearby star and
@@ -376,7 +376,7 @@ function renderAge(r) {
      <div class="pos">estimated year the image was taken${truth}</div>`;
   $("results").innerHTML =
     `<div class="resultcard">
-       <div class="k mono" style="color:var(--faint);letter-spacing:.1em">IMAGE EPOCH FROM STAR MOTION</div>
+       <div class="rc-kicker">IMAGE EPOCH FROM STAR MOTION</div>
        ${yearLine}
        <div class="pos">age ${r.age_hat_yr.toFixed(2)}${sig} yr since J2016.0 · ${mode}${best}</div>
        <div class="agebox"><canvas id="curve" width="900" height="200"></canvas></div>

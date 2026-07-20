@@ -10,17 +10,24 @@
 
 <div class="topbar"><div class="wrap">
   <span class="brand">Gal<span class="dot">Nav</span></span>
-  <span class="mono" style="color:var(--dim);font-size:12px">pipeline &middot; step 6 of 6</span>
+  <span class="topsub">pipeline &middot; step 6 of 6</span>
   <span class="spacer"></span>
   <a class="nav" href="/">&larr; back to app</a>
   <span id="os-chip" class="os-chip" data-state="unknown">checking OpenSpace&hellip;</span>
 </div></div>
 
 <div class="wrap">
-  <div class="stepper">
-    <span class="steplbl">Step 6 of 6 &mdash; The fix</span>
-    <span class="dots"><i></i><i></i><i></i><i></i><i></i><i class="on"></i></span>
-  </div>
+  <nav class="rail" aria-label="pipeline progress">
+    <ol class="rail-track">
+      <li class="rail-node done"><span class="rail-num">1</span><span class="rail-tag">Raw</span></li>
+      <li class="rail-node done"><span class="rail-num">2</span><span class="rail-tag">Detect</span></li>
+      <li class="rail-node done"><span class="rail-num">3</span><span class="rail-tag">Identify</span></li>
+      <li class="rail-node done"><span class="rail-num">4</span><span class="rail-tag">Angles</span></li>
+      <li class="rail-node done"><span class="rail-num">5</span><span class="rail-tag">Lines</span></li>
+      <li class="rail-node current" aria-current="step"><span class="rail-num">6</span><span class="rail-tag">Fix</span></li>
+    </ol>
+    <p class="rail-cap"><span class="steplbl">Step 6 of 6</span> &mdash; The fix</p>
+  </nav>
 
   <p class="pipe-lede">With two or more lines from <strong>different</strong> stars, your position is where they
     cross. Real measurements are noisy, so the lines never meet perfectly; a <strong>least-squares</strong>
@@ -33,7 +40,7 @@
 least-squares crossing point; its covariance, scaled by the per-measurement angular sigma, is the
 error ellipsoid.</span></div>
 
-  <div class="os-actions" style="margin:12px 0">
+  <div class="os-actions pipe-actions">
     <button class="btn answer" data-stage="fix">Show the fix in OpenSpace</button>
   </div>
 

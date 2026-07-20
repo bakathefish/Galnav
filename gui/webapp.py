@@ -81,13 +81,16 @@ WIDE_CATALOG_CSV = REPO_ROOT / "data" / "gaia_dr3_nav_100pc.csv"
 _WIDE_LOCK = threading.Lock()  # serialise the one-time wide-catalog parse
 _BAD_WIDE_MTIME = set()  # mtimes that failed to parse (partial file); skip them
 
-# UI palette (matches docs/PIPELINE-FLOWCHART.html dark theme).
-_FACE = "#0a0e16"
+# UI palette -- mirrors gui/web/style.css dark theme EXACTLY so the overlay plots,
+# the page, and OpenSpace tell one colour story (cyan = data, amber = the answer).
+# _FACE = --void (imaging black), _LINE = --line, and cyan/amber/dim/muted are the
+# --cyan/--amber/--dim/--faint dark tokens verbatim.
+_FACE = "#060a12"
 _CYAN = "#3fcbef"
 _AMBER = "#f2b444"
 _DIM = "#93a6bf"
 _MUTED = "#6f7f96"  # dim distance labels for identified-but-not-navigable stars
-_LINE = "#263248"
+_LINE = "#26324a"
 
 # Static files the /static/ route is allowed to serve (no path traversal).
 # The pipeline-*.html pages are the step-by-step visualization (do.txt items 5+9);
