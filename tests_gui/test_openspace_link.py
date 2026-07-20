@@ -21,6 +21,7 @@ import os
 import re
 import socket
 import threading
+import time
 
 import numpy as np
 
@@ -114,9 +115,12 @@ def test_run_lua_false_when_nothing_listening():
     )
 
 
-def test_run_lua_sends_framed_script_to_fake_server():
-    """Against a tiny in-process TCP server, run_lua delivers exactly the framed
-    bytes lua_message() produces -- the end-to-end wire contract, no OpenSpace."""
+def test_run_lua_sends_handshake_then_framed_script():
+    """Against a tiny in-process TCP server, run_lua sends exactly TWO newline-
+    framed JSON lines in order: the apiHandshake FIRST (without it, a live
+    OpenSpace 0.22 rejects every topic message with 'Unsupported API version' --
+    measured 2026-07-20 this box), then the luascript envelope. The end-to-end
+    wire contract, no OpenSpace needed."""
     srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     srv.bind(("127.0.0.1", 0))
     srv.listen(1)
@@ -126,7 +130,7 @@ def test_run_lua_sends_framed_script_to_fake_server():
     def serve():
         conn, _ = srv.accept()
         buf = b""
-        while b"\n" not in buf:
+        while buf.count(b"\n") < 2:
             chunk = conn.recv(4096)
             if not chunk:
                 break
@@ -138,13 +142,17 @@ def test_run_lua_sends_framed_script_to_fake_server():
     t.start()
     script = "openspace.printInfo('hello galnav')"
     ok = osl.run_lua(script, host="127.0.0.1", port=port, timeout=2.0)
-    t.join(2.0)
+    t.join(3.0)
     srv.close()
     assert ok is True
-    assert received and received[0].endswith(b"\n")
-    obj = json.loads(received[0].decode("utf-8").rstrip("\n"))
-    assert obj["type"] == "luascript"
-    assert obj["payload"]["script"] == script
+    lines = received[0].decode("utf-8").split("\n")
+    assert len(lines) >= 2 and lines[0] and lines[1]
+    first = json.loads(lines[0])
+    assert first["type"] == "apiHandshake"
+    assert first["apiVersion"] == {"major": 1, "minor": 0, "patch": 0}
+    second = json.loads(lines[1])
+    assert second["type"] == "luascript"
+    assert second["payload"]["script"] == script
 
 
 # ---------------------------------------------------------------- clear (item 1)
@@ -249,13 +257,23 @@ def test_fix_lua_with_truth_adds_marker_and_miss_line():
     assert _balanced(text)
 
 
-def test_fix_lua_flyto_is_present_and_failure_tolerant():
-    """After the fix push we fly the camera toward the fix node; the call is
-    pcall-wrapped so a missing pathnavigation API can never break the push."""
+def test_fix_lua_camera_move_is_present_and_failure_tolerant():
+    """After the fix push the camera is placed AT the answer; the call is
+    pcall-wrapped so a missing navigation API can never break the push. The
+    call is setNavigationState with an Anchor-relative Position, every
+    alternative measured and rejected on a live OpenSpace 0.22.0 (2026-07-20,
+    this box): pathnavigation.* is nil; navigation.flyTo completes but keeps
+    the initial camera-target distance (arrived 47 au out -- marker invisible)
+    and has no height parameter ('Duration cannot be specified twice' /
+    'Expected type Boolean or Number' for an options table). The 6e10 m
+    offset frames the fix sphere with the truth marker 0.387 au beside it --
+    screenshot-verified amber + cyan + white miss line."""
     text = osl.fix_lua(RECOVERED)
-    assert "pathnavigation.flyTo" in text
-    assert "pcall" in text  # fly-to is failure-tolerant
-    assert "GalNavLiveFixPos" in text  # flies to the fix's position node
+    assert "openspace.navigation.setNavigationState" in text
+    assert "pathnavigation" not in text  # nil on 0.22 -- the old, wrong table
+    assert "pcall" in text  # the camera move is failure-tolerant
+    assert 'Anchor = "GalNavLiveFix"' in text  # anchored to the renderable fix
+    assert "6.0e10" in text  # the measured framing distance
 
 
 def test_fix_all_identifiers_are_galnavlive():
@@ -284,3 +302,56 @@ def test_marker_texture_paths_are_absolute_pngs_without_writing(tmp_path):
     assert set(paths) == {"amber", "cyan"}
     for p in paths.values():
         assert os.path.isabs(p) and p.lower().endswith(".png")
+
+
+def test_run_lua_lingers_before_close():
+    """run_lua must HOLD the socket open after the last byte, not slam it shut.
+    Measured against live OpenSpace 0.22.0 (2026-07-20, this box): a FIN sent
+    immediately after the payload races the server's per-connection reader
+    thread and the script is silently discarded (0/2 executed), while any hold
+    >= 50 ms delivered 9/9 (50/250/750 ms trials) -- the reader enqueues into
+    ServerModule's _messageQueue as it reads, so only an instant close loses.
+    This pins the 0.25 s default linger (5x margin) by measuring, through the
+    same fake server as above, the wall time between the last payload byte and
+    the client's FIN (recv() returning b'')."""
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(1)
+    port = srv.getsockname()[1]
+    gap = []
+
+    def serve():
+        conn, _ = srv.accept()
+        buf = b""
+        while b"\n" not in buf:
+            chunk = conn.recv(4096)
+            if not chunk:
+                break
+            buf += chunk
+        got_payload = time.monotonic()
+        while conn.recv(4096):  # drain until the client's FIN
+            pass
+        gap.append(time.monotonic() - got_payload)
+        conn.close()
+
+    t = threading.Thread(target=serve, daemon=True)
+    t.start()
+    ok = osl.run_lua(
+        "openspace.printInfo('linger')", host="127.0.0.1", port=port, timeout=2.0
+    )
+    t.join(3.0)
+    srv.close()
+    assert ok is True
+    assert gap and gap[0] >= 0.15, (
+        f"socket closed {gap[0]:.3f}s after the payload -- an instant FIN loses "
+        "the script on a live OpenSpace (measured); keep the linger."
+    )
+
+
+def test_lua_message_is_not_synchronized():
+    """shouldBeSynchronized stays FALSE as the honest semantic: synchronized
+    scripts are for cluster/parallel sessions and a booth push has none.
+    (Measured on a live 0.22.0 with the apiHandshake in place, both values
+    execute -- the flag never gated anything; this pin is about meaning.)"""
+    obj = json.loads(osl.lua_message("openspace.printInfo('x')").decode().rstrip("\n"))
+    assert obj["payload"]["shouldBeSynchronized"] is False

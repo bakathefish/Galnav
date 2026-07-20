@@ -13,11 +13,17 @@ module source):
   * framing: each message is one JSON object terminated by a single '\\n' -- the
     client does ``sendall((json + "\\n").encode())`` and splits incoming data on
     '\\n'. That is the whole framing; there is no length prefix on this socket.
+  * handshake: the FIRST message on every connection must be
+    ``{"type": "apiHandshake", "apiVersion": {"major": 1, "minor": 0,
+    "patch": 0}}`` -- the same first-thing-on-connect message the official
+    openspace-api-js client sends (src/api.ts _sendHandshake). Without it,
+    OpenSpace 0.22 rejects every topic message with 'Unsupported API version'
+    (measured live, this box);
   * envelope: ``{"topic": <int>, "type": "luascript", "payload": {"script": <lua>,
-    "return": false, "shouldBeSynchronized": true}}`` -- ``type`` sits at the top
+    "return": false, "shouldBeSynchronized": false}}`` -- ``type`` sits at the top
     level (api.py startTopic), and the ``luascript`` topic runs the payload's
     ``script`` on the OpenSpace Lua state (openspace.addSceneGraphNode /
-    removeSceneGraphNode / pathnavigation.flyTo / ...).
+    removeSceneGraphNode / navigation.flyTo / ...).
 
 Because every push here is fire-and-forget (return:false, no reply awaited), the
 client is a few lines of the standard-library ``socket`` -- NO asyncio, NO new
@@ -44,6 +50,7 @@ numpy; never galnav.truth.
 
 import json
 import socket
+import time
 from pathlib import Path
 
 import numpy as np
@@ -132,12 +139,34 @@ def _lua_path(p):
 
 
 # --------------------------------------------------------------- wire client
+# The REQUIRED first message on every connection. Without it, OpenSpace 0.22
+# rejects every subsequent topic message with 'Unexpected error Unsupported API
+# version' and executes nothing (measured live, this box, 2026-07-20). This is
+# the same first-thing-on-connect handshake the official openspace-api-js client
+# sends (_sendHandshake, src/api.ts: {type:'apiHandshake', apiVersion 1.0.0}).
+API_HANDSHAKE = {
+    "type": "apiHandshake",
+    "apiVersion": {"major": 1, "minor": 0, "patch": 0},
+}
+
+
+def handshake_message():
+    """The newline-framed apiHandshake bytes that must open every connection."""
+    return (json.dumps(API_HANDSHAKE) + "\n").encode("utf-8")
+
+
 def lua_message(script, want_return=False):
     """The exact bytes to put on the OpenSpace socket to run ``script``.
 
     One JSON object, the {topic,type,payload} envelope, terminated by a single
     newline (the delimiter the OpenSpace Server socket reads on). want_return is
-    false: we push and move on, awaiting no reply.
+    false: we push and move on, awaiting no reply. Must be PRECEDED on the
+    connection by handshake_message() -- see API_HANDSHAKE.
+
+    shouldBeSynchronized is false as the honest semantic: synchronized scripts
+    are for cluster/parallel sessions; a booth marker push has none. (Measured
+    with the handshake in place, both true and false execute -- the flag was
+    never the gatekeeper; the missing handshake was.)
     """
     obj = {
         "topic": 1,
@@ -145,7 +174,7 @@ def lua_message(script, want_return=False):
         "payload": {
             "script": script,
             "return": bool(want_return),
-            "shouldBeSynchronized": True,
+            "shouldBeSynchronized": False,
         },
     }
     return (json.dumps(obj) + "\n").encode("utf-8")
@@ -160,13 +189,39 @@ def is_running(host=OPENSPACE_HOST, port=OPENSPACE_PORT, timeout=0.3):
         return False
 
 
-def run_lua(script, host=OPENSPACE_HOST, port=OPENSPACE_PORT, timeout=0.3):
+def run_lua(
+    script,
+    host=OPENSPACE_HOST,
+    port=OPENSPACE_PORT,
+    timeout=0.3,
+    handshake_grace=0.2,
+    linger=0.25,
+):
     """Send one Lua script to OpenSpace. Returns True on success, False if the
     connection could not be made or the send failed -- never raises, so the web
-    layer can report an honest 'start OpenSpace' instead of a stack trace."""
+    layer can report an honest 'start OpenSpace' instead of a stack trace.
+
+    Three wire facts, all MEASURED against a live OpenSpace 0.22.0 (this box,
+    2026-07-20), none decorative:
+    1. The apiHandshake must go first (see API_HANDSHAKE) -- without it every
+       topic message is rejected 'Unsupported API version', script never runs.
+    2. handshake_grace: the handshake must be PROCESSED before the luascript
+       line lands, so a short pause separates the two sends -- the version
+       state is per-connection and set when the handshake is handled, not when
+       it is buffered.
+    3. THE LINGER IS LOAD-BEARING: OpenSpace's per-connection reader thread
+       enqueues messages as it pulls them off the socket; a FIN that lands
+       before the reader has pulled our bytes kills the message with the
+       connection. Measured: close immediately after sendall -> message never
+       even parsed (0/2 reached the server's JSON layer); hold >= 50 ms ->
+       delivered 9/9 (50/250/750 ms trials). linger=0.25 s is a 5x margin.
+    """
     try:
         with socket.create_connection((host, port), timeout=timeout) as sock:
+            sock.sendall(handshake_message())
+            time.sleep(handshake_grace)
             sock.sendall(lua_message(script))
+            time.sleep(linger)
         return True
     except OSError:
         return False
@@ -338,7 +393,7 @@ def fix_lua(
 
     Reuses the exporter's marker idiom for both spheres. When truth_au is given, a
     white RenderableNodeLine draws the miss between the two position nodes. After
-    the adds, a pcall'd pathnavigation.flyTo carries the camera to the fix -- the
+    the adds, a pcall'd navigation.flyTo carries the camera to the fix -- the
     pcall makes the fly-to failure-tolerant (a missing/renamed API can never break
     the push). Identifiers: GalNavLiveFix*, GalNavLiveTruth*, GalNavLiveMissLine.
     """
@@ -386,7 +441,21 @@ def fix_lua(
         )
         parts.append(_add([MISS_ID]))
     if fly_to:
-        parts.append(f'pcall(openspace.pathnavigation.flyTo, "{FIX_ID}Pos", 4.0)')
+        # Camera move, every choice below MEASURED on the live 0.22.0 (this box,
+        # 2026-07-20): pathnavigation.* is nil ('attempt to call a nil value');
+        # navigation.flyTo(id, 4.0) completes but PRESERVES the camera-target
+        # distance (arrived 6.54 lighthours = the Earth->fix distance -- an 8e9 m
+        # marker subtends nothing from 47 au), and flyTo has no height control
+        # (arg 2 is bool-or-number up-flag/duration: passing (id, 6e10, 4.0) ->
+        # 'Duration cannot be specified twice', an options table -> 'Expected
+        # type Boolean or Number'). setNavigationState with an Anchor-relative
+        # Position is exact and instant: 6e10 m out frames the fix sphere AND the
+        # truth marker 5.8e10 m (0.387 au) beside it -- the miss story in one
+        # view (screenshot-verified: amber + cyan + white miss line).
+        parts.append(
+            "pcall(openspace.navigation.setNavigationState, "
+            f'{{ Anchor = "{FIX_ID}", Position = {{ 6.0e10, 0.0, 0.0 }} }})'
+        )
     return "\n".join(parts)
 
 
