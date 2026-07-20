@@ -120,8 +120,13 @@ button{font-family:inherit}
 .frame{
   display:flex; align-items:center; gap:10px; padding:8px; border:1px solid var(--line);
   border-radius:10px; background:var(--panel2); cursor:pointer; text-align:left; width:100%;
-  transition:border-color .12s ease;
+  transition:border-color .12s ease; position:relative;
 }
+/* remove control on uploaded frames only */
+.frame .rm{position:absolute; top:4px; right:4px; width:18px; height:18px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font:700 13px/1 ui-monospace,monospace;
+  color:var(--dim); background:var(--panel); border:1px solid var(--line); cursor:pointer}
+.frame .rm:hover{color:var(--crit); border-color:var(--crit)}
 .frame:hover{border-color:color-mix(in srgb,var(--cyan) 40%,var(--line))}
 .frame:focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
 .frame.sel{border-color:var(--cyan); background:var(--cyanbg)}
@@ -153,6 +158,14 @@ button{font-family:inherit}
 }
 .ctl input:focus-visible{outline:2px solid var(--cyan); outline-offset:1px}
 .row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px}
+/* plain-english one-liners under each control (do.txt item 7) */
+.ctl-note{margin:6px 0 0; font-size:11.5px; line-height:1.5; color:var(--faint)}
+/* age auto/manual badge + the back-to-auto link-button */
+.age-badge{display:inline-block; margin-left:6px; padding:2px 7px; border-radius:20px;
+  font-size:9px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--cyan); background:var(--cyanbg); border:1px solid var(--line)}
+.linkbtn{background:none; border:0; padding:0; color:var(--cyan); cursor:pointer;
+  font-family:inherit; font-size:11.5px; font-weight:600; text-decoration:underline}
 details{margin-top:12px} details summary{cursor:pointer; color:var(--dim); font-size:13px}
 .uploadrow{margin-top:14px}
 input[type=file]{font-size:12px; color:var(--dim); width:100%}

@@ -2,7 +2,18 @@
 // GalNav web demo frontend. Talks only to this app's own /api/* endpoints.
 
 const $ = (id) => document.getElementById(id);
-const state = { frames: [], selected: new Set(), focus: null, busy: false };
+// order = selection history (most recent LAST): focus always derives from it,
+// so deselecting a frame can hand focus to the previously selected one.
+// ageMode: "auto" follows the selected frames; "manual" = the user typed an
+// age and selection changes must not stomp it.
+const state = {
+  frames: [],
+  selected: new Set(),
+  order: [],
+  focus: null,
+  busy: false,
+  ageMode: "auto",
+};
 
 function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -58,24 +69,67 @@ function renderGallery() {
     const radius = encodeURIComponent($("radius").value || "120");
     const fid = encodeURIComponent(f.id);
     el.innerHTML =
-      `<img loading="lazy" alt="" src="/api/image?id=${fid}&age=${age}&radius=${radius}&thumb=1">` +
+      `<img loading="lazy" alt="" data-fid="${fid}" src="/api/image?id=${fid}&age=${age}&radius=${radius}&thumb=1">` +
       `<span class="meta"><span class="fname">${esc(f.name)}</span><br>${fieldTag(f.field)}</span>` +
       `<input class="ck" type="checkbox" tabindex="-1" ${sel ? "checked" : ""} aria-hidden="true">`;
     el.addEventListener("click", () => toggleFrame(f.id));
+    if (f.id.startsWith("up_")) {
+      // Only UPLOADS (ids up_<n>) get the remove control; demo frames get none.
+      const rm = document.createElement("span");
+      rm.className = "rm";
+      rm.title = "Remove this upload";
+      rm.setAttribute("role", "button");
+      rm.textContent = "×";
+      rm.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        removeUpload(f.id);
+      });
+      el.appendChild(rm);
+    }
     g.appendChild(el);
   }
 }
 
-function toggleFrame(id) {
-  if (state.selected.has(id)) state.selected.delete(id);
-  else state.selected.add(id);
+// --- selection (order-tracked so focus can follow honestly) -----------------
+function selectId(id) {
+  state.selected.add(id);
+  state.order = state.order.filter((x) => x !== id);
+  state.order.push(id);
   state.focus = id;
+}
+
+function deselectId(id) {
+  state.selected.delete(id);
+  state.order = state.order.filter((x) => x !== id);
+  // Focus moves to the most recently selected REMAINING frame, or null: the
+  // preview goes honestly empty instead of showing the frame just deselected
+  // (the old focus/selected desync bug).
+  state.focus = state.order.length ? state.order[state.order.length - 1] : null;
+}
+
+function toggleFrame(id) {
+  if (state.selected.has(id)) deselectId(id);
+  else selectId(id);
   syncAge();
   renderGallery();
   updatePreview();
 }
 
+// --- age auto/manual ---------------------------------------------------------
+function setAgeMode(mode) {
+  state.ageMode = mode;
+  const badge = $("age-mode");
+  if (badge) badge.textContent = mode;
+  const reset = $("age-auto");
+  if (reset) reset.hidden = mode === "auto";
+  if (mode === "auto") {
+    syncAge();
+    refreshImages();
+  }
+}
+
 function syncAge() {
+  if (state.ageMode !== "auto") return; // manual: never stomp a typed age
   const a = ageOf([...state.selected]);
   if (a !== null) $("age").value = a.toFixed(2);
 }
@@ -94,6 +148,27 @@ function updatePreview() {
   wrap.innerHTML = `<img alt="frame ${esc(f.name)}" src="/api/image?id=${encodeURIComponent(state.focus)}&age=${age}&radius=${radius}&t=${Date.now()}">`;
   $("caption").textContent = `${f.name} - ${f.field} field - cyan = detected star, amber = identified nearby star`;
 }
+
+// Update ONLY the <img> srcs (gallery thumbs + preview) when age/radius change.
+// No renderGallery() teardown per keystroke: the thumbnails stay in place and
+// just re-request with the new query params.
+function refreshImages() {
+  const age = encodeURIComponent($("age").value || "4.31");
+  const radius = encodeURIComponent($("radius").value || "120");
+  for (const img of document.querySelectorAll("#gallery img[data-fid]")) {
+    img.src = `/api/image?id=${img.dataset.fid}&age=${age}&radius=${radius}&thumb=1`;
+  }
+  updatePreview();
+}
+
+function debounce(fn, wait) {
+  let t = null;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), wait);
+  };
+}
+const refreshImagesDebounced = debounce(refreshImages, 400);
 
 function setBusy(on) {
   state.busy = on;
@@ -119,6 +194,11 @@ async function locate() {
 function renderLocate(r) {
   const warn = r.warning ? `<div class="warnbar">${esc(r.warning)}</div>` : "";
   if (!r.ok) {
+    if (r.mode === "line" && r.lop) {
+      // One usable nearby star: not a failure, a LINE of position (do.txt 9).
+      renderLineOfPosition(r, warn);
+      return;
+    }
     $("results").innerHTML = `<div class="resultcard">${warn}<div class="pos">${esc(r.message)}</div></div>`;
     hideSpacePanel();
     return;
@@ -146,6 +226,33 @@ function renderLocate(r) {
        <div class="linelist">${lines}</div>
      </div>`;
   showSpacePanel(r);
+}
+
+// One nearby star pins the camera to a LINE of position, not a point. The card
+// says so honestly (do.txt item 9). No 3-D wiring here: the viewer is moving to
+// OpenSpace, and line-of-position display there lands in a later wave.
+function renderLineOfPosition(r, warn) {
+  const lop = r.lop;
+  const name = lop.star_name || "one nearby star";
+  const spread =
+    r.n_lines > 1 && lop.residual_spread_arcsec !== null && lop.residual_spread_arcsec !== undefined
+      ? `<div><div class="k">spread between sightings</div><div class="v">${Number(lop.residual_spread_arcsec).toFixed(2)}&Prime;</div></div>`
+      : "";
+  $("results").innerHTML =
+    `<div class="resultcard">
+       ${warn}
+       <div class="k mono" style="color:var(--faint);letter-spacing:.1em">LINE OF POSITION</div>
+       <div class="big-r">a line, not a point</div>
+       <div class="pos">One nearby star (${esc(name)}) fixes you to a line of position through
+         space, not a single point. Add a frame with a second, different nearby star and
+         Locate again to pin the 3-D position.</div>
+       <div class="kv">
+         <div><div class="k">star</div><div class="v">${esc(name)}</div></div>
+         <div><div class="k">lines</div><div class="v">${r.n_lines}</div></div>
+         ${spread}
+       </div>
+     </div>`;
+  hideSpacePanel(); // a line is not a point fix; no 3-D panel for now
 }
 
 // --- 3-D "Where in Space" panel (lazy iframe) -------------------------------
@@ -262,44 +369,117 @@ function drawCurve(r, ylabel) {
   ctx.fillText(ylabel || "chi2", 0, 0); ctx.restore();
 }
 
+// --- upload ------------------------------------------------------------------
 const UPLOAD_STAGES = ["Solving field…", "Identifying stars…", "Locating…"];
 
-async function upload(file) {
-  setBusy(true);
+// Upload ONE file. Returns {ok, name, message, id, duplicate, srvName} and
+// never throws. Progress goes to the stage box with a per-file prefix
+// ("2/5 img.fits — Solving field…") while the possibly-slow solve runs.
+async function uploadOne(file, prefix) {
   const stage = $("upload-stage");
   stage.hidden = false;
   stage.className = "upload-stage busy";
-  stage.innerHTML = `<span class="spin"></span><span id="stage-text">${UPLOAD_STAGES[0]}</span>`;
-  // Animate the stage label while the (possibly slow) blind solve runs server-side.
+  stage.innerHTML = '<span class="spin"></span><span id="stage-text"></span>';
+  const label = (s) => {
+    const t = $("stage-text");
+    if (t) t.textContent = `${prefix}${s}`;
+  };
+  label(UPLOAD_STAGES[0]);
   let i = 0;
   const timer = setInterval(() => {
     i = (i + 1) % UPLOAD_STAGES.length;
-    const t = $("stage-text"); if (t) t.textContent = UPLOAD_STAGES[i];
+    label(UPLOAD_STAGES[i]);
   }, 1200);
   try {
-    const fd = new FormData(); fd.append("file", file);
+    const fd = new FormData();
+    fd.append("file", file);
     const key = $("apikey").value.trim();
     const opts = { method: "POST", body: fd };
     if (key) opts.headers = { "X-Api-Key": key };
     const r = await api("/api/upload", opts);
+    return {
+      ok: !!r.ok,
+      name: file.name,
+      message: r.message || "",
+      id: r.id,
+      duplicate: !!r.duplicate,
+      srvName: r.name,
+    };
+  } catch (e) {
+    return { ok: false, name: file.name, message: String(e), duplicate: false };
+  } finally {
     clearInterval(timer);
-    if (!r.ok) {
-      // Surface the friendly multi-backend reason prominently (this is the error
-      // the user keeps hitting before a solver is installed) -- not just a toast.
-      stage.className = "upload-stage err";
-      stage.textContent = r.message || "Upload failed.";
+  }
+}
+
+// Sequential multi-upload: EVERY file is attempted (one bad file never aborts
+// the rest), each success lands selected+focused, and an honest summary --
+// counts plus per-file failure reasons -- ends up in the stage box.
+async function uploadMany(files) {
+  setBusy(true);
+  const stage = $("upload-stage");
+  const okNames = [], dupNames = [], failed = [];
+  try {
+    for (let n = 0; n < files.length; n++) {
+      const file = files[n];
+      const prefix = files.length > 1 ? `${n + 1}/${files.length} ${file.name} — ` : "";
+      const r = await uploadOne(file, prefix);
+      if (r.duplicate) {
+        // Identical bytes are already in the gallery: select the existing
+        // record instead of stacking a copy.
+        dupNames.push(r.name);
+        toast(`“${r.name}” already uploaded — selected the existing copy.`);
+        if (r.id) selectId(r.id);
+        continue;
+      }
+      if (!r.ok) {
+        failed.push(r);
+        continue;
+      }
+      okNames.push(r.srvName || r.name);
+      if (r.id) selectId(r.id);
+    }
+    await loadFrames(); // re-renders the gallery with the new selection state
+    updatePreview();
+    if (failed.length === 0 && okNames.length === 1 && dupNames.length === 0) {
+      stage.className = "upload-stage ok";
+      stage.textContent = `Solved — added “${okNames[0]}”. Select it (plus one more nearby-star frame) and click Locate.`;
       return;
     }
-    stage.className = "upload-stage ok";
-    stage.textContent = `Solved — added “${r.name}”. Select it (plus one more nearby-star frame) and click Locate.`;
-    await loadFrames();
-    state.selected.add(r.id); state.focus = r.id;
-    renderGallery(); updatePreview();
+    const parts = [];
+    if (okNames.length) parts.push(`${okNames.length} uploaded`);
+    if (dupNames.length) parts.push(`${dupNames.length} already uploaded`);
+    if (failed.length) {
+      const why = failed.map((f) => `${f.name} (${f.message || "failed"})`).join("; ");
+      parts.push(`${failed.length} failed: ${why}`);
+    }
+    stage.hidden = false;
+    stage.className = failed.length ? "upload-stage err" : "upload-stage ok";
+    stage.textContent = parts.join(" · ") || "Nothing to upload.";
+  } finally {
+    setBusy(false);
+  }
+}
+
+// Remove an uploaded frame server-side (the endpoint refuses demo ids), then
+// drop it from selection AND focus so gallery/preview cannot desync.
+async function removeUpload(id) {
+  try {
+    const r = await api("/api/remove_upload", {
+      method: "POST",
+      body: JSON.stringify({ id }),
+    });
+    if (!r.ok) {
+      toast(r.message || "Could not remove that upload.");
+      return;
+    }
   } catch (e) {
-    clearInterval(timer);
-    stage.className = "upload-stage err";
-    stage.textContent = "Upload failed: " + e;
-  } finally { setBusy(false); }
+    toast("Remove failed: " + e);
+    return;
+  }
+  deselectId(id); // focus falls back to the last-selected remaining frame
+  await loadFrames();
+  updatePreview();
 }
 
 async function loadFrames() {
@@ -308,11 +488,38 @@ async function loadFrames() {
   renderGallery();
 }
 
+// --- solver messaging (do.txt item 6) ----------------------------------------
+// The page ships with static "install the blind solver" hints. When the local
+// WSL astrometry.net is actually installed (wsl_solver && wsl_config), those
+// three hints swap to an installed-state line; the install instructions stay
+// rendered only while the solver is absent.
+async function solverStatus() {
+  let r;
+  try {
+    r = await api("/api/solver_status");
+  } catch (e) {
+    return; // old server without the endpoint: leave install hints as-is
+  }
+  if (!r || r.ok !== true) return; // 404 JSON from an old server: leave install hints as-is
+  if (!(r.wsl_solver && r.wsl_config)) return; // absent: keep install instructions
+  const line = `Blind solver: astrometry.net installed locally (WSL, ${r.index_files} narrow-field indexes)`;
+  const fmt = $("solver-hint-formats");
+  if (fmt) fmt.textContent = "FITS / PNG / JPG — several at once is fine. A FITS with a WCS solves instantly; raw photos are blind-solved locally.";
+  const inst = $("solver-hint-install");
+  if (inst) inst.textContent = line + ". No API key needed; the nova key below is an optional online fallback.";
+  const how = $("solver-hint-how");
+  if (how) how.textContent = line + " — a raw photo with no embedded WCS solves offline.";
+}
+
 function selectPreset(ids) {
   state.selected = new Set(ids);
+  // A preset selects everything "at once" with the FIRST frame focused, so the
+  // history is stored most-recent-last ending on ids[0].
+  state.order = [...ids].reverse();
   state.focus = ids[0];
-  $("age").value = (ageOf(ids) ?? 4.31).toFixed(2);
-  renderGallery(); updatePreview();
+  syncAge(); // auto mode follows the selection; manual is never stomped
+  renderGallery();
+  updatePreview();
 }
 
 function init() {
@@ -320,14 +527,28 @@ function init() {
   $("preset-12").addEventListener("click", () =>
     selectPreset(["f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11"]));
   $("clear-sel").addEventListener("click", () => {
-    state.selected.clear(); state.focus = null; renderGallery(); updatePreview();
+    state.selected.clear(); state.order = []; state.focus = null;
+    renderGallery(); updatePreview();
     $("results").innerHTML = ""; hideSpacePanel();
   });
   $("locate").addEventListener("click", locate);
   $("estimate").addEventListener("click", estimateAge);
-  $("age").addEventListener("change", () => { renderGallery(); updatePreview(); });
-  $("radius").addEventListener("change", () => { renderGallery(); updatePreview(); });
-  $("file").addEventListener("change", (e) => { if (e.target.files[0]) upload(e.target.files[0]); });
+  // Typing an age is an explicit override: enter manual mode so selection
+  // changes stop stomping it. Edits refresh only the <img> srcs, debounced.
+  $("age").addEventListener("input", () => {
+    setAgeMode("manual");
+    refreshImagesDebounced();
+  });
+  $("age-auto").addEventListener("click", () => setAgeMode("auto"));
+  $("radius").addEventListener("input", refreshImagesDebounced);
+  $("file").addEventListener("change", (e) => {
+    const files = [...e.target.files];
+    // ALWAYS clear the input so re-selecting the SAME file fires change again
+    // (the "upload looks frozen" bug) -- reset on success AND failure alike.
+    e.target.value = "";
+    if (files.length) uploadMany(files);
+  });
   loadFrames();
+  solverStatus();
 }
 document.addEventListener("DOMContentLoaded", init);

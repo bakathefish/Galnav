@@ -34,15 +34,15 @@
         <h2>Add your own image</h2>
         <p class="upload-lede">Raw image in: no coordinates needed &mdash; the pipeline
           plate-solves, identifies, and locates.</p>
-        <input type="file" id="file" class="file-hidden"
+        <input type="file" id="file" class="file-hidden" multiple
                accept=".fits,.fit,.fts,.png,.jpg,.jpeg">
-        <label for="file" class="btn primary big uploadbtn">Choose a star-field image</label>
-        <p class="upload-hint mono">FITS / PNG / JPG. A FITS with a WCS solves instantly;
-          any other image needs a blind solver.</p>
+        <label for="file" class="btn primary big uploadbtn">Choose star-field images</label>
+        <p class="upload-hint mono" id="solver-hint-formats">FITS / PNG / JPG &mdash; several at
+          once is fine. A FITS with a WCS solves instantly; any other image needs a blind solver.</p>
         <div id="upload-stage" class="upload-stage" hidden></div>
         <details class="upload-adv">
           <summary>No coordinates in the image?</summary>
-          <p class="upload-hint">A raw photo needs a blind plate solve: install local
+          <p class="upload-hint" id="solver-hint-install">A raw photo needs a blind plate solve: install local
             <span class="mono">astrometry.net</span> (WSL), or paste a free nova API key.</p>
           <label for="apikey">nova API key</label>
           <input type="password" id="apikey" placeholder="optional">
@@ -79,23 +79,37 @@
     <!-- controls -->
     <section class="card ctl">
       <h2>Controls</h2>
-      <label for="age">Catalog age (yr since J2016.0; negative = before 2016)</label>
+      <label for="age">Catalog age (yr since J2016.0; negative = before 2016)
+        <span id="age-mode" class="age-badge mono"
+              title="auto follows the selected frames; typing a value switches to manual">auto</span></label>
       <input type="number" id="age" value="4.31" step="0.01">
+      <p class="ctl-note">How many years the 2016 star catalog is drifted forward to match when
+        the photo was taken. Follows the selected frames automatically; type a value to
+        override it. <button type="button" id="age-auto" class="linkbtn" hidden>back to auto</button></p>
       <label for="radius">Match radius (arcsec)</label>
       <input type="number" id="radius" value="120" step="1" min="1">
+      <p class="ctl-note">How far (in arcseconds) a detected blob may sit from a catalog star's
+        predicted spot and still count as that star.</p>
       <details>
         <summary>Advanced</summary>
-        <label for="rv">RV fill (km/s)</label>
+        <label for="rv">RV fill &mdash; assumed radial velocity (km/s)</label>
         <input type="number" id="rv" value="19.57" step="0.1">
-        <label>Age scan grid (min / max / step)</label>
+        <p class="ctl-note">Speed toward/away from us assumed for catalog stars with
+          no measured radial velocity, used when aging the catalog. Default is Wolf 359's
+          measured value.</p>
+        <label>Age scan range (min / max / step, yr)</label>
         <div class="row3">
           <input type="number" id="amin" value="0" step="0.25">
           <input type="number" id="amax" value="10" step="0.25">
           <input type="number" id="astep" value="0.25" step="0.05" min="0.05">
         </div>
+        <p class="ctl-note">The span of catalog ages the estimator tries, and the spacing
+          between tries. Wider reaches older plates; finer sharpens the minimum.</p>
       </details>
       <button class="btn answer big" id="locate">Locate spacecraft</button>
       <button class="btn big" id="estimate">Estimate catalog age</button>
+      <p class="ctl-note">This button MEASURES the image's age from stellar drift;
+        the Catalog age input above ASSUMES one when locating.</p>
     </section>
   </div>
 
@@ -125,7 +139,7 @@
     <ul>
       <li>One image gives a <em>line</em> of position, not a point &mdash; you need &ge;2 different nearby stars.</li>
       <li>A random photo of the sky usually has <em>no</em> star within 20 pc in frame, so it can't be fixed (pointing still works).</li>
-      <li>An uploaded image with no embedded WCS needs a blind solver (local astrometry.net via WSL, or a nova API key).</li>
+      <li id="solver-hint-how">An uploaded image with no embedded WCS needs a blind solver (local astrometry.net via WSL, or a nova API key).</li>
       <li>The ground-based frames fix the observer &mdash; they land on Earth. The demo (New Horizons) frames land at ~47 au.</li>
     </ul>
     <p class="credits">
