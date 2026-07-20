@@ -54,7 +54,7 @@ Every one is byte-reproducible from the archived arrays.
 
 The `92 / 13 / 2` row counts the two pinned science environments: **84 spine
 tests** (the default gate) plus **8 armor tests** (WSL2-only). The GUI demo
-adds **71 more tests** of its own; it is a friendly front door, not spine
+adds **155 more tests** of its own; it is a friendly front door, not spine
 science, so it is counted separately.
 
 ## Repo map
@@ -90,12 +90,14 @@ Every top-level item, one line each.
   - `e7_relativistic_aberration.py` — why relativity is mandatory at 0.1c —
     `python -m experiments.e7_relativistic_aberration`
 - **`gui/`** — the demo app: a photo goes in, and a position, a catalog age,
-  and a 3-D map come out. **`python -m gui.webapp`** is THE demo — a local
-  browser app (the `Start GalNav Demo.bat` launcher opens it). The older
-  desktop window is `python -m gui.app`, and `python -m gui.nh_demo` is a
-  headless real-data smoke test. `gui/web/` holds the browser front-end
-  (HTML/JS/CSS plus a vendored, fully offline spacekit.js for the 3-D view).
-  See [`docs/GUI-EXPLAINED.md`](docs/GUI-EXPLAINED.md).
+  and a planetarium view come out. **`python -m gui.webapp`** is THE demo — a
+  local browser app (the `Start GalNav Demo.bat` launcher opens it) with a
+  six-page step-by-step pipeline walk, and a live bridge that pushes each
+  stage's geometry into a running **OpenSpace** (the NASA/AMNH planetarium;
+  display only, nothing computes there). The older desktop window is
+  `python -m gui.app`, and `python -m gui.nh_demo` is a headless real-data
+  smoke test. `gui/web/` holds the browser front-end (HTML/JS/CSS, fully
+  offline). See [`docs/GUI-EXPLAINED.md`](docs/GUI-EXPLAINED.md).
 - **`data/`** — dataset provenance (never the raw bytes, which are
   git-ignored and re-fetchable): the Gaia DR3 nearby-star subset with its
   exact query, the New Horizons FITS deposit, and the NICER photon lists.
@@ -108,7 +110,7 @@ Every top-level item, one line each.
 - **`tests/`** — the **84-test spine gate**. `python -m pytest -q`.
 - **`tests_armor/`** — the **8 armor tests** (real photon data; WSL2 float128
   only, run by explicit invocation — never by the default gate).
-- **`tests_gui/`** — the **71 GUI tests** (offline, deterministic). `python -m
+- **`tests_gui/`** — the **155 GUI tests** (offline, deterministic). `python -m
   pytest tests_gui -q`.
 - **`results/`** — timestamped PNG + `.npz` outputs. `results/archive/` holds
   the *blessed* runs behind every quoted number, kept in version control.

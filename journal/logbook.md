@@ -3265,3 +3265,58 @@ includes the paused sprint's uncommitted test_space_view.py), spine 84
 passed untouched. Journal gui-openspace.md; citations [OpenSpace].
 OpenSpace 0.22.0 Windows package downloading at close (install +
 in-planetarium verification of the marker pending).
+
+## 2026-07-20 (evening) — the do.txt sprint: every note closed, OpenSpace goes live
+
+The whole user-notes backlog (do.txt, nine items) landed in one sitting,
+with the AI working under the standing workflow (students direct, specs
+first, strict TDD, honest failures recorded).
+
+FIXED, per note: the 3-D viewer's zoom now always pivots on the Sun and the
+wheel works on first hover (capture-phase handler; 9 static source-hook
+tests) — then, by direction, that viewer was RETIRED: the project pivoted to
+OpenSpace as the live viewer. The image selector's classic bugs died
+(file-input value reset, multi-file uploads with per-file progress, remove
+control, content-hash dedup, focus/selection desync, debounced re-renders).
+Controls stopped fighting the user (auto/manual catalog-age badge — typing
+is never stomped again; plain-English notes under every physics knob). The
+native blind solver was VERIFIED, not assumed: a WCS-stripped real LORRI
+frame blind-solved through real WSL solve-field in 93.5 s, identifying
+Proxima at its 31.78 arcsec parallax displacement; the UI now reports solver
+status live (autoindex was the missing config line — measured error
+recorded). Uploads render RAW until the pipeline labels them
+(overlay=none|detected|identified|nav tiers).
+
+BUILT: the science that one image with two distinct nearby stars IS a full
+fix (wide-pair synthetic: 6.8 au recovery at |r|=329 au; the 1/sin(gamma/2)
+dilution law pinned to 3% — WHY the narrow LORRI field needs two frames),
+and line_of_position_summary for the one-star case (a drawable ray, true
+observer 0.033 au off it). Six chained pipeline pages walk raw → detect →
+identify → angles → lines → fix with each stage's real numbers and math;
+one-image walks end honestly at "a line, not a point" with an add-a-second-
+image jump. gui/openspace_link.py pushes every stage into a running
+OpenSpace.
+
+MEASURED (live OpenSpace 0.22.0, installed this box): three wire facts the
+offline tests could never see — the mandatory apiHandshake first message
+(without it every script is rejected "Unsupported API version"; our first
+diagnosis was a misread of error lines echoing our own payload, corrected),
+the load-bearing 0.25 s socket linger (instant FIN: 0/2 delivered; ≥50 ms:
+9/9), and the camera API (pathnavigation nil; flyTo preserves distance —
+arrived 47 au from an 8e9 m marker; setNavigationState lands exactly).
+END-TO-END: stars, all 12 lines of position, and the fix + JPL truth + 0.387
+au miss line all pushed through the real HTTP endpoints and screenshot-
+verified in-engine — the pending item from the morning entry (in-planetarium
+verification) is CLOSED.
+
+DESIGN: the whole web surface restyled as one instrument (booth-dark, cyan=
+data / amber=answer everywhere, six-node progress rail across the pipeline
+pages, matplotlib overlay palette unified with the CSS so the plots blend
+into the viewport), verified in a real browser, both themes, desktop+mobile.
+
+EVIDENCE: tests_gui 96 → 155 (all offline-deterministic; strict TDD with
+RED throughout), spine 84 untouched all day, frozen numbers unmoved (12-
+frame miss 0.38659 au re-pinned by the passing suite). Journal
+gui-pipeline-live.md; citations [OpenSpace API]; docs/GUI-EXPLAINED.md
+updated to the pivot. Commits: e8bc0f1, 1290a4e, b25516a, a37b767, 140390d,
+0074cc0, 2ddb224 (+ this docs/journal commit).

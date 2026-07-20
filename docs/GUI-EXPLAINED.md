@@ -20,10 +20,13 @@ headless or remote machine, where a desktop window cannot), and the
 `python -m gui.app` (tkinter), remains as a fallback, and `python -m gui.nh_demo`
 is a headless script that prints the numbers. All three are thin shells over the
 **same five small files**, each testable on its own; the physics below is
-identical whichever shell you open. The web app adds two things purely in the
-front end — a three-tier star-label overlay and a 3-D "Where in space" view —
-plus one extra reading of the same age math, the **chronometer**; all three are
-described near the end of this document.
+identical whichever shell you open. The web app adds three things on top — a
+four-tier star-label overlay (`overlay=none|detected|identified|nav`, so an
+upload can be seen exactly as the camera saw it), a six-page **pipeline walk**
+that shows every stage's real numbers and math, and a live hand-off to
+**OpenSpace**, the NASA/AMNH planetarium, as the show viewer — plus one extra
+reading of the same age math, the **chronometer**; all are described near the
+end of this document.
 
 Sources for this document: the code in `gui/*.py`, the GUI journal entry
 `journal/gui-wrapper.md`, `gui/README.md`, and `gui/web/README.md`. The
@@ -346,32 +349,37 @@ if present, degrading gracefully to the 20-pc file if it is absent.
 
 ---
 
-## Where in space — the 3-D view (`gui/web/where-in-space.html`)
+## The pipeline walk + OpenSpace — the live viewer
 
-After any successful **Locate**, the web app opens a **"Where in space"** panel
-below the result. It is an interactive 3-D scene built on a **vendored, fully
-offline** copy of spacekit.js (MIT; bundles three.js) — everything loads from
-`/static/vendor/spacekit/**`, so nothing is fetched from the internet. It is
-loaded lazily, only on the first successful Locate, so the ~2.9 MB of assets
-never slow the initial page.
+The pipeline is walkable **webpage by webpage**: six chained pages
+(`/static/pipeline-1-raw.html` … `pipeline-6-fix.html`, linked by Next/Prev
+carrying the selected frames, catalog age and match radius) show, in order:
+the **raw** image with no marks at all ("this is everything a lost spacecraft
+has"), **centroid detection** (the moment formula plus this frame's actual
+centroid rows), **star identification** (the match table — name, Gaia
+source_id, distance, separation, position-capable flag), the **measured
+angles** (TAN deprojection to each star's unit direction vector), the **lines
+of position** (observer = star − λ·direction, with the real anchors), and the
+**fix** (the least-squares intersection, its error ellipsoid, and — on the
+demo — the miss against JPL truth). One image with one nearby star ends,
+honestly, at "a line, not a point", with an *add a second image* link that
+re-runs the same walk with two frames — the one-image-then-two-images story.
 
-There are two scenes behind a scale toggle:
-
-- **Solar system (au):** the Sun, the eight planets and Pluto with their orbits,
-  the asteroid and Kuiper belts, a heliopause shell (~120 au), Eris, the five
-  real escaping spacecraft (Voyager 1/2, Pioneer 10/11, New Horizons), and an
-  **amber marker at the recovered fix** — the measured `x_au` from `/api/locate`.
-- **Nearby stars (pc):** the project's real 1,941-star Gaia 20-pc catalog as a
-  point cloud, the five nearest famous stars labelled, and amber sightlines to
-  Proxima Cen and Wolf 359 — the picture of why interstellar navigation needs
-  *stars*, not solar-system landmarks.
-
-The fix is passed to the view in equatorial ICRS au and rotated into spacekit's
-ecliptic frame about +X by the mean obliquity 23.43928° (the distance `|x|` is
-rotation-invariant, so the "47 au" label is correct either way). **Honesty
-note:** the amber marker is the *measured* recovered position; the spacecraft
-and Eris markers are **approximate 2025–26 positions** (context, not
-measurements), cited in the vendored `SOURCES.md`.
+The 3-D viewer is **OpenSpace** (openspaceproject.com), the open-source
+planetarium NASA and AMNH fund. `gui/openspace_link.py` pushes each stage's
+geometry into a *running* OpenSpace over its Server-module socket (TCP 4681,
+newline-framed JSON; a mandatory `apiHandshake` first message, then a
+`luascript` topic per push — the protocol facts were measured against a live
+OpenSpace 0.22.0 and are documented, with numbers, in the module and its
+tests). Stage pushes are idempotent (each script clears the previous
+`GalNavLive*` nodes first); the fix stage lands the camera 6×10¹⁰ m from the
+**amber recovered-fix sphere** with the **cyan JPL-truth sphere** 0.387 au
+beside it and the white miss line between — the whole story in one view.
+Nothing is computed in OpenSpace; it only displays what the pipeline
+measured. When OpenSpace is not running, every button degrades to an honest
+"start OpenSpace" message and the pages still show all the numbers. (An
+earlier, self-contained spacekit.js 3-D view, `gui/web/where-in-space.html`,
+remains in the tree with its tests but is no longer part of the user flow.)
 
 ---
 

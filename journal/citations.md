@@ -758,6 +758,25 @@ formation-flight variants 2015-2021).
   future paper related-work. Verified: DOIs live-confirmed by the sweep,
   2026-07-17; students should sight both before drafting.
 
+**[OpenSpace API]** OpenSpace Server-module remote interface: OpenSpace/
+OpenSpace source (modules/server: TCP 4681 + WebSocket 4682 defaults in
+`openspace.cfg`, localhost in AllowAddresses, newline-framed JSON topic
+messages, `luascript` topic executes Lua remotely); the mandatory first-
+message `apiHandshake` (`{"type":"apiHandshake","apiVersion":{"major":1,
+"minor":0,"patch":0}}`) from the official client OpenSpace/openspace-api-js
+(`src/api.ts`, `_sendHandshake`); framing cross-checked against
+OpenSpace/openspace-api-python (`socketwrapper.py`: JSON + `"\n"`).
+- Used for: `gui/openspace_link.py` — the live bridge behind the pipeline
+  pages' "Show in OpenSpace" buttons.
+- Where in repo: `gui/openspace_link.py` (protocol + every measured wire
+  fact in docstrings), `tests_gui/test_openspace_link.py` (executable
+  record), `journal/gui-pipeline-live.md`.
+- Verified: against a LIVE OpenSpace 0.22.0 on the demo box, 2026-07-20 —
+  handshake requirement, message-delivery timing (0/2 vs 9/9), and the
+  navigation API behavior (`pathnavigation` nil; `flyTo` distance-
+  preserving; `setNavigationState` exact) all measured directly, not taken
+  from documentation.
+
 ## Learning resources consulted (log for the ISEF logbook, not paper refs)
 
 - Khan Academy, "Defining the angle between vectors."
