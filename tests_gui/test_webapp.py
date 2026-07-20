@@ -392,8 +392,38 @@ def test_pipeline_payload_shape(monkeypatch):
     # the single 120" nav match for this Proxima frame, enriched
     assert len(p["lines"]) == 1
     ln = p["lines"][0]
-    assert ln["star_name"] == "Proxima Cen" and ln["source_id"] == webapp.PROXIMA_ID
+    # source_id is a STRING in the pipeline payload (browser float64 precision)
+    assert ln["star_name"] == "Proxima Cen"
+    assert ln["source_id"] == str(webapp.PROXIMA_ID)
     assert len(ln["centroid_xy"]) == 2 and len(ln["direction_unit"]) == 3
+
+
+def test_pipeline_nav_stars_lead_matches_and_ids_are_strings(monkeypatch):
+    """Two bugs found by LIVE browser verification (2026-07-21), pinned:
+    (1) The label tiers match STATIC catalog/cone positions tightly, so a
+    fast-moving nav star -- displaced by exactly the parallax/drift signal we
+    navigate on -- never appeared in matches: page 3 said '0 position-capable'
+    on the PROXIMA frame and Proxima was absent from its own identification
+    table. The nav identify (the lines) must be merged into matches, FIRST,
+    flagged position-capable, with its real separation (the ~31.9 arcsec
+    displacement that IS the navigation signal).
+    (2) Gaia source_ids exceed float64's 53-bit exact-integer window, so the
+    browser's JSON.parse silently rounded ...387072 to ...387000 in the page
+    tables. Every source_id in THIS payload is therefore a STRING with exact
+    digits; /api/locate keeps ints (nothing displays them raw there)."""
+    monkeypatch.setattr(webapp, "WIDE_CATALOG_CSV", Path(webapp.CATALOG_CSV))
+    monkeypatch.setattr(webapp, "_BAD_WIDE_MTIME", set())
+    p = webapp.pipeline_payload("f0", 4.31, 120)
+    assert p["ok"] is True
+    first = p["matches"][0]
+    assert first["name"] == "Proxima Cen"
+    assert first["position_capable"] is True
+    assert 25.0 < first["sep_arcsec"] < 40.0  # the displacement IS the signal
+    assert first["source_id"] == str(webapp.PROXIMA_ID)  # exact digits, string
+    assert all(isinstance(m["source_id"], str) for m in p["matches"])
+    assert all(isinstance(ln["source_id"], str) for ln in p["lines"])
+    ids = [m["source_id"] for m in p["matches"]]
+    assert len(ids) == len(set(ids))  # the nav merge never duplicates a row
 
 
 def test_pipeline_unknown_id():

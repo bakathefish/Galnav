@@ -741,16 +741,46 @@ def pipeline_payload(fid, age_yr, radius_arcsec, rv_kms=DEFAULT_RV_FILL_KMS):
     else:
         wide_cat, _ = labeling_catalog(age_yr, rv_kms or DEFAULT_RV_FILL_KMS)
         labels = crossmatch_labels(rec["plate"], xy, wide_cat, position_capable_ids)
-    matches = [
+    # NAVIGATION MATCHES FIRST. The label tiers above match STATIC catalog/cone
+    # positions tightly, so a fast-moving nav star -- displaced by exactly the
+    # parallax/drift signal we navigate on (Proxima sits ~31.9 arcsec from its
+    # static cone spot) -- never appears in them. The nav identify (the lines)
+    # is the honest source for position-capable rows: merge it in, first, with
+    # its real separation. Found live in a browser (page 3 claimed '0
+    # position-capable' on the Proxima frame), pinned by test.
+    au_per_pc = 206264.806
+
+    def _nearest_centroid_index(cxy):
+        d2 = ((xy - np.asarray(cxy, dtype=float)) ** 2).sum(axis=1)
+        return int(np.argmin(d2))
+
+    # source_id is a STRING everywhere in THIS payload: Gaia ids exceed
+    # float64's 53-bit exact-integer window, and the browser's JSON.parse
+    # silently rounds them (measured: ...387072 rendered as ...387000 in the
+    # page tables). /api/locate keeps ints -- nothing displays them raw there.
+    nav_rows = [
+        {
+            "centroid_index": _nearest_centroid_index(ln.centroid_xy),
+            "source_id": str(int(ln.star_source_id)),
+            "name": STAR_NAMES.get(ln.star_source_id, str(ln.star_source_id)),
+            "dist_pc": round(float(np.linalg.norm(ln.star_pos_au)) / au_per_pc, 2),
+            "position_capable": True,
+            "sep_arcsec": round(float(ln.sep_arcsec), 2),
+        }
+        for ln in sorted(lines, key=lambda ln: float(ln.sep_arcsec))
+    ]
+    nav_ids = {r["source_id"] for r in nav_rows}
+    matches = nav_rows + [
         {
             "centroid_index": lab["centroid_index"],
-            "source_id": lab["source_id"],
+            "source_id": str(int(lab["source_id"])),
             "name": lab["name"],
             "dist_pc": lab["dist_pc"],
             "position_capable": bool(lab["position_capable"]),
             "sep_arcsec": lab["sep_arcsec"],
         }
         for lab in labels
+        if str(int(lab["source_id"])) not in nav_ids
     ]
     return {
         "ok": True,
@@ -758,7 +788,9 @@ def pipeline_payload(fid, age_yr, radius_arcsec, rv_kms=DEFAULT_RV_FILL_KMS):
         "name": rec["name"],
         "centroids": [[float(x), float(y)] for x, y in xy],
         "matches": matches,
-        "lines": [_line_json(ln) for ln in lines],
+        "lines": [
+            {**_line_json(ln), "source_id": str(int(ln.star_source_id))} for ln in lines
+        ],
     }
 
 
