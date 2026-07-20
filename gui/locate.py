@@ -457,3 +457,86 @@ def fix_position(lines, rmssig_arcsec=1.0):
         "n_lines": len(lines),
         "distinct_stars": len(source_ids),
     }
+
+
+# How far PAST the Sun to carry the drawn line-of-position segment. The observer
+# lies on the ray between the star and the solar neighbourhood; 100 au clears
+# Neptune (30 au) and the New Horizons distance (~50 au), so the segment visibly
+# runs through the whole plausible-observer window and out the far side.
+_LOP_DISPLAY_MARGIN_AU = 100.0
+
+
+def line_of_position_summary(lines):
+    """Summarise ONE nearby star's line(s) of position as a drawable ray.
+
+    THE DEGENERATE CASE, MADE VISIBLE. A single image that shows only ONE nearby
+    star cannot fix a point -- fix_position raises for it, because one star gives
+    one line and the spacecraft could be anywhere along it. This helper turns
+    those same lines into something the web layer can DRAW instead of only
+    erroring: the ray that starts at the star and shoots toward every possible
+    observer position.
+
+    The geometry, tiny-by-tiny. Each LineOfPosition stores direction_unit
+    d = observer->star (the apparent sightline the camera measured). Rearranged,
+    the observer sits at s - lambda*d for some lambda > 0. So standing ON the
+    star and looking toward the observer, you look in direction -d. That -d is
+    the ray we hand back. If several lines come from the SAME star (e.g. two
+    frames of it), their -d rays are nearly identical; we return the normalised
+    mean and report how wide the individual rays fan out, in arcsec, as an
+    honest "how fat is this line" number.
+
+    lines: list[LineOfPosition], ALL sharing one star_source_id; len >= 1.
+    Returns a JSON-ready dict:
+        source_id (int): the star's Gaia source id.
+        anchor_au (list[3]): the star's aged barycentric position, au -- where
+            the ray starts (mean over the lines, which are identical for one
+            star at one catalog age).
+        ray_unit (list[3]): unit ray star->observer, the normalised mean of the
+            per-line -d. Points FROM the star TOWARD the observer half-line.
+        n_lines (int): how many lines were merged.
+        residual_spread_arcsec (float): the largest angle between any single
+            line's own -d and the merged ray, arcsec (exactly 0.0 for one line).
+            It is the fan width -- how much two frames disagree on the direction.
+        span_au (float): recommended segment length to draw from the star along
+            ray_unit, = |anchor| + 100 au. That carries the segment from the
+            star, through the plausible-observer window and the Sun, ending
+            ~100 au past the origin (see _LOP_DISPLAY_MARGIN_AU).
+        endpoint_au (list[3]): anchor_au + span_au * ray_unit -- the far, solar-
+            neighbourhood end of the segment, so a renderer can draw
+            anchor_au -> endpoint_au directly.
+    Raises ValueError (plain English) if given zero lines, or lines from >= 2
+        distinct stars (that is a POINT fix -- send those to fix_position).
+    """
+    if len(lines) == 0:
+        raise ValueError(
+            "a line of position needs at least one nearby star's line; got none "
+            "-- there is nothing to draw a line from."
+        )
+    source_ids = {ln.star_source_id for ln in lines}
+    if len(source_ids) >= 2:
+        raise ValueError(
+            "line_of_position_summary is for ONE star's line(s); these come from "
+            f"{len(source_ids)} distinct stars, which fix a POINT, not a line -- "
+            "use fix_position instead."
+        )
+    star_pos = np.atleast_2d(np.array([ln.star_pos_au for ln in lines], dtype=float))
+    anchor = star_pos.mean(axis=0)
+    # Ray star->observer is -d (observer = star - lambda*d, lambda > 0).
+    rays = -np.atleast_2d(np.array([ln.direction_unit for ln in lines], dtype=float))
+    rays = rays / np.linalg.norm(rays, axis=1, keepdims=True)
+    merged = rays.mean(axis=0)
+    merged = merged / np.linalg.norm(merged)
+    # Fan-out of the individual rays about the merged ray (arcsec); 0 for one line.
+    cosd = np.clip(rays @ merged, -1.0, 1.0)
+    spread_arcsec = float(np.degrees(np.arccos(cosd)).max() * 3600.0)
+    span = float(np.linalg.norm(anchor) + _LOP_DISPLAY_MARGIN_AU)
+    endpoint = anchor + span * merged
+    return {
+        "source_id": int(next(iter(source_ids))),
+        "anchor_au": [float(v) for v in anchor],
+        "ray_unit": [float(v) for v in merged],
+        "n_lines": len(lines),
+        "residual_spread_arcsec": spread_arcsec,
+        "span_au": span,
+        "endpoint_au": [float(v) for v in endpoint],
+    }

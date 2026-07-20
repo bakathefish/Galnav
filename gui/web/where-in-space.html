@@ -13,14 +13,42 @@
   behind a scale toggle, fully offline: everything loads from
   ./vendor/spacekit/** which the app serves locally.
 
-  The recovered fix is passed in the query string as ?x=<x,y,z> in au,
-  EQUATORIAL ICRS (exactly /api/locate .x_au); it defaults to the New Horizons
-  demo fix. spacekit renders in the ecliptic frame, so we rotate about +X by the
-  mean obliquity 23.43928 deg. |x| is rotation-invariant, so the distance label
-  is correct in either frame.
+  Frame: spacekit renders in the heliocentric ECLIPTIC J2000 frame; every input
+  below is EQUATORIAL ICRS au, rotated in-page about +X by the mean obliquity
+  23.43928 deg (eqToEcl). |r| is rotation-invariant, so distance labels read the
+  same in either frame. The Sun is the origin in BOTH scenes.
+
+  QUERY CONTRACT (all params optional; backward compatible):
+    ?x=<x,y,z>       Recovered fix, equatorial ICRS au (exactly /api/locate .x_au).
+                     Drawn as the amber marker. Defaults to the New Horizons demo
+                     fix when BOTH x and ray are absent.
+    ?truth=<x,y,z>   Ground-truth position, equatorial ICRS au. Drawn as a cyan
+                     (#4fd2ff) marker with a straight segment to the recovered
+                     marker and a midpoint label "miss: <|truth-recovered|> au"
+                     (3 decimals). Adds a truth row to the AU legend. At NH scale
+                     the two markers nearly coincide (~0.387 au at ~47 au) - that
+                     near-coincidence is the point; labels are offset to stay
+                     legible.
+    &tlabel=<text>   URL-encoded label for the truth marker.
+                     Default "NH at fix epoch (JPL truth)".
+    ?ray=<sx,sy,sz,dx,dy,dz>
+                     Amber DASHED line-of-position: star position au + observer-ray
+                     UNIT direction, both equatorial ICRS. Drawn long enough to
+                     cross the solar-system region. When ray is present AND x is
+                     absent, the recovered marker is NOT drawn (the "one image = a
+                     line" page shows only the line).
+    &rlabel=<text>   URL-encoded label for the ray. Default "line of position".
+
+  Controls: zoom is always centered on the Sun (orbit target pinned to the origin,
+  panning disabled so the target cannot drift). Per-scene dolly clamps keep the
+  view usable. The view focuses its own iframe on pointer-enter and swallows the
+  wheel's default action so wheeling zooms the scene instead of scrolling the host
+  page (Chrome otherwise latches the wheel to the parent frame).
 -->
 <style>
   html, body { margin: 0; height: 100%; background: #000; overflow: hidden;
+               /* keep a stray wheel from scroll-chaining out to the host page */
+               overscroll-behavior: none;
                font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
   .scene { position: absolute; inset: 0; }
 
@@ -51,6 +79,7 @@
   .craftc { color: #7ad3e6; background: #7ad3e6; }
   .beltc  { color: #6a86b0; background: #6a86b0; }
   .starc  { color: #cfe0ff; background: #cfe0ff; }
+  .truthc { color: #4fd2ff; background: #4fd2ff; }
 
   #hint { bottom: 14px; right: 16px; font-size: 11px; color: #7f93b0; text-align: right; }
 
@@ -74,6 +103,15 @@
         font-size: 11px !important; }
   .los-label div { color: #ffb000 !important; font-weight: 700 !important;
         border-color: #ffb000 !important; }
+  /* truth vs recovered: markers nearly coincide at NH scale, so nudge the truth
+     label up and the miss label down to keep all three legible when overlapping */
+  .truth-label div { color: #4fd2ff !important; font-weight: 700 !important;
+        border-color: #4fd2ff !important; background: #001522ee !important;
+        transform: translateY(-22px); }
+  .miss-label { z-index: 7 !important; }
+  .miss-label div { color: #eaf2ff !important; font-weight: 700 !important;
+        border-color: #45607f !important; background: #0a1220ee !important;
+        transform: translateY(22px); }
 
   #err { position:absolute; inset:0; display:none; place-items:center;
          color:#ff8080; font-size:14px; z-index:30; text-align:center; padding:2rem; }
@@ -95,7 +133,8 @@
 
   <!-- AU legend -->
   <div id="legend-au" class="legend hud">
-    <div class="row"><span class="dot amber"></span><span id="lg-fix">Recovered fix</span></div>
+    <div class="row" id="lg-fix-row"><span class="dot amber"></span><span id="lg-fix">Recovered fix</span></div>
+    <div class="row" id="lg-truth-row" style="display:none"><span class="dot truthc"></span><span id="lg-truth">Truth position</span></div>
     <div class="row"><span class="dot craftc"></span>Spacecraft today (V1/V2, Pioneer, NH)</div>
     <div class="row"><span class="dot earthc"></span>Earth</div>
     <div class="row"><span class="dot sunc"></span>Sun</div>
@@ -114,7 +153,7 @@
     spacecraft, the recovered fix &mdash; collapses onto the single dot at the Sun. Nearby stars
     are the only currency of position out here.</div>
 
-  <div id="hint" class="hud">drag = orbit &middot; scroll = zoom &middot; right-drag = pan</div>
+  <div id="hint" class="hud">drag = orbit &middot; scroll = zoom toward the Sun</div>
   <div id="err"></div>
 
   <script src="./vendor/spacekit/spacekit.js"></script>
@@ -131,7 +170,8 @@
     const TILT = 23.43928 * Math.PI / 180;   // IAU 1976 mean obliquity at J2000
 
     // ---- frame transforms -------------------------------------------------
-    // equatorial ICRS -> heliocentric ecliptic J2000 (rotate about +X by tilt)
+    // equatorial ICRS -> heliocentric ecliptic J2000 (rotate about +X by tilt).
+    // A pure rotation, so it maps BOTH positions and unit directions correctly.
     function eqToEcl(x, y, z) {
       return [x, Math.cos(TILT)*y + Math.sin(TILT)*z, -Math.sin(TILT)*y + Math.cos(TILT)*z];
     }
@@ -142,14 +182,47 @@
                      dist*Math.cos(dec)*Math.sin(ra),
                      dist*Math.sin(dec));
     }
+    // parse a comma list of exactly n finite numbers, else null
+    function nums(s, n) {
+      const v = (s || '').split(',').map(Number).filter(Number.isFinite);
+      return v.length === n ? v : null;
+    }
 
-    // ---- recovered fix (equatorial ICRS au) from ?x=<x,y,z>, else NH demo ---
-    const q = new URLSearchParams(location.search).get('x') || '';
-    const parsed = q.split(',').map(Number).filter(v => isFinite(v));
-    const X_EQ_AU = parsed.length === 3 ? parsed : [13.386, -42.369, -16.486];
+    const params = new URLSearchParams(location.search);
+
+    // ---- recovered fix (equatorial ICRS au) from ?x=<x,y,z>, else NH demo ----
+    const X_EQ_IN = nums(params.get('x'), 3);
+    const HAS_X = X_EQ_IN !== null;
+    const X_EQ_AU = HAS_X ? X_EQ_IN : [13.386, -42.369, -16.486];
     const X_EC_AU = eqToEcl(X_EQ_AU[0], X_EQ_AU[1], X_EQ_AU[2]);
     const R_FIX = Math.hypot(X_EQ_AU[0], X_EQ_AU[1], X_EQ_AU[2]);
     document.getElementById('lg-fix').textContent = 'Recovered fix · ' + R_FIX.toFixed(1) + ' au';
+
+    // ---- optional ground truth (equatorial ICRS au) from ?truth=<x,y,z> -----
+    const TRUTH_EQ = nums(params.get('truth'), 3);
+    const HAS_TRUTH = TRUTH_EQ !== null;
+    const TLABEL = params.get('tlabel') || 'NH at fix epoch (JPL truth)';
+    const TRUTH_EC = HAS_TRUTH ? eqToEcl(TRUTH_EQ[0], TRUTH_EQ[1], TRUTH_EQ[2]) : null;
+    // miss magnitude is rotation-invariant -> compute it in the equatorial frame
+    const MISS_AU = HAS_TRUTH ? Math.hypot(
+      TRUTH_EQ[0] - X_EQ_AU[0], TRUTH_EQ[1] - X_EQ_AU[1], TRUTH_EQ[2] - X_EQ_AU[2]) : null;
+
+    // ---- optional line of position from ?ray=<sx,sy,sz,dx,dy,dz> ------------
+    const RAY = nums(params.get('ray'), 6);
+    const HAS_RAY = RAY !== null;
+    const RLABEL = params.get('rlabel') || 'line of position';
+
+    // The amber recovered marker is suppressed only for the ray-only page
+    // (ray present, x absent). Otherwise it is always drawn. Its legend row goes
+    // with it, so the ray-only page does not claim a fix it is not showing.
+    const DRAW_RECOVERED = !(HAS_RAY && !HAS_X);
+    if (!DRAW_RECOVERED) document.getElementById('lg-fix-row').style.display = 'none';
+
+    if (HAS_TRUTH) {
+      document.getElementById('lg-truth-row').style.display = 'flex';
+      document.getElementById('lg-truth').textContent = TLABEL + ' · ' +
+        Math.hypot(TRUTH_EQ[0], TRUTH_EQ[1], TRUTH_EQ[2]).toFixed(1) + ' au';
+    }
 
     // ---- spacecraft: heliocentric distance (au) + sky dir (equatorial deg), 2025-2026
     //   (positions/citations in gui/web/vendor/spacekit/SOURCES.md -> Scene data provenance)
@@ -158,7 +231,10 @@
       { name: 'Voyager 2 (~140 au)',  d: 140,  ra: 303.75, dec: -59.71 },
       { name: 'Pioneer 10 (~139 au)', d: 139,  ra:  68.98, dec:  16.51 },
       { name: 'Pioneer 11 (~117 au)', d: 117,  ra: 283.0,  dec:  -8.0  },
-      { name: 'New Horizons today (~64 au)', d: 64.5, ra: 289.62, dec: -20.17 },
+      // "TODAY (later epoch)" makes the distinction explicit: this ~64 au dot is
+      // NH now, NOT the recovered 2020 fix - they lie along nearly the same
+      // ecliptic direction because the probe simply moved outward.
+      { name: 'New Horizons TODAY (~64 au, later epoch)', d: 64.5, ra: 289.62, dec: -20.17 },
     ];
     const ERIS = { name: 'Eris (~95 au)', d: 95, ra: 26.0, dec: -2.0 };
 
@@ -175,10 +251,67 @@
       });
     }
 
+    // ---- Sun-centered controls -------------------------------------------
+    // Pin the orbit target to the origin (the Sun in both scenes) and disable
+    // panning so the target can never drift - orbit and zoom therefore always
+    // pivot on the Sun. Rotation keeps spacekit's damping; ZOOM is handled by us
+    // (enableZoom off) - see the wheel handler below for why.
+    let vizAu = null, vizPc = null;
+    const DOLLY = { au: [2, 1500], pc: [0.3, 120] };  // [minDistance, maxDistance] per scene
+    function centerOnSun(viz, kind) {
+      const ctr = viz.getViewer().get3jsCameraControls();  // THREE.OrbitControls
+      ctr.enablePan = false;              // target can never drift off the Sun
+      ctr.enableZoom = false;             // we dolly ourselves (wheel handler below)
+      ctr.target.set(0, 0, 0);            // Sun == origin in both scenes
+      ctr.minDistance = DOLLY[kind][0];
+      ctr.maxDistance = DOLLY[kind][1];
+      ctr.enableDamping = true;
+      ctr.dampingFactor = 0.08;
+      ctr.update();
+    }
+    const activeViz = () =>
+      document.getElementById('scene-pc').style.display !== 'none' ? vizPc : vizAu;
+
+    // ---- wheel zoom: handled here, NOT by OrbitControls --------------------
+    // WHY: hosted in an <iframe>, only the FIRST wheel of a gesture reached the
+    // canvas. OrbitControls' own wheel listener sits on the canvas, but Chrome
+    // dispatches later ticks onto overlay label divs / latches the gesture to the
+    // parent scroller, so they never reach the canvas (measured live: a window
+    // capture listener saw 5/5 ticks, the canvas saw 1/5, the camera dollied one
+    // notch then froze - this is the user's "only works after you click on it
+    // multiple times"). The window is the ROOT of event propagation, so a
+    // capture-phase listener here catches EVERY tick regardless of what is under
+    // the cursor. We preventDefault (kills the host-page scroll) and dolly the
+    // camera ourselves by scaling its offset from the pinned Sun target -> zoom is
+    // reliable on first hover AND always centered on the Sun. deltaY is clamped so
+    // a coarse wheel or trackpad fling cannot jump the whole way in one tick.
+    window.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const viz = activeViz();
+      if (!viz) return;
+      const cam = viz.getViewer().get3jsCamera();
+      const ctr = viz.getViewer().get3jsCameraControls();
+      const k = Math.max(-3, Math.min(3, e.deltaY / 100));
+      const factor = Math.pow(0.95, -k);          // deltaY<0 (scroll up) -> zoom IN
+      const off = cam.position.clone().sub(ctr.target).multiplyScalar(factor);
+      const r = off.length() || 1e-6;
+      const rc = Math.max(ctr.minDistance, Math.min(ctr.maxDistance, r));
+      off.multiplyScalar(rc / r);
+      cam.position.copy(ctr.target).add(off);
+      ctr.update();          // normalise spherical state + dispatch 'change' -> render
+    }, { capture: true, passive: false });
+
+    // Focus the iframe on pointer-enter (belt-and-suspenders for keyboard nav and
+    // to make Chrome treat this frame as active); harmless when already focused.
+    (function grabFocus() {
+      const g = () => { if (!document.hasFocus()) { try { window.focus(); } catch (e) {} } };
+      document.addEventListener('pointerover', g, true);
+      document.addEventListener('pointerdown', g, true);
+    })();
+
     // ======================================================================
     // SCENE 1 - solar system (au)
     // ======================================================================
-    let vizAu = null;
     function buildAu() {
       const viz = new Spacekit.Simulation(document.getElementById('scene-au'), {
         basePath: BASE, jd: 2458962.5, startPaused: true, unitsPerAu: 1.0,
@@ -239,27 +372,73 @@
       annotate(viz, 'helio_lbl', [0, -120, 0], 'heliopause ~120 au (Voyager 1 crossed 2012)',
         'annot-label', 0x6aa0ff, 1.2);
 
-      // the amber recovered fix
-      viz.createObject('recovered', {
-        labelText: 'RECOVERED · ' + R_FIX.toFixed(1) + ' au',
-        hideOrbit: true, position: X_EC_AU,
-        textureUrl: '{{assets}}/sprites/fuzzyparticle.png',
-        theme: { color: 0xffb000 }, scale: [4, 4, 4],
-      });
+      // optional line of position (?ray=): amber DASHED line from the star along
+      // the observer-ray direction, extended to cross the solar-system region.
+      if (HAS_RAY) {
+        const S = eqToEcl(RAY[0], RAY[1], RAY[2]);
+        let D = eqToEcl(RAY[3], RAY[4], RAY[5]);
+        const dn = Math.hypot(D[0], D[1], D[2]) || 1;
+        D = [D[0]/dn, D[1]/dn, D[2]/dn];
+        // parameter t along S + t*D reaching the point nearest the Sun, then span
+        // a segment that brackets both the star end and ~160 au past the Sun.
+        const tStar = -(S[0]*D[0] + S[1]*D[1] + S[2]*D[2]);
+        const t0 = Math.min(0, tStar) - 40, t1 = Math.max(0, tStar) + 160;
+        const at = t => new T.Vector3(S[0] + t*D[0], S[1] + t*D[1], S[2] + t*D[2]);
+        const line = new T.Line(
+          new T.BufferGeometry().setFromPoints([at(t0), at(t1)]),
+          new T.LineDashedMaterial({ color: 0xffb000, dashSize: 3, gapSize: 2.2,
+            transparent: true, opacity: 0.9 }));
+        line.computeLineDistances();
+        scene.add(line);
+        annotate(viz, 'ray_lbl', [S[0] + tStar*D[0], S[1] + tStar*D[1], S[2] + tStar*D[2]],
+          RLABEL, 'los-label', 0xffb000, 2.2);
+      }
+
+      // optional ground truth (?truth=): cyan marker + a segment to the recovered
+      // marker + a midpoint "miss" label. Drawn before the amber marker so the
+      // amber label paints on top when they coincide.
+      if (HAS_TRUTH) {
+        scene.add(new T.Line(
+          new T.BufferGeometry().setFromPoints([
+            new T.Vector3(X_EC_AU[0], X_EC_AU[1], X_EC_AU[2]),
+            new T.Vector3(TRUTH_EC[0], TRUTH_EC[1], TRUTH_EC[2])]),
+          new T.LineBasicMaterial({ color: 0x4fd2ff, transparent: true, opacity: 0.95 })));
+        viz.createObject('truth', {
+          labelText: TLABEL, hideOrbit: true, position: TRUTH_EC,
+          textureUrl: '{{assets}}/sprites/fuzzyparticle.png',
+          theme: { color: 0x4fd2ff }, scale: [3.4, 3.4, 3.4],
+        });
+        annotate(viz, 'miss_lbl',
+          [(X_EC_AU[0]+TRUTH_EC[0])/2, (X_EC_AU[1]+TRUTH_EC[1])/2, (X_EC_AU[2]+TRUTH_EC[2])/2],
+          'miss: ' + MISS_AU.toFixed(3) + ' au', 'miss-label', 0x9fb0c9, 0.6);
+      }
+
+      // the amber recovered fix (suppressed only on the ray-only page)
+      if (DRAW_RECOVERED) {
+        viz.createObject('recovered', {
+          labelText: 'RECOVERED · ' + R_FIX.toFixed(1) + ' au',
+          hideOrbit: true, position: X_EC_AU,
+          textureUrl: '{{assets}}/sprites/fuzzyparticle.png',
+          theme: { color: 0xffb000 }, scale: [4, 4, 4],
+        });
+      }
       requestAnimationFrame(() => {
         document.querySelectorAll('.spacekit__object-label').forEach(el => {
           const t = el.textContent.trim();
           if (t.indexOf('RECOVERED') !== -1) el.classList.add('nh-recovered-label');
+          else if (HAS_TRUTH && t === TLABEL.trim()) el.classList.add('truth-label');
+          else if (t.indexOf('miss:') === 0) el.classList.add('miss-label');
           else if (t === 'Earth') el.classList.add('earth-label');
         });
       });
+
+      centerOnSun(viz, 'au');
       return viz;
     }
 
     // ======================================================================
     // SCENE 2 - nearby stars (parsecs), built lazily on first toggle
     // ======================================================================
-    let vizPc = null;
     async function buildPc() {
       const viz = new Spacekit.Simulation(document.getElementById('scene-pc'), {
         basePath: BASE, startPaused: true, unitsPerAu: 1.0,
@@ -312,6 +491,8 @@
         });
         window.__pcReady = true;
       });
+
+      centerOnSun(viz, 'pc');
       return viz;
     }
 
@@ -332,7 +513,7 @@
         ? 'Solar system (au) · spacecraft at 2025-2026 positions · amber = recovered fix'
         : 'Solar neighborhood (parsecs) · 1,941 stars within 20 pc (Gaia DR3)';
       if (!au && !vizPc) { buildPc().then(v => { vizPc = v;
-        window.dispatchEvent(new Event('resize')); }); }
+        window.vizPc = v; window.dispatchEvent(new Event('resize')); }); }
       window.dispatchEvent(new Event('resize'));
     }
     btnAu.onclick = () => show('au');

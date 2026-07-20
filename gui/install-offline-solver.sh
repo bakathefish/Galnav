@@ -48,10 +48,15 @@ echo ">> [3/4] Writing solver config -> $CFG"
 # This config is what the GalNav web app passes via `--config`. It lists BOTH
 # index locations so one solver call can handle wide AND narrow fields:
 #   inparallel                 -> search the index scales concurrently (faster)
+#   autoindex                  -> REQUIRED: auto-load every index file found in
+#                                 the add_path dirs. Without it the engine sees
+#                                 add_path as search-paths-only and aborts with
+#                                 "You must list at least one index" (measured).
 #   add_path /usr/share/astrometry  -> the apt Tycho-2 wide-field indexes
 #   add_path <repo>/.../astrometry-index -> our pre-downloaded 5200 narrow ones
 cat > "$CFG" <<CFGEOF
 inparallel
+autoindex
 add_path /usr/share/astrometry
 add_path $INDEX_DIR
 CFGEOF

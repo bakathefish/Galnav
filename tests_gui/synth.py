@@ -28,6 +28,15 @@ PROXIMA_ID = 5853498713190525696
 BARNARD_ID = 4472832130942575872
 WOLF_ID = 3864972938605115520
 
+# A well-isolated WIDE pair of nearby stars for the "two nearby stars, ONE image"
+# demonstration: 10.56 deg apart on the sky (so a single wide-field TAN frame can
+# hold both), each > 1.8 deg from any other catalog star (so identify_in_frame
+# cannot grab a wrong neighbour), and both near (3.97 and 4.97 pc) for a short
+# error lever. They are the widest such isolated near pair in the frozen 20-pc
+# catalog; the three named stars above are 78-105 deg apart and never co-frame.
+WIDE_PAIR_A_ID = 6583272171336048640  # 3.97 pc
+WIDE_PAIR_B_ID = 6562924609150908416  # 4.97 pc
+
 
 @dataclass
 class Scene:
