@@ -20,6 +20,7 @@ Run:  python -m gui.webapp
 """
 
 import glob
+import hashlib
 import io
 import json
 import os
@@ -46,14 +47,23 @@ from gui.locate import (
     LineOfPosition,
     fix_position,
     identify_in_frame,
+    line_of_position_summary,
     load_aged_catalog,
     measured_direction,
 )
-from gui.platesolve import fits_header_solution, solve_image
+from gui.platesolve import (
+    _wsl_available,
+    _wsl_has_galnav_config,
+    fits_header_solution,
+    solve_image,
+)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 NH_DIR = REPO_ROOT / "data" / "e3_new_horizons" / "repo"
 WEB_DIR = Path(__file__).resolve().parent / "web"
+# The narrow LITE blind-solve indexes (index-*.fits) the offline solver installs.
+# /api/solver_status counts them so the UI can say whether a blind solve is ready.
+ASTROMETRY_INDEX_DIR = REPO_ROOT / "data" / "astrometry-index"
 
 NEWH_X_JPL = np.array([13.5495, -42.0195, -16.4573])  # JPL Horizons truth (E3)
 PROXIMA_ID = 5853498713190525696
@@ -106,6 +116,13 @@ _DEMO_INDEX = {}  # "f<n>" -> path
 _CACHE = {}  # path -> record dict
 _UPLOADS = {}  # "up_<n>" -> record dict
 _UPLOAD_N = [0]
+_UPLOAD_HASHES = {}  # sha256(file bytes) hex -> "up_<n>" (dedup: identical re-upload)
+
+# Per-process cache of the WSL blind-solver probe (it shells out to `wsl which
+# solve-field`, ~0.1-1 s). None = not yet probed. Kept as a plain module global
+# so a test can override it (monkeypatch webapp._WSL_SOLVER_CACHE = True/False)
+# without touching the real WSL.
+_WSL_SOLVER_CACHE = None
 
 
 def _demo_paths():
@@ -286,7 +303,8 @@ def crossmatch_labels(
     plate: PlateSolution. centroids_xy: (M,2). aged_cat: load_aged_catalog dict.
     position_capable_ids: set of source ids that ARE navigation matches.
     tol_arcsec: identification tolerance (default 2 x the plate scale).
-    Returns: list of {centroid_index, source_id, dist_pc, name, position_capable}.
+    Returns: list of {centroid_index, source_id, dist_pc, name, position_capable,
+        sep_arcsec}.
     """
     if tol_arcsec is None:
         tol_arcsec = 2.0 * plate.scale_arcsec_per_px
@@ -305,6 +323,7 @@ def crossmatch_labels(
                 "dist_pc": float(dist_au[si] / AU_PER_PC),
                 "name": STAR_NAMES.get(sid),
                 "position_capable": sid in position_capable_ids,
+                "sep_arcsec": float(m["sep_arcsec"]),
             }
         )
     return out
@@ -323,7 +342,7 @@ def cone_label_set(plate, centroids_xy, cone, position_capable_ids, tol_arcsec=N
     position_capable_ids: source ids that ARE navigation matches (drawn amber).
     tol_arcsec: identification tolerance (default 2 x the plate scale).
     Returns: list of {centroid_index, source_id, name, dist_pc|None,
-        position_capable, text}. text may be None (marker only).
+        position_capable, text, sep_arcsec}. text may be None (marker only).
     """
     if tol_arcsec is None:
         tol_arcsec = 2.0 * plate.scale_arcsec_per_px
@@ -347,47 +366,77 @@ def cone_label_set(plate, centroids_xy, cone, position_capable_ids, tol_arcsec=N
                 "dist_pc": dist_pc,
                 "position_capable": sid in position_capable_ids,
                 "text": gaiacone.distance_label(name, plx, snr, gmag),
+                "sep_arcsec": float(m["sep_arcsec"]),
             }
         )
     return out
 
 
-def render_frame_png(fid, age_yr, radius_arcsec, full_labels=True):
-    """Render one frame log-stretched with detections + identified stars.
+_OVERLAY_TIERS = ("none", "detected", "identified", "nav")
 
-    Every centroid is a cyan circle (detected). Position-capable nearby stars
-    (the 120-arcsec navigation matches) get the big amber cross + name + distance.
-    When full_labels is True, every OTHER star we can IDENTIFY against the widest
-    catalog gets a small muted distance label ("212 pc") -- visually secondary,
-    the pedagogical point being that we know what many dots ARE, yet only the
-    amber ones are close enough for their parallax to reveal position. Dim labels
-    are capped at the 25 brightest for readability; the caption reports the full
-    counts. full_labels is set False for gallery thumbnails (fast: nav only).
+
+def render_frame_png(fid, age_yr, radius_arcsec, full_labels=True, overlay="nav"):
+    """Render one frame log-stretched, with an overlay tier controlling the marks.
+
+    The overlay tiers layer up (do.txt item 8 -- an uploaded raw image must be
+    viewable with NO annotation before the pipeline runs):
+      none       -- just the log-stretched image, no marks (a raw photo).
+      detected   -- + a cyan circle on every centroid (blob detection).
+      identified -- + small muted distance labels on the stars we can name/place
+                    against the widest catalog (we know what these dots ARE).
+      nav        -- + the big amber cross + name + distance on the position-capable
+                    nearby stars (the 120-arcsec navigation matches). This is the
+                    full default and is byte-for-byte the previous rendering.
+
+    The pedagogical point of the identified-vs-nav split: we know what many dots
+    are, yet only the amber ones are close enough for their parallax to reveal
+    position. Dim labels are capped at the 25 brightest for readability; the
+    caption reports the full counts. full_labels is set False for gallery
+    thumbnails (fast: it skips the deep-identify catalog load); it composes with
+    the tier -- a thumbnail at any tier simply omits the dim-label pass.
 
     fid: frame id. age_yr: catalog age. radius_arcsec: navigation match radius.
+    overlay: one of "none"|"detected"|"identified"|"nav" (unknown -> "nav").
     Returns: PNG bytes. Raises KeyError if the id is unknown.
     """
     rec = _record_by_id(fid)
     if rec is None:
         raise KeyError(fid)
+    if overlay not in _OVERLAY_TIERS:
+        overlay = "nav"
+    draw_circles = overlay in ("detected", "identified", "nav")
+    draw_dim = overlay in ("identified", "nav")
+    draw_amber = overlay == "nav"
+
     image = rec["image"]
     xy = rec["centroids"]["xy"]
     flux = rec["centroids"]["flux"]
 
     # Position-capable (navigation) matches -- demo frames on the frozen 20-pc.
-    nav_cat = load_aged_catalog(
-        _nav_catalog_path(rec.get("is_demo", False)),
-        age_yr,
-        rv_fill_kms=DEFAULT_RV_FILL_KMS,
-    )
-    nav = identify_in_frame(rec["plate"], xy, nav_cat["positions_au"], radius_arcsec)
-    nav_dist_au = np.linalg.norm(nav_cat["positions_au"], axis=1)
-    position_capable_ids = {int(nav_cat["source_id"][m["star_index"]]) for m in nav}
-    nav_centroids = {m["centroid_index"] for m in nav}
+    # Only computed when a tier actually needs them (identified needs the
+    # position_capable flags + the identified count; nav also draws the crosses).
+    # "none"/"detected" skip the catalog load entirely.
+    nav = []
+    nav_cat = None
+    nav_dist_au = None
+    position_capable_ids = set()
+    nav_centroids = set()
+    if draw_dim or draw_amber:
+        nav_cat = load_aged_catalog(
+            _nav_catalog_path(rec.get("is_demo", False)),
+            age_yr,
+            rv_fill_kms=DEFAULT_RV_FILL_KMS,
+        )
+        nav = identify_in_frame(
+            rec["plate"], xy, nav_cat["positions_au"], radius_arcsec
+        )
+        nav_dist_au = np.linalg.norm(nav_cat["positions_au"], axis=1)
+        position_capable_ids = {int(nav_cat["source_id"][m["star_index"]]) for m in nav}
+        nav_centroids = {m["centroid_index"] for m in nav}
 
     labels = []
     identified_centroids = set(nav_centroids)
-    if full_labels:
+    if full_labels and draw_dim:
         # Deep-identify tier: prefer a cached full-depth Gaia cone (labels almost
         # every dot). allow_fetch=False so a render never blocks on the network;
         # a missing cone falls back to the nearby-catalog labels.
@@ -405,7 +454,7 @@ def render_frame_png(fid, age_yr, radius_arcsec, full_labels=True):
     ax.set_facecolor(_FACE)
     bg = np.median(image)
     ax.imshow(np.log1p(np.clip(image - bg, 0, None)), origin="lower", cmap="gray")
-    if xy.shape[0]:
+    if draw_circles and xy.shape[0]:
         ax.scatter(
             xy[:, 0],
             xy[:, 1],
@@ -437,33 +486,45 @@ def render_frame_png(fid, age_yr, radius_arcsec, full_labels=True):
         )
 
     # Amber crosses + name + distance for the position-capable nearby stars.
-    for m in nav:
-        sid = int(nav_cat["source_id"][m["star_index"]])
-        cx, cy = xy[m["centroid_index"]]
-        name = STAR_NAMES.get(sid, str(sid))
-        d_pc = float(nav_dist_au[m["star_index"]] / AU_PER_PC)
-        ax.plot(cx, cy, "+", color=_AMBER, ms=16, mew=2.2)
-        ax.annotate(
-            f"{name} ({d_pc:.2g} pc)",
-            (cx, cy),
-            color=_AMBER,
-            fontsize=11,
-            fontweight="bold",
-            xytext=(8, 8),
-            textcoords="offset points",
-        )
+    if draw_amber:
+        for m in nav:
+            sid = int(nav_cat["source_id"][m["star_index"]])
+            cx, cy = xy[m["centroid_index"]]
+            name = STAR_NAMES.get(sid, str(sid))
+            d_pc = float(nav_dist_au[m["star_index"]] / AU_PER_PC)
+            ax.plot(cx, cy, "+", color=_AMBER, ms=16, mew=2.2)
+            ax.annotate(
+                f"{name} ({d_pc:.2g} pc)",
+                (cx, cy),
+                color=_AMBER,
+                fontsize=11,
+                fontweight="bold",
+                xytext=(8, 8),
+                textcoords="offset points",
+            )
 
     ax.set_xticks([])
     ax.set_yticks([])
     for spine in ax.spines.values():
         spine.set_color(_LINE)
-    ax.set_title(
-        f"{rec['name']}  -  {xy.shape[0]} detected, {len(identified_centroids)} "
-        f"identified, {len(nav_centroids)} position-capable",
-        color=_DIM,
-        fontsize=9.5,
-        fontfamily="monospace",
-    )
+    # Title reports only what the chosen tier actually annotated -- "none" shows
+    # no counts (they would imply annotation on a raw photo).
+    n_det = xy.shape[0]
+    if overlay == "none":
+        title = f"{rec['name']}  -  raw image (log-stretched)"
+    elif overlay == "detected":
+        title = f"{rec['name']}  -  {n_det} detected"
+    elif overlay == "identified":
+        title = (
+            f"{rec['name']}  -  {n_det} detected, "
+            f"{len(identified_centroids)} identified"
+        )
+    else:  # nav
+        title = (
+            f"{rec['name']}  -  {n_det} detected, {len(identified_centroids)} "
+            f"identified, {len(nav_centroids)} position-capable"
+        )
+    ax.set_title(title, color=_DIM, fontsize=9.5, fontfamily="monospace")
     fig.tight_layout(pad=0.6)
     buf = io.BytesIO()
     fig.savefig(buf, format="png", facecolor=fig.get_facecolor())
@@ -501,18 +562,41 @@ def _lines_for(ids, age_yr, radius_arcsec, rv_kms, catalog_override=None):
             rec["plate"], rec["centroids"]["xy"], cat["positions_au"], radius_arcsec
         ):
             si = m["star_index"]
-            lines.append(
-                LineOfPosition(
-                    star_pos_au=cat["positions_au"][si],
-                    direction_unit=measured_direction(
-                        rec["plate"], rec["centroids"]["xy"][m["centroid_index"]]
-                    ),
-                    star_source_id=int(cat["source_id"][si]),
-                    sep_arcsec=m["sep_arcsec"],
-                    image_name=rec["name"],
-                )
+            cxy = rec["centroids"]["xy"][m["centroid_index"]]
+            ln = LineOfPosition(
+                star_pos_au=cat["positions_au"][si],
+                direction_unit=measured_direction(rec["plate"], cxy),
+                star_source_id=int(cat["source_id"][si]),
+                sep_arcsec=m["sep_arcsec"],
+                image_name=rec["name"],
             )
+            # The centroid pixel is not a LineOfPosition field, but the drawing
+            # endpoints (/api/locate, /api/pipeline) need it; attach it here (the
+            # dataclass has no __slots__, so an extra attribute is harmless and
+            # line_of_position_summary/fix_position ignore it).
+            ln.centroid_xy = [float(cxy[0]), float(cxy[1])]
+            lines.append(ln)
     return lines, all_demo
+
+
+def _line_json(ln):
+    """A line of position as a drawing-grade JSON dict.
+
+    Keeps the original reporting keys (star_name, image, resid_arcsec) and adds
+    the geometry a renderer needs: the star id, the centroid pixel, the measured
+    unit sightline, the star's aged barycentric position (au), and the raw
+    identification separation (arcsec).
+    """
+    return {
+        "star_name": STAR_NAMES.get(ln.star_source_id, str(ln.star_source_id)),
+        "image": ln.image_name,
+        "resid_arcsec": round(ln.sep_arcsec, 2),
+        "source_id": int(ln.star_source_id),
+        "centroid_xy": [float(v) for v in ln.centroid_xy],
+        "direction_unit": [float(v) for v in ln.direction_unit],
+        "star_pos_au": [float(v) for v in ln.star_pos_au],
+        "sep_arcsec": float(ln.sep_arcsec),
+    }
 
 
 # Threshold on OBSERVER DISPLACEMENT, not just calendar spread. A single-point
@@ -558,24 +642,41 @@ def locate_payload(ids, age_yr, radius_arcsec, rv_kms):
 
     Returns a JSON-ready dict: on success {ok:True, x_au, r_au, r_pc,
     ellipsoid_au, chi2, n_lines, distinct_stars, lines:[{star_name, image,
-    resid_arcsec}], miss_au (or None), warning (or None), message:""}; on a
-    degenerate geometry {ok:False, message:<friendly text>, n_lines, warning}.
+    resid_arcsec, source_id, centroid_xy, direction_unit, star_pos_au,
+    sep_arcsec}], miss_au (or None), truth_x_au (only when miss_au is non-null),
+    warning (or None), message:""}.
+
+    On a degenerate geometry, {ok:False, message, n_lines, warning}. When the
+    failure is exactly the ONE-nearby-star case (one line, or several lines of
+    the SAME star), the result additionally carries mode:"line" and a drawable
+    line-of-position (lop:{...}) -- the fix is still ok:False (one star is a line,
+    not a point) but the web layer can DRAW that line. Zero lines stays a plain
+    error (nothing to draw).
     """
     lines, all_demo = _lines_for(ids, age_yr, radius_arcsec, rv_kms)
     warning = _epoch_span_warning(ids)
     try:
         fix = fix_position(lines, rmssig_arcsec=RMSSIG_ARCSEC)
     except ValueError as exc:
-        return {
+        out = {
             "ok": False,
             "message": str(exc),
             "n_lines": len(lines),
             "warning": warning,
         }
+        # One nearby star (>=1 line, all from a single source id) IS a line of
+        # position -- degenerate for a point fix, but drawable. Zero lines is not.
+        distinct = {ln.star_source_id for ln in lines}
+        if lines and len(distinct) == 1:
+            lop = line_of_position_summary(lines)
+            lop["star_name"] = STAR_NAMES.get(lop["source_id"], str(lop["source_id"]))
+            out["mode"] = "line"
+            out["lop"] = lop
+        return out
     x = fix["x_au"]
     r_au = float(np.linalg.norm(x))
     miss = float(np.linalg.norm(x - NEWH_X_JPL)) if all_demo else None
-    return {
+    out = {
         "ok": True,
         "x_au": [float(v) for v in x],
         "r_au": r_au,
@@ -584,17 +685,68 @@ def locate_payload(ids, age_yr, radius_arcsec, rv_kms):
         "chi2": fix["chi2"],
         "n_lines": fix["n_lines"],
         "distinct_stars": fix["distinct_stars"],
-        "lines": [
-            {
-                "star_name": STAR_NAMES.get(ln.star_source_id, str(ln.star_source_id)),
-                "image": ln.image_name,
-                "resid_arcsec": round(ln.sep_arcsec, 2),
-            }
-            for ln in lines
-        ],
+        "lines": [_line_json(ln) for ln in lines],
         "miss_au": miss,
         "warning": warning,
         "message": "",
+    }
+    # The JPL truth vector rides along only for the known-demo sets (where miss is
+    # meaningful), so a renderer can draw truth-vs-fix without a second request.
+    if miss is not None:
+        out["truth_x_au"] = [float(v) for v in NEWH_X_JPL]
+    return out
+
+
+def pipeline_payload(fid, age_yr, radius_arcsec, rv_kms=DEFAULT_RV_FILL_KMS):
+    """Per-frame pipeline data for the step-by-step visualization pages.
+
+    One JSON blob exposing each stage's output for ONE frame, reusing the exact
+    machinery the renderer and locator use (no new geometry): every detected
+    centroid, the per-dot IDENTIFICATION matches (deep Gaia cone if cached, else
+    the widest labeling catalog -- same choice render_frame_png makes), and the
+    enriched 120-arcsec navigation LINES for this frame.
+
+    Returns {ok:True, id, name, centroids:[[x,y],...], matches:[{centroid_index,
+    source_id, name, dist_pc, position_capable, sep_arcsec}, ...], lines:[<the
+    _line_json shape>]} or {ok:False, message} for an unknown id.
+    """
+    rec = _record_by_id(fid)
+    if rec is None:
+        return {
+            "ok": False,
+            "message": f"unknown frame id {fid!r} -- not a demo frame or an "
+            "uploaded image.",
+        }
+    xy = rec["centroids"]["xy"]
+    # Navigation lines for this frame -- the same builder locate_payload uses; its
+    # source ids are exactly the position-capable set for the identification tier.
+    lines, _ = _lines_for([fid], age_yr, radius_arcsec, rv_kms)
+    position_capable_ids = {ln.star_source_id for ln in lines}
+    # Identification tier: cached deep cone first, else the widest labeling catalog.
+    cone = gaiacone.cone_catalog(rec["plate"], allow_fetch=False)
+    if cone is not None:
+        labels = cone_label_set(rec["plate"], xy, cone, position_capable_ids)
+    else:
+        wide_cat, _ = labeling_catalog(age_yr, rv_kms or DEFAULT_RV_FILL_KMS)
+        labels = crossmatch_labels(rec["plate"], xy, wide_cat, position_capable_ids)
+    matches = [
+        {
+            "centroid_index": lab["centroid_index"],
+            "source_id": lab["source_id"],
+            "name": lab["name"],
+            "dist_pc": lab["dist_pc"],
+            "position_capable": bool(lab["position_capable"]),
+            "sep_arcsec": lab["sep_arcsec"],
+        }
+        for lab in labels
+    ]
+    return {
+        "ok": True,
+        "id": fid,
+        "name": rec["name"],
+        "centroids": [[float(x), float(y)] for x, y in xy],
+        "matches": matches,
+        "lines": [_line_json(ln) for ln in lines],
     }
 
 
@@ -730,13 +882,36 @@ def _parse_multipart(body, content_type):
     return None, None
 
 
+def _upload_result(uid, duplicate):
+    """The success dict for an uploaded record (fresh or a dedup hit)."""
+    rec = _UPLOADS[uid]
+    return {
+        "ok": True,
+        "id": uid,
+        "name": rec["name"],
+        "field": "uploaded",
+        "obs_age_yr": round(rec.get("obs_age_yr", 0.0), 4),
+        "duplicate": duplicate,
+    }
+
+
 def handle_upload(filename, data_bytes, api_key=None):
     """Save an uploaded image, plate-solve it, and add it to the gallery.
 
-    Returns {ok:True, id, name, field, obs_age_yr} on success, else
+    Deduplicates by content hash: re-uploading identical bytes returns the
+    EXISTING record with duplicate:True (no re-solve, no new id) instead of
+    growing _UPLOADS forever. A fresh upload returns duplicate:False.
+
+    Returns {ok:True, id, name, field, obs_age_yr, duplicate} on success, else
     {ok:False, message:<friendly multi-backend error>}.
     """
     import tempfile
+
+    # Dedup BEFORE the (expensive) solve: identical bytes -> the existing record.
+    digest = hashlib.sha256(data_bytes).hexdigest()
+    seen = _UPLOAD_HASHES.get(digest)
+    if seen is not None and seen in _UPLOADS:
+        return _upload_result(seen, duplicate=True)
 
     suffix = Path(filename).suffix or ".fits"
     with tempfile.TemporaryDirectory() as tmp:
@@ -766,13 +941,61 @@ def handle_upload(filename, data_bytes, api_key=None):
             "obs_age_yr": age_yr_since_j2016(jd) if jd else 0.0,
             "is_demo": False,
         }
+        _UPLOAD_HASHES[digest] = uid
+    return _upload_result(uid, duplicate=False)
+
+
+def remove_upload(uid):
+    """Remove an uploaded frame (and its dedup entry) from the gallery.
+
+    Refuses to remove a built-in demo frame or an unknown id, with a plain-English
+    reason. Returns {ok:True} on success, else {ok:False, message}.
+    """
+    _ensure_demo_index()
+    if uid in _DEMO_INDEX:
+        return {
+            "ok": False,
+            "message": f"{uid!r} is a built-in demo frame and cannot be removed.",
+        }
+    rec = _UPLOADS.pop(uid, None)
+    if rec is None:
+        return {"ok": False, "message": f"no uploaded image with id {uid!r} to remove."}
+    for digest, mapped in list(_UPLOAD_HASHES.items()):
+        if mapped == uid:
+            _UPLOAD_HASHES.pop(digest, None)
+    return {"ok": True}
+
+
+def solver_status():
+    """Report whether the offline blind solver is ready (do.txt item 6).
+
+    wsl_solver: `solve-field` is on PATH inside WSL (probe cached per process,
+        overridable in tests via _WSL_SOLVER_CACHE).
+    wsl_config: the GalNav astrometry config exists in WSL (platesolve's cached
+        probe -- lists the wide Tycho-2 + narrow LITE indexes).
+    index_files: count of index-*.fits under ASTROMETRY_INDEX_DIR (0 if missing).
+    """
     return {
         "ok": True,
-        "id": uid,
-        "name": _UPLOADS[uid]["name"],
-        "field": "uploaded",
-        "obs_age_yr": round(_UPLOADS[uid]["obs_age_yr"], 4),
+        "wsl_solver": _wsl_solver_available(),
+        "wsl_config": bool(_wsl_has_galnav_config()),
+        "index_files": _count_index_files(),
     }
+
+
+def _wsl_solver_available():
+    """WSL blind-solver presence, probed once per process (see _WSL_SOLVER_CACHE)."""
+    global _WSL_SOLVER_CACHE
+    if _WSL_SOLVER_CACHE is None:
+        _WSL_SOLVER_CACHE = bool(_wsl_available())
+    return _WSL_SOLVER_CACHE
+
+
+def _count_index_files():
+    """How many index-*.fits blind-solve indexes are installed (0 if dir absent)."""
+    if not ASTROMETRY_INDEX_DIR.is_dir():
+        return 0
+    return len(glob.glob(str(ASTROMETRY_INDEX_DIR / "index-*.fits")))
 
 
 # --- HTTP layer (thin) ------------------------------------------------------
@@ -830,13 +1053,25 @@ class _Handler(BaseHTTPRequestHandler):
                 fid = q.get("id", [""])[0]
                 age = float(q.get("age", ["4.31"])[0])
                 radius = float(q.get("radius", ["120"])[0])
-                # thumb=1 -> nav-only overlay (fast, no wide-catalog load).
+                # thumb=1 -> skip the deep-identify catalog load (fast). overlay
+                # picks the annotation tier; unknown values fall back to "nav".
                 full = q.get("thumb", ["0"])[0] not in ("1", "true")
+                overlay = q.get("overlay", ["nav"])[0]
                 self._send(
                     200,
                     "image/png",
-                    render_frame_png(fid, age, radius, full_labels=full),
+                    render_frame_png(
+                        fid, age, radius, full_labels=full, overlay=overlay
+                    ),
                 )
+            elif route == "/api/pipeline":
+                q = self._query()
+                fid = q.get("id", [""])[0]
+                age = float(q.get("age", ["4.31"])[0])
+                radius = float(q.get("radius", ["120"])[0])
+                self._json(pipeline_payload(fid, age, radius))
+            elif route == "/api/solver_status":
+                self._json(solver_status())
             else:
                 self._json({"ok": False, "message": "unknown route"}, 404)
         except Exception as exc:  # noqa: BLE001 -- never leak a stack trace
@@ -879,6 +1114,9 @@ class _Handler(BaseHTTPRequestHandler):
                     self._json({"ok": False, "message": "no file in upload"})
                     return
                 self._json(handle_upload(filename, data, api_key=api_key))
+            elif route == "/api/remove_upload":
+                b = json.loads(self._read_body() or b"{}")
+                self._json(remove_upload(b.get("id", "")))
             else:
                 self._json({"ok": False, "message": "unknown route"}, 404)
         except Exception as exc:  # noqa: BLE001
