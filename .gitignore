@@ -40,3 +40,8 @@ data/gaia_cones/
 # Fresh candidate images for demo pre-testing (re-fetchable; DSS/TESS/HST/NH/photos).
 # Cache, not source -- see data/candidates/MANIFEST.md for provenance + fetch URLs.
 data/candidates/
+
+# OpenSpace live-marker textures: tiny solid-colour PNGs written at runtime by
+# gui/openspace_link.py when pushing markers to a running OpenSpace. Regenerated
+# on demand (ensure_marker_textures); cache, not source -- never committed.
+.galnav_openspace_runtime/

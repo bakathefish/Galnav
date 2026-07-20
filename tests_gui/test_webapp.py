@@ -508,3 +508,116 @@ def test_solver_status_missing_index_dir(monkeypatch, tmp_path):
     assert s["ok"] is True
     assert s["index_files"] == 0
     assert s["wsl_solver"] is False and s["wsl_config"] is False
+
+
+# --- OpenSpace live bridge: status + show (pipeline visualisation) -----------
+# Offline: the openspace_link socket calls are mocked at the module boundary, so
+# no real planetarium (and no network) is ever touched. These pin the JSON
+# contract the pipeline pages and the main-page buttons speak to.
+from gui import openspace_link  # noqa: E402
+
+
+def _capture_lua(monkeypatch):
+    """Mock run_lua to record the pushed Lua (and report success) without a
+    socket, and force is_running True. Returns the list the scripts land in."""
+    pushed = []
+    monkeypatch.setattr(openspace_link, "is_running", lambda *a, **k: True)
+    monkeypatch.setattr(webapp.openspace_link, "is_running", lambda *a, **k: True)
+
+    def fake_run(script, *a, **k):
+        pushed.append(script)
+        return True
+
+    monkeypatch.setattr(openspace_link, "run_lua", fake_run)
+    monkeypatch.setattr(webapp.openspace_link, "run_lua", fake_run)
+    # ensure_marker_textures writes PNGs (needs PIL + disk); stub it to the pure
+    # path helper so the show flow stays offline and side-effect-free in tests.
+    monkeypatch.setattr(
+        webapp.openspace_link,
+        "ensure_marker_textures",
+        openspace_link.marker_texture_paths,
+    )
+    return pushed
+
+
+def test_openspace_status_shape(monkeypatch):
+    """/api/openspace/status reports whether OpenSpace is reachable -- a cheap
+    boolean the UI turns into a connected/not-running chip."""
+    monkeypatch.setattr(webapp.openspace_link, "is_running", lambda *a, **k: False)
+    s = webapp.openspace_status()
+    assert s == {"ok": True, "running": False}
+    monkeypatch.setattr(webapp.openspace_link, "is_running", lambda *a, **k: True)
+    assert webapp.openspace_status()["running"] is True
+
+
+def test_openspace_show_not_running_is_honest(monkeypatch):
+    """With OpenSpace absent, show never fakes success: it returns ok:false with
+    a plain 'start OpenSpace' message -- and pushes no Lua."""
+    monkeypatch.setattr(webapp.openspace_link, "is_running", lambda *a, **k: False)
+    r = webapp.openspace_show("stars", _demo_ids(), 4.31, 120, 19.57)
+    assert r["ok"] is False
+    assert "OpenSpace" in r["message"]
+
+
+def test_openspace_show_stars(monkeypatch):
+    """The stars stage pushes an amber marker at each position-capable star's
+    aged position -- galactic metres, GalNavLive identifiers, honest pushed list."""
+    pushed = _capture_lua(monkeypatch)
+    r = webapp.openspace_show("stars", _demo_ids(), 4.31, 120, 19.57)
+    assert r["ok"] is True
+    assert len(pushed) == 1
+    assert "RenderableSphereImageLocal" in pushed[0]
+    assert all(n.startswith("GalNavLiveStar") for n in r["pushed"])
+    assert len(r["pushed"]) == 2  # Proxima + Wolf (the 2 distinct nav stars)
+
+
+def test_openspace_show_lines(monkeypatch):
+    """The lines stage pushes one node line per nav line of position."""
+    pushed = _capture_lua(monkeypatch)
+    r = webapp.openspace_show("lines", _demo_ids(), 4.31, 120, 19.57)
+    assert r["ok"] is True
+    assert "RenderableNodeLine" in pushed[0]
+    assert all(n.startswith("GalNavLiveLine") for n in r["pushed"])
+
+
+def test_openspace_show_fix_pushes_amber_and_truth(monkeypatch):
+    """The fix stage runs the locate flow and pushes the amber fix + cyan truth +
+    white miss line for the known-JPL demo set."""
+    pushed = _capture_lua(monkeypatch)
+    r = webapp.openspace_show("fix", _demo_ids(), 4.31, 120, 19.57)
+    assert r["ok"] is True
+    assert "GalNavLiveFix" in pushed[0] and "GalNavLiveTruth" in pushed[0]
+    assert "GalNavLiveFix" in r["pushed"]
+
+
+def test_openspace_show_fix_one_star_draws_the_line(monkeypatch):
+    """One nearby star is a LINE, not a point: the fix stage pushes the line of
+    position instead and SAYS so (do.txt item 9, the one-image story)."""
+    pushed = _capture_lua(monkeypatch)
+    r = webapp.openspace_show("fix", ["f0"], 4.31, 120, 19.57)
+    assert r["ok"] is True
+    assert "RenderableNodeLine" in pushed[0]
+    assert "line" in r["note"].lower()
+    assert all(n.startswith("GalNavLiveLine") for n in r["pushed"])
+
+
+def test_openspace_show_clear(monkeypatch):
+    """The clear stage removes every GalNavLive* node and reports it."""
+    pushed = _capture_lua(monkeypatch)
+    r = webapp.openspace_show("clear", [], 4.31, 120, 19.57)
+    assert r["ok"] is True
+    assert "removeSceneGraphNode" in pushed[0]
+    assert r["pushed"] == []
+
+
+def test_openspace_show_run_lua_failure_is_reported(monkeypatch):
+    """If OpenSpace is reachable but the push itself fails, say so honestly."""
+    monkeypatch.setattr(webapp.openspace_link, "is_running", lambda *a, **k: True)
+    monkeypatch.setattr(webapp.openspace_link, "run_lua", lambda *a, **k: False)
+    monkeypatch.setattr(
+        webapp.openspace_link,
+        "ensure_marker_textures",
+        openspace_link.marker_texture_paths,
+    )
+    r = webapp.openspace_show("stars", _demo_ids(), 4.31, 120, 19.57)
+    assert r["ok"] is False

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GalNav pipeline - Step 4: pixel to direction</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="topbar"><div class="wrap">
+  <span class="brand">Gal<span class="dot">Nav</span></span>
+  <span class="mono" style="color:var(--dim);font-size:12px">pipeline &middot; step 4 of 6</span>
+  <span class="spacer"></span>
+  <a class="nav" href="/">&larr; back to app</a>
+  <span id="os-chip" class="os-chip" data-state="unknown">checking OpenSpace&hellip;</span>
+</div></div>
+
+<div class="wrap">
+  <div class="stepper">
+    <span class="steplbl">Step 4 of 6 &mdash; From pixel to direction (the angles)</span>
+    <span class="dots"><i></i><i></i><i></i><i class="on"></i><i></i><i></i></span>
+  </div>
+
+  <p class="pipe-lede">Each position-capable star's centroid is turned into a <strong>unit direction</strong>
+    in space. The plate solution is a <strong>TAN</strong> (gnomonic tangent-plane) projection, so we
+    de-project the pixel through its inverse to a sky coordinate, then to a 3-vector:</p>
+
+  <div class="math">pixel (x, y)  &mdash;WCS TAN&#8315;&sup1;&rarr;  (RA &alpha;, Dec &delta;)  &rarr;  <b>&ucirc;</b> = [ cos&delta; cos&alpha;,  cos&delta; sin&alpha;,  sin&delta; ]
+<span class="pcap">The gnomonic (tangent-plane) de-projection is exact for a TAN WCS; &ucirc; is the measured
+spacecraft&rarr;star line of sight, a pure direction with no distance in it yet.</span></div>
+
+  <div id="frames"><p class="pcap"><span class="spin"></span>Computing directions&hellip;</p></div>
+
+  <div class="navbtns">
+    <a class="btn prevlink" data-page="/static/pipeline-3-identify.html">&larr; Prev</a>
+    <a class="btn primary nextlink" data-page="/static/pipeline-5-lines.html">Next: lines of position &rarr;</a>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<script>
+"use strict";
+const params = new URLSearchParams(location.search);
+const ids = (params.get('ids') || 'f0,f6').split(',').map(s => s.trim()).filter(Boolean);
+const age = params.get('age') || '4.31';
+const radius = params.get('radius') || '120';
+const walk = () => { const p = new URLSearchParams(); p.set('ids', ids.join(',')); p.set('age', age); p.set('radius', radius); return p.toString(); };
+for (const a of document.querySelectorAll('.prevlink, .nextlink')) a.href = a.dataset.page + '?' + walk();
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.getElementById('toasts').appendChild(t); setTimeout(() => t.remove(), 6000); }
+(function () {
+  fetch('/api/openspace/status').then(r => r.json()).then(s => {
+    const c = document.getElementById('os-chip');
+    if (!c || !s || s.ok !== true) return;
+    if (s.running) { c.dataset.state = 'up'; c.textContent = 'OpenSpace connected'; }
+    else { c.dataset.state = 'down'; c.textContent = 'OpenSpace not running'; }
+  }).catch(() => { });
+})();
+
+const DEG = 180 / Math.PI;
+const box = document.getElementById('frames');
+Promise.all(ids.map(id =>
+  fetch('/api/pipeline?id=' + encodeURIComponent(id) + '&age=' + encodeURIComponent(age) + '&radius=' + encodeURIComponent(radius))
+    .then(r => r.json()).then(p => ({ id, p })).catch(() => ({ id, p: null }))
+)).then(list => {
+  box.innerHTML = list.map(({ id, p }) => {
+    if (!p || !p.ok) return '<div class="frameblock"><p class="frametitle">' + esc(id) + '</p><p class="pcap">no data for this frame</p></div>';
+    if (!p.lines.length) return '<div class="frameblock"><p class="frametitle">' + esc(p.name) + '</p><p class="pcap">no position-capable star in this frame &mdash; nothing to point with.</p></div>';
+    const rows = p.lines.map(ln => {
+      const d = ln.direction_unit;
+      const ra = ((Math.atan2(d[1], d[0]) * DEG) + 360) % 360;
+      const dec = Math.asin(Math.max(-1, Math.min(1, d[2]))) * DEG;
+      const cxy = ln.centroid_xy;
+      const vec = '[' + d.map(v => v.toFixed(5)).join(', ') + ']';
+      return '<tr><td class="nav">' + esc(ln.star_name) + '</td><td>(' + cxy[0].toFixed(1) + ', ' + cxy[1].toFixed(1) + ')</td>' +
+        '<td>' + vec + '</td><td>' + ra.toFixed(4) + '&deg;</td><td>' + dec.toFixed(4) + '&deg;</td></tr>';
+    }).join('');
+    return '<div class="frameblock"><p class="frametitle">' + esc(p.name) + '</p>' +
+      '<div class="tablewrap"><table class="pipe"><thead><tr><th>star</th><th>centroid (x, y)</th>' +
+      '<th>direction_unit</th><th>RA</th><th>Dec</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+  }).join('') || '<p class="pcap">No frames selected.</p>';
+}).catch(e => { box.innerHTML = '<p class="pcap">Angle computation failed: ' + esc(e) + '</p>'; });
+</script>
+</body>
+</html>

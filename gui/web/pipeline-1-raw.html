@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GalNav pipeline - Step 1: the raw image</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="topbar"><div class="wrap">
+  <span class="brand">Gal<span class="dot">Nav</span></span>
+  <span class="mono" style="color:var(--dim);font-size:12px">pipeline &middot; step 1 of 6</span>
+  <span class="spacer"></span>
+  <a class="nav" href="/">&larr; back to app</a>
+  <span id="os-chip" class="os-chip" data-state="unknown">checking OpenSpace&hellip;</span>
+</div></div>
+
+<div class="wrap">
+  <div class="stepper">
+    <span class="steplbl">Step 1 of 6 &mdash; The raw image</span>
+    <span class="dots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></span>
+  </div>
+
+  <p class="pipe-lede">This is <strong>all a lost spacecraft has</strong>: a photograph of the star
+    field, with no coordinates attached. No labels, no grid, no "you are here" &mdash; just pixels.
+    Everything the next five pages recover is squeezed out of images exactly like these. The stars
+    you upload are shown here with <em>no</em> annotation on purpose.</p>
+
+  <div id="frames"><p class="pcap"><span class="spin"></span>Loading frames&hellip;</p></div>
+
+  <div class="navbtns">
+    <span></span>
+    <a class="btn primary nextlink" data-page="/static/pipeline-2-detect.html">Next: detect the stars &rarr;</a>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<script>
+"use strict";
+const params = new URLSearchParams(location.search);
+const ids = (params.get('ids') || 'f0,f6').split(',').map(s => s.trim()).filter(Boolean);
+const age = params.get('age') || '4.31';
+const radius = params.get('radius') || '120';
+const walk = () => { const p = new URLSearchParams(); p.set('ids', ids.join(',')); p.set('age', age); p.set('radius', radius); return p.toString(); };
+for (const a of document.querySelectorAll('.prevlink, .nextlink')) a.href = a.dataset.page + '?' + walk();
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.getElementById('toasts').appendChild(t); setTimeout(() => t.remove(), 6000); }
+(function () {
+  fetch('/api/openspace/status').then(r => r.json()).then(s => {
+    const c = document.getElementById('os-chip');
+    if (!c || !s || s.ok !== true) return;
+    if (s.running) { c.dataset.state = 'up'; c.textContent = 'OpenSpace connected'; }
+    else { c.dataset.state = 'down'; c.textContent = 'OpenSpace not running'; }
+  }).catch(() => { });
+})();
+
+const box = document.getElementById('frames');
+fetch('/api/frames').then(r => r.json()).then(frames => {
+  const byId = {}; for (const f of frames) byId[f.id] = f;
+  box.innerHTML = ids.map(id => {
+    const f = byId[id] || { name: id, field: '' };
+    const src = '/api/image?id=' + encodeURIComponent(id) + '&age=' + encodeURIComponent(age) + '&radius=' + encodeURIComponent(radius) + '&overlay=none';
+    return '<div class="frameblock"><p class="frametitle">' + esc(f.name) + (f.field ? ' &mdash; ' + esc(f.field) + ' field' : '') + '</p>' +
+      '<img class="frameimg" alt="raw frame ' + esc(f.name) + '" src="' + src + '"></div>';
+  }).join('') || '<p class="pcap">No frames selected.</p>';
+}).catch(e => { box.innerHTML = '<p class="pcap">Could not load frames: ' + esc(e) + '</p>'; });
+</script>
+</body>
+</html>

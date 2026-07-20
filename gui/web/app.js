@@ -135,6 +135,7 @@ function syncAge() {
 }
 
 function updatePreview() {
+  updateWalkLink(); // keep the step-through link on the current selection
   const wrap = $("imgwrap");
   if (!state.focus) {
     wrap.innerHTML = '<div class="hint" id="preview-hint">Select a frame to see its ' +
@@ -200,7 +201,7 @@ function renderLocate(r) {
       return;
     }
     $("results").innerHTML = `<div class="resultcard">${warn}<div class="pos">${esc(r.message)}</div></div>`;
-    hideSpacePanel();
+    hideFixButton();
     return;
   }
   const x = r.x_au.map((v) => v.toFixed(3)).join(", ");
@@ -225,7 +226,10 @@ function renderLocate(r) {
        </div>
        <div class="linelist">${lines}</div>
      </div>`;
-  showSpacePanel(r);
+  // A point fix exists: offer to push it into OpenSpace, and refresh the walk
+  // link so the step-through opens on this exact selection.
+  revealFixButton();
+  updateWalkLink();
 }
 
 // One nearby star pins the camera to a LINE of position, not a point. The card
@@ -252,28 +256,87 @@ function renderLineOfPosition(r, warn) {
          ${spread}
        </div>
      </div>`;
-  hideSpacePanel(); // a line is not a point fix; no 3-D panel for now
+  // A line is not a point fix, so no "show the fix" button; but the line CAN be
+  // drawn in OpenSpace from pipeline page 6, and the walk link stays current.
+  hideFixButton();
+  updateWalkLink();
 }
 
-// --- 3-D "Where in Space" panel (lazy iframe) -------------------------------
-function showSpacePanel(r) {
-  $("space-r").textContent = "RECOVERED POSITION · " + r.r_au.toFixed(1) + " au";
-  // The NASA Eyes deep-link is New-Horizons-specific: show it only when the
-  // whole selection is the baked demo set (ids "f0".."f11"), not for uploads.
+// --- OpenSpace panel (the pipeline's live viewer) ---------------------------
+// The old spacekit iframe view is retired from this flow; OpenSpace is now THE
+// viewer. A status chip reflects whether a local OpenSpace is reachable, the
+// walk link steps through the pipeline pages carrying the current selection, and
+// after a successful Locate the fix can be pushed straight into OpenSpace.
+async function openspaceStatus() {
+  const chip = $("os-chip");
+  if (!chip) return;
+  let r;
+  try {
+    r = await api("/api/openspace/status");
+  } catch (e) {
+    return; // old server without the endpoint: leave the chip as-is
+  }
+  if (!r || r.ok !== true) return;
+  if (r.running) {
+    chip.dataset.state = "up";
+    chip.textContent = "OpenSpace connected";
+  } else {
+    chip.dataset.state = "down";
+    chip.textContent = "OpenSpace not running";
+  }
+}
+
+// The step-through link carries the current selection so the pipeline pages
+// open on exactly the frames the user has chosen (or the demo default).
+function currentWalkQuery() {
   const ids = [...state.selected];
-  const isDemo = ids.length > 0 && ids.every((id) => id.startsWith("f"));
-  $("nasa-eyes").hidden = !isDemo;
-  // Set the iframe src (lazy: spacekit.js loads only now). x_au is equatorial
-  // ICRS au straight from /api/locate; the view rotates it to ecliptic itself.
-  const src = "/static/where-in-space.html?x=" + encodeURIComponent(r.x_au.join(","));
-  const iframe = $("space-iframe");
-  if (iframe.getAttribute("src") !== src) iframe.setAttribute("src", src);
-  $("space-panel").hidden = false;
+  const q = new URLSearchParams();
+  if (ids.length) q.set("ids", ids.join(","));
+  q.set("age", $("age").value || "4.31");
+  q.set("radius", $("radius").value || "120");
+  return q.toString();
 }
 
-function hideSpacePanel() {
-  const p = $("space-panel");
-  if (p) p.hidden = true;
+function updateWalkLink() {
+  const a = $("walk-link");
+  if (a) a.href = "/static/pipeline-1-raw.html?" + currentWalkQuery();
+}
+
+function revealFixButton() {
+  const b = $("os-show-fix");
+  if (!b) return;
+  b.hidden = false;
+  b.onclick = () => showInOpenSpace("fix");
+}
+
+function hideFixButton() {
+  const b = $("os-show-fix");
+  if (b) b.hidden = true;
+}
+
+// Push a pipeline stage ("stars"|"lines"|"fix"|"clear") into a running
+// OpenSpace. Honest when OpenSpace is not running: the response says so and the
+// note line shows it, no fake success.
+async function showInOpenSpace(stage) {
+  const ids = [...state.selected];
+  const note = $("os-note");
+  const body = JSON.stringify({
+    stage, ids, age: parseFloat($("age").value),
+    radius: parseFloat($("radius").value), rv: parseFloat($("rv").value || "0"),
+  });
+  try {
+    const r = await api("/api/openspace/show", { method: "POST", body });
+    if (r.ok) {
+      if (note) note.textContent = r.note || "Pushed to OpenSpace.";
+      toast("Pushed to OpenSpace.");
+    } else {
+      if (note) note.textContent = r.message || "OpenSpace push failed.";
+      toast(r.message || "OpenSpace push failed.");
+    }
+    openspaceStatus();
+  } catch (e) {
+    toast("OpenSpace push failed: " + e);
+  }
 }
 
 async function estimateAge() {
@@ -294,7 +357,7 @@ async function estimateAge() {
 }
 
 function renderAge(r) {
-  hideSpacePanel();  // age result is not a position fix
+  hideFixButton();  // age result is not a position fix
   if (!r.ok) {
     $("results").innerHTML = `<div class="resultcard"><div class="pos">${esc(r.message)}</div></div>`;
     return;
@@ -529,7 +592,7 @@ function init() {
   $("clear-sel").addEventListener("click", () => {
     state.selected.clear(); state.order = []; state.focus = null;
     renderGallery(); updatePreview();
-    $("results").innerHTML = ""; hideSpacePanel();
+    $("results").innerHTML = ""; hideFixButton();
   });
   $("locate").addEventListener("click", locate);
   $("estimate").addEventListener("click", estimateAge);
@@ -550,5 +613,7 @@ function init() {
   });
   loadFrames();
   solverStatus();
+  openspaceStatus();
+  updateWalkLink();
 }
 document.addEventListener("DOMContentLoaded", init);

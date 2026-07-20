@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GalNav pipeline - Step 2: detect the stars</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="topbar"><div class="wrap">
+  <span class="brand">Gal<span class="dot">Nav</span></span>
+  <span class="mono" style="color:var(--dim);font-size:12px">pipeline &middot; step 2 of 6</span>
+  <span class="spacer"></span>
+  <a class="nav" href="/">&larr; back to app</a>
+  <span id="os-chip" class="os-chip" data-state="unknown">checking OpenSpace&hellip;</span>
+</div></div>
+
+<div class="wrap">
+  <div class="stepper">
+    <span class="steplbl">Step 2 of 6 &mdash; Detect the stars (centroids)</span>
+    <span class="dots"><i></i><i class="on"></i><i></i><i></i><i></i><i></i></span>
+  </div>
+
+  <p class="pipe-lede">A blob detector finds every bright spot above the local background. Each blob's
+    position is then refined to sub-pixel precision with a <strong>flux-weighted moment centroid</strong>
+    &mdash; the intensity-weighted mean pixel:</p>
+
+  <div class="math">x_c = ( &Sigma; I&#7522;&middot;x&#7522; ) / ( &Sigma; I&#7522; )        y_c = ( &Sigma; I&#7522;&middot;y&#7522; ) / ( &Sigma; I&#7522; )
+<span class="pcap">I&#7522; = pixel intensity above the local background, summed over the blob. The centroid is a
+weighted mean, so it lands between pixels &mdash; far more precise than the nearest whole pixel.</span></div>
+
+  <div id="frames"><p class="pcap"><span class="spin"></span>Detecting&hellip;</p></div>
+
+  <div class="navbtns">
+    <a class="btn prevlink" data-page="/static/pipeline-1-raw.html">&larr; Prev</a>
+    <a class="btn primary nextlink" data-page="/static/pipeline-3-identify.html">Next: identify them &rarr;</a>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<script>
+"use strict";
+const params = new URLSearchParams(location.search);
+const ids = (params.get('ids') || 'f0,f6').split(',').map(s => s.trim()).filter(Boolean);
+const age = params.get('age') || '4.31';
+const radius = params.get('radius') || '120';
+const walk = () => { const p = new URLSearchParams(); p.set('ids', ids.join(',')); p.set('age', age); p.set('radius', radius); return p.toString(); };
+for (const a of document.querySelectorAll('.prevlink, .nextlink')) a.href = a.dataset.page + '?' + walk();
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.getElementById('toasts').appendChild(t); setTimeout(() => t.remove(), 6000); }
+(function () {
+  fetch('/api/openspace/status').then(r => r.json()).then(s => {
+    const c = document.getElementById('os-chip');
+    if (!c || !s || s.ok !== true) return;
+    if (s.running) { c.dataset.state = 'up'; c.textContent = 'OpenSpace connected'; }
+    else { c.dataset.state = 'down'; c.textContent = 'OpenSpace not running'; }
+  }).catch(() => { });
+})();
+
+const box = document.getElementById('frames');
+Promise.all(ids.map(id =>
+  fetch('/api/pipeline?id=' + encodeURIComponent(id) + '&age=' + encodeURIComponent(age) + '&radius=' + encodeURIComponent(radius))
+    .then(r => r.json()).then(p => ({ id, p })).catch(() => ({ id, p: null }))
+)).then(list => {
+  box.innerHTML = list.map(({ id, p }) => {
+    if (!p || !p.ok) return '<div class="frameblock"><p class="frametitle">' + esc(id) + '</p><p class="pcap">no data for this frame</p></div>';
+    const src = '/api/image?id=' + encodeURIComponent(id) + '&age=' + encodeURIComponent(age) + '&radius=' + encodeURIComponent(radius) + '&overlay=detected';
+    const rows = p.centroids.slice(0, 8).map((c, i) =>
+      '<tr><td>' + (i + 1) + '</td><td>' + c[0].toFixed(2) + '</td><td>' + c[1].toFixed(2) + '</td></tr>').join('');
+    return '<div class="frameblock"><p class="frametitle">' + esc(p.name) + ' &mdash; ' + p.centroids.length + ' centroids detected</p>' +
+      '<img class="frameimg" alt="detected stars ' + esc(p.name) + '" src="' + src + '">' +
+      '<div class="tablewrap"><table class="pipe"><thead><tr><th>#</th><th>x (px)</th><th>y (px)</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<p class="pcap">The first 8 of ' + p.centroids.length + ' detected blobs (detection order), each a sub-pixel moment centroid.</p></div>';
+  }).join('') || '<p class="pcap">No frames selected.</p>';
+}).catch(e => { box.innerHTML = '<p class="pcap">Detection failed: ' + esc(e) + '</p>'; });
+</script>
+</body>
+</html>

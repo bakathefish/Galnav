@@ -193,17 +193,14 @@ input[type=file]{font-size:12px; color:var(--dim); width:100%}
 .agebox{margin-top:14px}
 canvas{width:100%; height:200px; display:block; background:var(--panel2); border:1px solid var(--line); border-radius:10px}
 
-/* where-in-space 3-D panel */
-.space-panel{margin:0 0 26px}
-.space-panel[hidden]{display:none}
-.space-head{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:12px}
-.space-head h2{margin:0}
-.space-head #space-r{color:var(--amber); font:700 14px/1 ui-monospace,monospace}
-.space-head #nasa-eyes{margin-left:auto; font-size:12px; padding:8px 12px}
-.space-head #nasa-eyes[hidden]{display:none}
-.space-frame{position:relative; width:100%; height:70vh; min-height:420px;
-  background:#000; border:1px solid var(--line); border-radius:12px; overflow:hidden}
-.space-frame iframe{width:100%; height:100%; border:0; display:block}
+/* OpenSpace panel (the pipeline's live viewer) */
+.os-panel{margin:0 0 26px}
+.os-head{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:6px}
+.os-head h2{margin:0}
+.os-head .os-chip{margin-left:auto}  /* base .os-chip styling lives in the pipeline section */
+.os-actions{display:flex; gap:12px; flex-wrap:wrap; align-items:center}
+.os-actions .btn{margin:0}
+#os-show-fix[hidden]{display:none}
 
 /* footer + toasts */
 footer{border-top:1px solid var(--line); padding:22px 0 40px; color:var(--dim); font-size:13px}
@@ -215,4 +212,36 @@ footer ul{margin:8px 0 0; padding-left:20px} footer li{margin:3px 0}
 .spin{display:inline-block; width:14px; height:14px; border:2px solid var(--line);
   border-top-color:var(--cyan); border-radius:50%; animation:sp .7s linear infinite; vertical-align:-2px; margin-right:7px}
 @keyframes sp{to{transform:rotate(360deg)}}
+
+/* --- step-by-step pipeline pages (pipeline-*.html) ------------------------ */
+.os-chip{font:700 11px/1 ui-monospace,monospace; letter-spacing:.04em;
+  padding:6px 10px; border-radius:20px; border:1px solid var(--line);
+  color:var(--dim); background:var(--panel2); white-space:nowrap}
+.os-chip[data-state="up"]{color:var(--good); border-color:var(--good); background:var(--goodbg)}
+.os-chip[data-state="down"]{color:var(--amber); border-color:var(--amber); background:var(--amberbg)}
+.stepper{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin:22px 0 6px}
+.steplbl{font:800 13px/1.3 ui-monospace,monospace; letter-spacing:.06em; color:var(--ink)}
+.stepper .dots{display:flex; gap:6px; margin-left:auto}
+.stepper .dots i{width:9px; height:9px; border-radius:50%; background:var(--line); display:block}
+.stepper .dots i.on{background:var(--cyan)}
+.pipe-lede{color:var(--dim); font-size:15px; max-width:75ch; margin:2px 0 16px}
+.frameblock{margin:16px 0; padding-top:14px; border-top:1px solid var(--line)}
+.frameblock:first-of-type{border-top:0}
+.frametitle{font:700 12px/1.3 ui-monospace,monospace; color:var(--amber); margin:0 0 8px}
+.frameimg{max-width:100%; border-radius:10px; background:#05070d; display:block}
+table.pipe{width:100%; border-collapse:collapse; font:600 12px/1.5 ui-monospace,monospace; margin-top:10px}
+table.pipe th, table.pipe td{text-align:left; padding:6px 10px; border-bottom:1px solid var(--line); white-space:nowrap}
+table.pipe th{color:var(--faint); text-transform:uppercase; font-size:10px; letter-spacing:.08em}
+table.pipe td.nav{color:var(--amber)}
+.tablewrap{overflow-x:auto}
+.math{background:var(--inset); border:1px solid var(--line); border-radius:10px; padding:12px 14px;
+  font:600 13px/1.8 ui-monospace,monospace; color:var(--ink); overflow-x:auto; white-space:pre-wrap; margin:12px 0}
+.math b{color:var(--cyan); font-weight:700}
+.pcap{color:var(--faint); font-size:12.5px; line-height:1.6; margin:8px 0}
+.navbtns{display:flex; gap:12px; justify-content:space-between; align-items:center; margin:28px 0 48px}
+.navbtns .prevlink{margin-right:auto}
+.navbtns .nextlink{margin-left:auto}
+.notecard{border-left:3px solid var(--amber); background:var(--panel); border:1px solid var(--line);
+  border-radius:12px; padding:14px 16px; margin:14px 0}
+[hidden]{display:none}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}}

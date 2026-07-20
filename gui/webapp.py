@@ -38,7 +38,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-from gui import gaiacone
+from gui import gaiacone, openspace_link
 from gui.age import drift_date, estimate_age
 from gui.app import CATALOG_CSV, STAR_NAMES, load_grayscale
 from gui.centroids import find_centroids
@@ -90,10 +90,19 @@ _MUTED = "#6f7f96"  # dim distance labels for identified-but-not-navigable stars
 _LINE = "#263248"
 
 # Static files the /static/ route is allowed to serve (no path traversal).
+# The pipeline-*.html pages are the step-by-step visualization (do.txt items 5+9);
+# where-in-space.html stays allowlisted so its own tests keep passing even though
+# the main page no longer routes users to it (pivot to OpenSpace).
 _STATIC_ALLOW = {
     "app.js": "application/javascript; charset=utf-8",
     "style.css": "text/css; charset=utf-8",
     "where-in-space.html": "text/html; charset=utf-8",
+    "pipeline-1-raw.html": "text/html; charset=utf-8",
+    "pipeline-2-detect.html": "text/html; charset=utf-8",
+    "pipeline-3-identify.html": "text/html; charset=utf-8",
+    "pipeline-4-angles.html": "text/html; charset=utf-8",
+    "pipeline-5-lines.html": "text/html; charset=utf-8",
+    "pipeline-6-fix.html": "text/html; charset=utf-8",
 }
 
 # The vendored spacekit 3-D view (gui/web/vendor/) is served verbatim under
@@ -998,6 +1007,133 @@ def _count_index_files():
     return len(glob.glob(str(ASTROMETRY_INDEX_DIR / "index-*.fits")))
 
 
+# --- OpenSpace live bridge (the pipeline's viewer/visualiser) ---------------
+def openspace_status():
+    """Whether a local OpenSpace is reachable -- a cheap boolean the UI turns
+    into a connected/not-running chip. Never raises."""
+    return {"ok": True, "running": bool(openspace_link.is_running())}
+
+
+def _os_not_running():
+    return {
+        "ok": False,
+        "message": "OpenSpace isn't running (nothing on 127.0.0.1:4681). Start "
+        "OpenSpace on this machine, then this button works.",
+    }
+
+
+def _os_push(script, pushed, note):
+    """Run one live push and shape the response; honest on a send failure."""
+    if openspace_link.run_lua(script):
+        return {"ok": True, "pushed": pushed, "note": note}
+    return {
+        "ok": False,
+        "message": "OpenSpace is running but the marker push failed -- check the "
+        "OpenSpace log.",
+    }
+
+
+def _line_segments(lines):
+    """LineOfPosition objects -> the drawing dicts openspace_link.lines_lua wants."""
+    return [
+        {
+            "star_name": STAR_NAMES.get(ln.star_source_id, str(ln.star_source_id)),
+            "star_pos_au": [float(v) for v in ln.star_pos_au],
+            "direction_unit": [float(v) for v in ln.direction_unit],
+        }
+        for ln in lines
+    ]
+
+
+def openspace_show(stage, ids, age_yr, radius_arcsec, rv_kms):
+    """Push one pipeline stage into a running OpenSpace. Never raises.
+
+    stage: "stars" | "lines" | "fix" | "clear". The geometry is built with the
+    SAME machinery /api/pipeline and /api/locate use (no new physics) and turned
+    into a GalNavLive* Lua push by gui.openspace_link. Returns
+    {ok:True, pushed:[node identifiers], note} on success, or
+    {ok:False, message} when OpenSpace is not running or the push fails. The
+    one-nearby-star case in the fix stage draws the line of position instead of a
+    point and says so (do.txt item 9).
+    """
+    if not openspace_link.is_running():
+        return _os_not_running()
+
+    if stage == "clear":
+        return _os_push(openspace_link.clear_lua(), [], "cleared GalNav markers")
+
+    lines, _ = _lines_for(ids, age_yr, radius_arcsec, rv_kms)
+
+    if stage == "stars":
+        seen, stars = set(), []
+        for ln in lines:
+            if ln.star_source_id in seen:
+                continue
+            seen.add(ln.star_source_id)
+            stars.append(
+                {
+                    "name": STAR_NAMES.get(ln.star_source_id, str(ln.star_source_id)),
+                    "star_pos_au": [float(v) for v in ln.star_pos_au],
+                }
+            )
+        if not stars:
+            return {
+                "ok": False,
+                "message": "no position-capable stars in this selection to show.",
+            }
+        tex = openspace_link.ensure_marker_textures()
+        script = openspace_link.stars_lua(stars, texture=tex["amber"])
+        return _os_push(
+            script,
+            openspace_link.star_node_ids(len(stars)),
+            f"placed {len(stars)} star marker(s) at their catalog distances.",
+        )
+
+    if stage == "lines":
+        segs = _line_segments(lines)
+        if not segs:
+            return {
+                "ok": False,
+                "message": "no lines of position in this selection to show.",
+            }
+        return _os_push(
+            openspace_link.lines_lua(segs),
+            openspace_link.line_node_ids(len(segs)),
+            f"drew {len(segs)} line(s) of position toward the observer.",
+        )
+
+    if stage == "fix":
+        loc = locate_payload(ids, age_yr, radius_arcsec, rv_kms)
+        if loc["ok"]:
+            truth = loc.get("truth_x_au")
+            tex = openspace_link.ensure_marker_textures()
+            script = openspace_link.fix_lua(
+                loc["x_au"],
+                truth_au=truth,
+                texture_amber=tex["amber"],
+                texture_cyan=tex["cyan"],
+            )
+            if loc.get("miss_au") is not None:
+                note = f"fix placed; miss vs JPL truth {loc['miss_au']:.3f} au (white line)."
+            else:
+                note = "fix placed."
+            return _os_push(
+                script, openspace_link.fix_node_ids(with_truth=truth is not None), note
+            )
+        # Degenerate: one nearby star (or several of the same star) is a LINE, not
+        # a point -- draw that line of position instead, and say so.
+        if lines:
+            return _os_push(
+                openspace_link.lines_lua(_line_segments(lines)),
+                openspace_link.line_node_ids(len(lines)),
+                "one nearby star pins a LINE, not a point -- drew the line of "
+                "position instead. Add a second, different nearby star to fix a point.",
+            )
+        return {"ok": False, "message": loc["message"]}
+
+    return {"ok": False, "message": f"unknown OpenSpace stage {stage!r}"}
+
+
 # --- HTTP layer (thin) ------------------------------------------------------
 class _Handler(BaseHTTPRequestHandler):
     server_version = "GalNavWeb/1.0"
@@ -1072,6 +1208,8 @@ class _Handler(BaseHTTPRequestHandler):
                 self._json(pipeline_payload(fid, age, radius))
             elif route == "/api/solver_status":
                 self._json(solver_status())
+            elif route == "/api/openspace/status":
+                self._json(openspace_status())
             else:
                 self._json({"ok": False, "message": "unknown route"}, 404)
         except Exception as exc:  # noqa: BLE001 -- never leak a stack trace
@@ -1117,6 +1255,17 @@ class _Handler(BaseHTTPRequestHandler):
             elif route == "/api/remove_upload":
                 b = json.loads(self._read_body() or b"{}")
                 self._json(remove_upload(b.get("id", "")))
+            elif route == "/api/openspace/show":
+                b = json.loads(self._read_body() or b"{}")
+                self._json(
+                    openspace_show(
+                        b.get("stage", ""),
+                        b.get("ids", []),
+                        float(b.get("age", 4.31)),
+                        float(b.get("radius", 120)),
+                        float(b.get("rv", DEFAULT_RV_FILL_KMS)),
+                    )
+                )
             else:
                 self._json({"ok": False, "message": "unknown route"}, 404)
         except Exception as exc:  # noqa: BLE001

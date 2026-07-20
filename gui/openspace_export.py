@@ -75,12 +75,34 @@ def _rgb01(rgb):
     return ", ".join(f"{c / 255.0:.4f}" for c in rgb)
 
 
-def _marker(ident, label, gal_m, png_name, rgb, radius_m):
-    """Lua for one marker: hidden position node + textured sphere + label."""
+def _marker(
+    ident,
+    label,
+    gal_m,
+    png_name,
+    rgb,
+    radius_m,
+    parent_expr=None,
+    texture_expr=None,
+):
+    """Lua for one marker: hidden position node + textured sphere + label.
+
+    parent_expr / texture_expr are Lua EXPRESSIONS (not values). They default to
+    the .asset idioms this exporter emits -- the parent via the sun-transforms
+    require, the texture via ``asset.resource`` -- so the asset output is
+    unchanged. gui.openspace_link overrides them for RUNTIME luascript pushes,
+    where asset.resource does not resolve: it passes a plain "SolarSystemBary-
+    center" parent string and an ABSOLUTE texture path, reusing this one marker
+    idiom instead of duplicating the sphere/label Lua.
+    """
+    if parent_expr is None:
+        parent_expr = "sunTransforms.SolarSystemBarycenter.Identifier"
+    if texture_expr is None:
+        texture_expr = f'asset.resource("{png_name}")'
     return f"""
 local {ident}Pos = {{
   Identifier = "{ident}Pos",
-  Parent = sunTransforms.SolarSystemBarycenter.Identifier,
+  Parent = {parent_expr},
   Transform = {{
     Translation = {{
       Type = "StaticTranslation",
@@ -96,7 +118,7 @@ local {ident} = {{
   Renderable = {{
     Type = "RenderableSphereImageLocal",
     Enabled = true,
-    Texture = asset.resource("{png_name}"),
+    Texture = {texture_expr},
     Size = {radius_m:.6e},
     Segments = 32,
     Opacity = 0.92

@@ -196,3 +196,149 @@ def test_solver_status_swaps_install_hints_when_installed():
     assert 'id="solver-hint-how"' in src
     # default (solver absent) text still carries the install instructions
     assert "install local" in src
+
+
+# --- pivot: OpenSpace panel replaces the old spacekit iframe on the main page --
+
+
+def test_main_page_has_openspace_panel_not_iframe():
+    """The old 3-D spacekit iframe panel is retired from the user flow and
+    replaced by an OpenSpace panel: a status chip, a step-through link, and a
+    'show the fix in OpenSpace' button. where-in-space.html stays on disk (its
+    own tests still pass) but the main page no longer routes users to it."""
+    src = _index_html()
+    assert 'id="openspace-panel"' in src
+    assert 'id="os-chip"' in src  # connected / not-running chip
+    assert 'id="walk-link"' in src  # step-through entry point
+    assert 'id="os-show-fix"' in src  # show the fix in OpenSpace
+    assert "OpenSpace" in src
+    # the retired iframe view is gone from the main page
+    assert 'id="space-iframe"' not in src
+    assert "where-in-space.html" not in src
+
+
+def test_app_js_wires_openspace_not_iframe():
+    """app.js talks to the live-bridge endpoints and builds the step-through
+    link carrying the current selection; the dead iframe code path is gone."""
+    js = _app_js()
+    assert '"/api/openspace/status"' in js  # chip refresh
+    assert '"/api/openspace/show"' in js  # push the fix
+    assert "pipeline-1-raw.html" in js  # step-through entry
+    assert 'showInOpenSpace("fix")' in js  # the show-fix button pushes the fix stage
+    # the retired iframe wiring must be gone (pivot to OpenSpace)
+    assert "space-iframe" not in js
+    assert "where-in-space.html" not in js
+
+
+# --- the step-by-step pipeline pages (do.txt items 5 + 9) --------------------
+# Each page is served through the SAME static route the app uses, is fully
+# offline (no external URL), and carries the hooks that make its stage real.
+
+PIPELINE_PAGES = [
+    "pipeline-1-raw.html",
+    "pipeline-2-detect.html",
+    "pipeline-3-identify.html",
+    "pipeline-4-angles.html",
+    "pipeline-5-lines.html",
+    "pipeline-6-fix.html",
+]
+
+
+def _page(name):
+    got = webapp.static_file(name)
+    assert got is not None, f"{name} must be served by the static route"
+    ctype, body = got
+    assert ctype.startswith("text/html"), name
+    return body.decode("utf-8")
+
+
+def test_all_pipeline_pages_served_offline_and_chained():
+    """Every pipeline page is servable HTML, stays offline (no http/https), reads
+    the ?ids=&age=&radius= contract, shows a step indicator, and shows the
+    OpenSpace status chip."""
+    for name in PIPELINE_PAGES:
+        src = _page(name)
+        assert "http://" not in src and "https://" not in src, name
+        assert "location.search" in src, name  # carries the URL contract
+        assert "params.get('ids')" in src or 'params.get("ids")' in src, name
+        assert "Step " in src, name  # step indicator
+        assert "/api/openspace/status" in src, name  # status chip
+        assert "/static/style.css" in src, name  # shared design tokens, offline
+
+
+def test_pipeline_pages_prev_next_chain():
+    """Pages are chained by Next/Prev redirects (the user wanted page-by-page
+    links, not tabs): page 1 has Next, page 6 has Prev, the middle pages both."""
+    first = _page("pipeline-1-raw.html")
+    last = _page("pipeline-6-fix.html")
+    assert "nextlink" in first
+    assert "prevlink" in last
+    for name in PIPELINE_PAGES[1:-1]:
+        src = _page(name)
+        assert "prevlink" in src and "nextlink" in src, name
+
+
+def test_pipeline_1_raw_is_unlabeled_and_honest():
+    """Page 1 shows the image with NO pre-drawn labels (overlay=none) and says
+    plainly this raw frame is all a lost spacecraft has (do.txt item 8)."""
+    src = _page("pipeline-1-raw.html")
+    assert "overlay=none" in src
+    assert "all a lost spacecraft has" in src
+
+
+def test_pipeline_2_detect_shows_centroid_math():
+    """Page 2 overlays the detected blobs and shows the moment-centroid math with
+    this frame's real numbers pulled from /api/pipeline."""
+    src = _page("pipeline-2-detect.html")
+    assert "overlay=detected" in src
+    assert "/api/pipeline" in src
+    assert "centroid" in src.lower()
+    assert "moment" in src.lower()  # the flux-weighted moment centroid
+
+
+def test_pipeline_3_identify_has_match_table_and_openspace_button():
+    """Page 3 lists the identification matches (name, source_id, dist_pc,
+    sep_arcsec, position-capable) and offers 'Show these stars in OpenSpace'."""
+    src = _page("pipeline-3-identify.html")
+    assert "/api/pipeline" in src
+    assert "source_id" in src and "dist_pc" in src
+    assert "position-capable" in src.lower()
+    assert "/api/openspace/show" in src
+    assert 'data-stage="stars"' in src
+
+
+def test_pipeline_4_angles_shows_tan_deprojection():
+    """Page 4 shows, per position-capable star, the centroid -> direction_unit
+    TAN deprojection: the actual 3-vector, RA/Dec, and the formula in plain HTML
+    (no external math libs)."""
+    src = _page("pipeline-4-angles.html")
+    assert "/api/pipeline" in src
+    assert "direction_unit" in src
+    assert "RA" in src and "Dec" in src
+    assert "tangent" in src.lower() or "gnomonic" in src.lower() or "TAN" in src
+
+
+def test_pipeline_5_lines_shows_lop_and_openspace_button():
+    """Page 5 explains the line of position (observer = star_pos - lambda *
+    direction) with the anchor/direction numbers and a 'Show the line(s) in
+    OpenSpace' button."""
+    src = _page("pipeline-5-lines.html")
+    assert "line of position" in src.lower()
+    assert "anchor" in src.lower() and "direction" in src.lower()
+    assert "/api/openspace/show" in src
+    assert 'data-stage="lines"' in src
+
+
+def test_pipeline_6_fix_intersection_miss_and_one_image_story():
+    """Page 6 shows the least-squares intersection + ellipsoid + miss vs truth,
+    a 'Show the fix in OpenSpace' button, and the one-star degenerate case with a
+    'now add a second image' link that jumps to the SAME walk with ids=f0,f6."""
+    src = _page("pipeline-6-fix.html")
+    assert "/api/locate" in src
+    assert "least" in src.lower() and "ellipsoid" in src.lower()
+    assert "miss" in src.lower()
+    assert "/api/openspace/show" in src
+    assert 'data-stage="fix"' in src
+    # the one-image -> two-image story (do.txt item 9)
+    assert "a line, not a point" in src
+    assert "ids=f0,f6" in src
