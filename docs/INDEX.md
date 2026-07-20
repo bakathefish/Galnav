@@ -15,8 +15,7 @@ one that matches what you came for.
 | See the pipeline as a picture | [`docs/PIPELINE-FLOWCHART.html`](PIPELINE-FLOWCHART.html) — every stage, the data on each arrow, the 3-D and chronometer outputs |
 | Read the year off an old photo, or see the 3-D map | [`docs/GUI-EXPLAINED.md`](GUI-EXPLAINED.md) (chronometer + "Where in space"), demoed in [`docs/ISEF-DEMO-PLAYBOOK.md`](ISEF-DEMO-PLAYBOOK.md) |
 | Present at ISEF (booth script, Q&A, framing) | [`docs/ISEF-DEMO-PLAYBOOK.md`](ISEF-DEMO-PLAYBOOK.md) |
-| See the original plan and calendar | `compass_artifact_*.md` §6/7/8 (spec order, run-books, week-by-week gates) |
-| Know the rules the code is held to | the project rulebook — truth wall, TDD workflow, code rules |
+| Know the rules the code is held to | `tests/golden_numbers.py` + `tests/test_truth_wall.py` — the frozen truth wall the suite enforces |
 | Reproduce a figure exactly | `results/archive/` — the blessed `.npz` arrays + PNG behind every quoted number |
 | Check dataset provenance | [`data/README.md`](../data/README.md) (Gaia), `data/e3_new_horizons/README.md` (New Horizons), `data/e4_nicer/README.md` (NICER) |
 | Run the tests | `python -m pytest -q` (84 spine) · `python -m pytest tests_gui -q` (71 GUI) · armor 8: WSL2 only, per [`journal/environment-armor.md`](../journal/environment-armor.md) |

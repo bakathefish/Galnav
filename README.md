@@ -116,12 +116,8 @@ Every top-level item, one line each.
   spec card and experiment, `citations.md` (every outside fact),
   `logbook.md` (dated, append-only history), and
   `findings-compilation.md` (the single paper source pack).
-- **`compass_artifact_*.md`** — the original project plan (spec order,
-  experiment run-books, and the week-by-week calendar with its hard gates).
-- **the project rulebook** — the project rulebook (truth wall, TDD workflow, code
-  rules). `requirements.txt` / `requirements-armor.txt` — the two pinned
+- `requirements.txt` / `requirements-armor.txt` — the two pinned
   environments. `pytest.ini`, `conftest.py` — test configuration.
-  `ai_sessions/` — the students' ISEF AI-use disclosure log (students only).
 
 ## How to reproduce everything
 
@@ -166,7 +162,8 @@ specifications and the acceptance tests; the AI implements against them,
 never the other way around. The AI workflow is documented openly and in
 full in [`journal/logbook.md`](journal/logbook.md) — every session, every
 decision, and every authorized change to a locked file is recorded there.
-The students' own AI-use disclosure log lives in `ai_sessions/`.
+The students' own AI-use disclosure log is kept alongside the project and
+filed with the ISEF paperwork.
 
 ## Where to go next
 
