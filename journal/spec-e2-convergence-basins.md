@@ -83,7 +83,7 @@ are trying to resolve. Four ways out were weighed:
   pre-solve screen is blind to it. Making D correct needs retry/bisection
   machinery inside the solver — more cleverness than the problem is worth.
 
-the project rulebook: *"Simplicity beats cleverness. Always."* A is the simple, correct
+The project rule: *"Simplicity beats cleverness. Always."* A is the simple, correct
 choice. It **knowingly breaks the project's "no Python loops over Monte-Carlo
 trials" rule**, and that exception is recorded here and flagged for ratification
 (item (cc)): the rule exists for THROUGHPUT, but this loop is FAILURE ISOLATION,

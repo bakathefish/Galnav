@@ -2,5 +2,5 @@
 observed sources to catalog entries before the estimator runs (the
 lost-in-space starting condition).
 
-Empty until its acceptance tests exist (the project rulebook: no code before tests).
+Empty until its acceptance tests exist (project rule: no code before tests).
 """

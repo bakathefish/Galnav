@@ -1,6 +1,6 @@
 # Experiments
 
-The seven experiment scripts, one per spec card (see the project rulebook). Run any of them
+The seven experiment scripts, one per spec card. Run any of them
 from the repo root with `python -m experiments.<name>`:
 
 - `e1_crlb_grid.py` — solver validation + Cramér–Rao lower bound observability

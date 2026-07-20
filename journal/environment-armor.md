@@ -95,7 +95,7 @@ pin predates it and is superseded here — recorded, ratification item gg.)
 build and added via `requirements-armor.txt` the moment Spec 9's TDD loop
 needed its runner — resolved `pytest==9.1.1` (plus its two small
 dependencies `pluggy==1.6.0`, `iniconfig==2.3.0`), already reflected in the
-freeze above. pytest is on the the project rulebook allowed list verbatim; as a pure
+freeze above. pytest is on the project's allowed-command list verbatim; as a pure
 test runner it touches no computed number, so its version is not
 load-bearing.
 

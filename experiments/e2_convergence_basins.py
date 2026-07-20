@@ -27,7 +27,7 @@ the solver would re-bless E1/E6/anchor; (C) holding for ratification stalls the
 build; (D) a batched pre-solve condition screen is BLIND to a singularity that
 first appears mid-iteration. Option A -- wrap the per-trial solve in
 try/except -- is a ~10-line loop the reviewer measured at seconds for the full
-grid, and "simplicity beats cleverness" (the project rulebook) settles it. The loop only
+grid, and the project rule "simplicity beats cleverness" settles it. The loop only
 wraps the solve; the directions are still drawn batched up front.
 
 TRUTH WALL: TRUTH star positions generate the measurements; the public NAV

@@ -321,7 +321,7 @@ non-lettered: two legacy test items and three new-card items).
 ### (s) — Pin the reproducibility environment (Python 3.13.3 + numpy 2.4.1)
 - **What it is:** Every blessed number in the project is a Python 3.13.3 /
   numpy 2.4.1 number, and NEP-19 byte-identity depends on the same numpy build.
-  But the project rulebook still says "Python 3.11." Reconcile the pin — ideally with a
+  But the rulebook still says "Python 3.11." Reconcile the pin — ideally with a
   lockfile — so the paper's reproducibility statement is honest. (This subsumes
   the older 3.11-vs-3.13 open item.)
 - **Where recorded:** logbook 2026-07-15 triple-verification entry, item (s);
@@ -331,7 +331,7 @@ non-lettered: two legacy test items and three new-card items).
   anchor and E1 headline reproduce byte-identically on this stack; the machine's
   only complete scientific stack is 3.13, so all blessed numbers describe that box.
 - **AI-recommended ruling:** pin the science-freeze environment to the measured
-  3.13.3 / numpy 2.4.1 stack and update the project rulebook to match (retire the 3.11
+  3.13.3 / numpy 2.4.1 stack and update the rulebook to match (retire the 3.11
   line), ideally with an exact-version lockfile — the record already IS 3.13.3, so
   aligning the pin to reality is lower-risk than re-blessing everything on 3.11.
   (Real decision, but the evidence points one way.)
@@ -730,7 +730,7 @@ figure, then the smaller test/tooling/doc cards.)*
      accept A over: B (damp the solver — would re-bless E1/E6/anchor),
      C (hold), and D (batched pre-solve condition screen — REJECTED because the
      singularity first appears MID-iteration, so a pre-screen is blind to it).
-     "Simplicity beats cleverness" (the project rulebook) drove the choice.
+     "Simplicity beats cleverness" (the project rule) drove the choice.
   3. THE NO-TRIAL-LOOPS EXCEPTION: the per-trial loop knowingly breaks the
      project's "vectorise over trials, no Python loops" rule. Confirm you accept
      it as documented FAILURE ISOLATION (the rule is for MC throughput; this

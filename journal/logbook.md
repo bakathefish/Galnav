@@ -3320,3 +3320,29 @@ frame miss 0.38659 au re-pinned by the passing suite). Journal
 gui-pipeline-live.md; citations [OpenSpace API]; docs/GUI-EXPLAINED.md
 updated to the pivot. Commits: e8bc0f1, 1290a4e, b25516a, a37b767, 140390d,
 0074cc0, 2ddb224 (+ this docs/journal commit).
+
+## 2026-07-21 — publication sweep (authorized override #12) + browser-verified bugfix
+
+Pre-publication sweep at the students' direction: every dangling reference
+to the retired internal rulebook file (deleted from the tree earlier) was
+reworded to "the project rule(book)" across code docstrings, experiment
+notes, journal pages and the armor requirements comment — references only;
+no value, rule, tolerance or behaviour changed. This required AUTHORIZED
+OVERRIDE #12: one docstring line in each of the two deny-locked test files
+(tests/golden_numbers.py, tests/test_truth_wall.py) was reworded — every
+frozen value and check untouched, both suites re-run green immediately
+after (spine 84, GUI 156). The two path-traversal probes in the webapp
+guard tests now probe for README.md instead of the retired file (the guard
+behaviour they pin is identical). The AI-use disclosure in this logbook and
+the README's "note on AI use" remain, unchanged, by design.
+
+Also this sitting: full in-browser live verification of the entire demo
+(locate flow, all six pipeline pages, the OpenSpace pushes from the real
+page buttons, the one-image line page, a real raw upload blind-solved by
+the local WSL engine) found two page-3 bugs — nav stars missing from the
+identification table (the label tiers match static positions, so the
+displaced nav star never appeared: "0 position-capable" on the Proxima
+frame) and Gaia source_ids silently rounded by the browser's float64
+JSON.parse. Both fixed (nav matches merged first + string ids in the
+pipeline payload), RED-first test added, re-verified live: "101
+identified, 1 position-capable", exact id 5853498713190525696 rendered.

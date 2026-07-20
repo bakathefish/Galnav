@@ -2,8 +2,7 @@
 
 The ~20-page paper gets DRAFTED FROM THIS FOLDER. Rule of thumb: if a
 number, decision, or surprise is not recorded here or in
-`results/archive/`, the paper cannot use it. The authority for the rules
-below is the project rulebook; this page is the checklist form of it, plus the
+`results/archive/`, the paper cannot use it. This page is the checklist form of the project rulebook, plus the
 storage rules added 2026-07-15.
 
 ## Where everything lives
@@ -33,7 +32,7 @@ storage rules added 2026-07-15.
 ## End-of-card checklist (nothing is "done" until every box ticks)
 
 1. `pytest -q` fully green — no failures, no skips.
-2. Journal entry written (THE JOURNAL RULE in the project rulebook).
+2. Journal entry written (THE JOURNAL RULE).
 3. Every new outside fact/number/formula/tool → `citations.md`, with a
    verification date.
 4. Logbook entry: what, why, measured evidence; record the previous

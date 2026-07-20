@@ -1,6 +1,6 @@
 """Enforces THE TRUTH WALL: galnav/nav/ must never import from galnav/truth/.
 
-Never edit this file to make code pass. See the project rulebook.
+Never edit this file to make code pass.
 """
 
 import ast
