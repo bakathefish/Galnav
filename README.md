@@ -157,6 +157,15 @@ NICER photons are re-fetchable per [`data/e4_nicer/README.md`](data/e4_nicer/REA
 5. Result: "the navigator cannot cheat by peeking at the true answer" is a
    provable property, not a promise.
 
+## Development timeline
+
+The research and design phase — problem selection, the spec-card sequence,
+and the experiment schedule — preceded any code. The implementation itself
+was a focused test-first sprint, 2026-07-12 → 2026-07-21, and that is what
+the commit history covers: every session is recorded with its date in
+[`journal/logbook.md`](journal/logbook.md), from repository scaffolding
+through the publication sweep.
+
 ## A note on AI use
 
 This is an ISEF-disclosed AI-assisted project. The students author the
