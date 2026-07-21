@@ -442,6 +442,11 @@ brightest for readability; the caption reports the full counts. The rendered
 Proxima preview shows the amber "Proxima Cen (1.3 pc)" plus muted distances on
 the bright field stars and one honest "G 11.6" where the parallax was junk.
 
+> **Update 2026-07-21:** the view this subsection describes was REMOVED
+> outright — page, vendored spacekit tree and its tests — at the students'
+> direction; OpenSpace is the only viewer (see `journal/gui-pipeline-live.md`).
+> The text below stays as the dated record of what shipped 2026-07-17→20.
+
 **"Where in space" — the 3-D view.** After any successful Locate the web app
 shows an interactive 3-D scene built on the vendored **spacekit.js** (MIT,
 bundles three.js). It is the scout's proven `poc.html` ported close to as-is into

@@ -87,9 +87,32 @@ all six pages served through the real static route.
 
 **Honest limits.** The pushed markers are single-epoch statements, exactly
 like the exporter's (park the booth clock near the frame epochs when telling
-the miss story). run_lua is fire-and-forget: delivery is measured-reliable,
-but there is no per-push acknowledgment — the `return:true` reply channel
-closed the probe connections without data on 0.22, so a confirmed handshake
-per script is not available on this socket. If OpenSpace is upgraded, the
-apiHandshake version and the navigation call signatures are the first things
-to re-verify; the tests name the expected failure modes.
+the miss story). If OpenSpace is upgraded, the apiHandshake version, the
+navigation call signatures and the reply-frame shape below are the first
+things to re-verify; the tests name the expected failure modes.
+
+**Re-measured 2026-07-21: the reply channel WORKS — pushes are now
+execution-confirmed.** The 2026-07-20 note here said the `return:true` reply
+channel closed the probe connections without data on 0.22; re-probing against
+the same live 0.22.0 build (fresh boot, handshake in place) shows it answers
+reliably, so that finding is superseded (the earlier probes most plausibly ran
+before the engine finished coming up). Measured on this box, 2026-07-21:
+
+- `{"script": s, "return": true}` → ONE newline-framed reply AFTER the chunk
+  executes: `{"payload":{"1":<return value>},"topic":<our topic>}` — a 3-line
+  chunk ending `return x+y` replied `{"1":42.0}`, so a trailing sentinel
+  proves the WHOLE chunk ran.
+- A FAILING chunk (both `error("boom")` and a syntax error measured) still
+  replies, with payload `{}` — execution failure is distinguishable from a
+  dropped message.
+- `return:false` stays silent (0 bytes in 1.5 s) — fire-and-forget confirmed.
+
+`gui/openspace_link.run_lua_confirmed` builds on this: it appends `return 1`
+to every push and maps the reply to `confirmed` / `failed` / `sent` / `down`;
+`_os_push` and the panel note surface exactly those words. Waiting for the
+reply also holds the socket open past the reader-thread race, so the blind
+0.25 s linger is subsumed by the read. Live-verified end-to-end 2026-07-21:
+stars/fix/clear pushes over HTTP all `confirmed`, and
+`openspace.hasSceneGraphNode("GalNavLiveFix")` interrogated true after the
+fix push and false after clear — the engine's own scene graph as witness.
+run_lua (fire-and-forget) remains for anything that needs no receipt.

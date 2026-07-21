@@ -3346,3 +3346,44 @@ frame) and Gaia source_ids silently rounded by the browser's float64
 JSON.parse. Both fixed (nav matches merged first + string ids in the
 pipeline payload), RED-first test added, re-verified live: "101
 identified, 1 position-capable", exact id 5853498713190525696 rendered.
+
+## 2026-07-21 (evening) — retired 3-D view removed; OpenSpace pushes now execution-confirmed
+
+Two decisions executed this sitting, both at the students' direction.
+
+**The retired spacekit view is gone.** The open decision from the sprint
+(old view left in-tree, out of the user flow) is closed as REMOVE:
+`gui/web/where-in-space.html`, the whole vendored `gui/web/vendor/` tree
+(3.6 MB) and `tests_gui/test_space_view.py` (9 tests) deleted; the static
+route's vendor branch and allowlist entry removed (traversal guard
+unchanged, still pinned); the spacekit credit dropped from the page footer.
+RED-first: two new tests pin the removal (route 404s + files gone from
+disk) and the frontend pivot test now asserts the files are gone rather
+than merely unlinked. The [Spacekit]/[WhereInSpace-data] citation entries
+and the gui-wrapper journal section stay, annotated REMOVED, as the record
+of what shipped.
+
+**OpenSpace pushes are execution-confirmed.** Re-probing the live 0.22.0
+(fresh boot) shows the `return:true` reply channel WORKS — superseding the
+2026-07-20 finding that it closed without data (those probes most plausibly
+ran before the engine finished coming up). Measured and pinned in offline
+fake-server tests: the server replies AFTER executing the chunk with
+`{"payload":{"1":<value>},"topic":<ours>}` (a 3-line chunk ending
+`return x+y` replied 42.0); a failing chunk — runtime AND syntax error
+measured — still replies with payload `{}`; `return:false` stays silent.
+New `gui/openspace_link.run_lua_confirmed` appends a `return 1` sentinel
+and maps the reply to confirmed/failed/sent/down; `_os_push` and the panel
+note now say exactly which (the blind 0.25 s linger is subsumed by the
+reply read). Live-verified end-to-end over HTTP against the running
+engine: status, the frozen 12-frame miss 0.38659 au over the wire,
+stars/fix/clear pushes all CONFIRMED, and the engine's own
+`hasSceneGraphNode("GalNavLiveFix")` interrogated true after the fix push
+and false after clear — seven checks, seven passes.
+
+Suites after the sitting: spine 84 green (untouched), tests_gui 153 green
+(156 − 9 retired − 3 vendor-route + 2 removal pins + 4 wire + 3 endpoint;
+the old run_lua-failure test rewired to the new seam). Docs brought
+current: README/INDEX counts, GUI-EXPLAINED, ISEF-DEMO-PLAYBOOK §5 (now
+the OpenSpace live-view step), PIPELINE-FLOWCHART card+step, gui/web
+README, gui-pipeline-live re-measurement note. No spine, science, or
+frozen content touched.

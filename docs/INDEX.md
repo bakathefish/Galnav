@@ -18,7 +18,7 @@ one that matches what you came for.
 | Know the rules the code is held to | `tests/golden_numbers.py` + `tests/test_truth_wall.py` — the frozen truth wall the suite enforces |
 | Reproduce a figure exactly | `results/archive/` — the blessed `.npz` arrays + PNG behind every quoted number |
 | Check dataset provenance | [`data/README.md`](../data/README.md) (Gaia), `data/e3_new_horizons/README.md` (New Horizons), `data/e4_nicer/README.md` (NICER) |
-| Run the tests | `python -m pytest -q` (84 spine) · `python -m pytest tests_gui -q` (155 GUI) · armor 8: WSL2 only, per [`journal/environment-armor.md`](../journal/environment-armor.md) |
+| Run the tests | `python -m pytest -q` (84 spine) · `python -m pytest tests_gui -q` (153 GUI) · armor 8: WSL2 only, per [`journal/environment-armor.md`](../journal/environment-armor.md) |
 
 The rule of thumb from `journal/README.md`: if a number, decision, or surprise
 is not in `journal/` or `results/archive/`, the paper cannot use it.

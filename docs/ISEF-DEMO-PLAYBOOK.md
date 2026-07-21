@@ -115,27 +115,26 @@ If a judge asks *"why is two frames worse than Lauer?"*, the answer is: *"one
 frame per star versus his six averaged — and when we use all twelve frames we
 land at 0.387 au, right on his 0.351, with nothing but quick 5-sigma centroids."*
 
-### 5. THE 3-D MAP — where the fix sits in space
+### 5. THE LIVE VIEW — see the fix in OpenSpace
 
-Every successful **Locate** opens a **"Where in space"** 3-D view, built on a
-vendored, **fully offline** copy of spacekit.js. Two scenes behind a scale
-toggle:
+Launch OpenSpace first (`bin\OpenSpace.exe --bypassLauncher`; the localhost
+socket is pre-enabled) and the app's **See it in OpenSpace** panel lights up.
+Walk the six pipeline pages step by step — each pushes its stage live (stars →
+lines → fix) — or push the recovered fix straight from the main page:
 
-- **Solar system (au):** the Sun, the planets and their orbits, the asteroid and
-  Kuiper belts, a heliopause shell, and the five real escaping spacecraft
-  (Voyager 1/2, Pioneer 10/11, New Horizons) — with an **amber marker at the
-  recovered fix**, sitting at ~47 au.
-- **Nearby stars (pc):** the project's real 1,941-star 20-pc Gaia cloud with
-  amber sightlines to Proxima Cen and Wolf 359 — the picture of why you navigate
-  by *stars*, not planets.
+- **Fix stage:** the **amber recovered-fix sphere** lands ~47 au out with the
+  **cyan JPL-truth sphere** 0.387 au beside it and the white miss line between
+  — the whole result in one planetarium view, camera flown to it.
+- Every push is **execution-confirmed**: OpenSpace's reply frame carries back a
+  sentinel after the chunk runs, so the note line says *confirmed* — delivery
+  is never assumed.
 
-Say: *"The amber dot is where we just computed the spacecraft is — out past
-Pluto, near the real New Horizons. Flip the scale, and here is that same fix
-against the nearby stars it was found from."*
+Say: *"The amber sphere is where we just computed the spacecraft is — out past
+Pluto, near the real New Horizons — and the cyan one is where JPL says it
+really was: a third of an au apart."*
 
-**Honesty line if asked:** the amber marker is the *measured* fix; the spacecraft
-and Eris markers are approximate 2025–26 positions shown for context (cited in
-the vendored `SOURCES.md`), not measurements.
+**Honesty line if asked:** nothing is computed in OpenSpace; it only displays
+what the pipeline measured, and the markers are single-epoch statements.
 
 ### 6. THE SECOND FINALE — read the year off an old photograph (the chronometer)
 

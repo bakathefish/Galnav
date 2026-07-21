@@ -376,10 +376,14 @@ tests). Stage pushes are idempotent (each script clears the previous
 **amber recovered-fix sphere** with the **cyan JPL-truth sphere** 0.387 au
 beside it and the white miss line between — the whole story in one view.
 Nothing is computed in OpenSpace; it only displays what the pipeline
-measured. When OpenSpace is not running, every button degrades to an honest
-"start OpenSpace" message and the pages still show all the numbers. (An
-earlier, self-contained spacekit.js 3-D view, `gui/web/where-in-space.html`,
-remains in the tree with its tests but is no longer part of the user flow.)
+measured. Every push is **execution-confirmed**: the engine's reply frame
+carries back a `return 1` sentinel after the chunk runs (measured on 0.22.0,
+2026-07-21), so the note line says *confirmed* — or, honestly, *sent (no
+execution confirmation)* or a failure pointing at the OpenSpace log. When
+OpenSpace is not running, every button degrades to an honest "start
+OpenSpace" message and the pages still show all the numbers. (An earlier,
+self-contained in-page 3-D view was removed outright on 2026-07-21 —
+OpenSpace is the only viewer.)
 
 ---
 

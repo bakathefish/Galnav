@@ -263,8 +263,8 @@ function renderLineOfPosition(r, warn) {
 }
 
 // --- OpenSpace panel (the pipeline's live viewer) ---------------------------
-// The old spacekit iframe view is retired from this flow; OpenSpace is now THE
-// viewer. A status chip reflects whether a local OpenSpace is reachable, the
+// OpenSpace is THE viewer (the old in-page 3-D view was removed outright).
+// A status chip reflects whether a local OpenSpace is reachable, the
 // walk link steps through the pipeline pages carrying the current selection, and
 // after a successful Locate the fix can be pushed straight into OpenSpace.
 async function openspaceStatus() {
@@ -327,8 +327,11 @@ async function showInOpenSpace(stage) {
   try {
     const r = await api("/api/openspace/show", { method: "POST", body });
     if (r.ok) {
-      if (note) note.textContent = r.note || "Pushed to OpenSpace.";
-      toast("Pushed to OpenSpace.");
+      const conf = r.confirmed
+        ? " Execution confirmed by OpenSpace."
+        : " Sent (no execution confirmation).";
+      if (note) note.textContent = (r.note || "Pushed to OpenSpace.") + conf;
+      toast(r.confirmed ? "Pushed to OpenSpace (confirmed)." : "Pushed to OpenSpace.");
     } else {
       if (note) note.textContent = r.message || "OpenSpace push failed.";
       toast(r.message || "OpenSpace push failed.");

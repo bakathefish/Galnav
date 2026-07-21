@@ -110,7 +110,7 @@ Every top-level item, one line each.
 - **`tests/`** — the **84-test spine gate**. `python -m pytest -q`.
 - **`tests_armor/`** — the **8 armor tests** (real photon data; WSL2 float128
   only, run by explicit invocation — never by the default gate).
-- **`tests_gui/`** — the **155 GUI tests** (offline, deterministic). `python -m
+- **`tests_gui/`** — the **153 GUI tests** (offline, deterministic). `python -m
   pytest tests_gui -q`.
 - **`results/`** — timestamped PNG + `.npz` outputs. `results/archive/` holds
   the *blessed* runs behind every quoted number, kept in version control.

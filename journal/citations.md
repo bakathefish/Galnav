@@ -591,6 +591,9 @@ Yale Bright Star Catalog. Equatorial-ICRS -> ecliptic conversion applied at
   static-serving + traversal guard is covered by `tests_gui/test_webapp.py`, and
   a browser drive confirmed both scenes render (WebGL canvas, 19 au-scene labels,
   the 5 famous-star pc labels).
+- REMOVED 2026-07-21: the vendored tree, the view page and their tests were
+  deleted outright (OpenSpace is the only viewer). Entry kept as the record of
+  what shipped 2026-07-17 → 2026-07-21.
 
 **[WhereInSpace-data]** Nearby-stars scene: Gaia DR3, GalNav
 `data/gaia_dr3_nav_subset.csv` (1,941 stars within 20 pc; `dist_pc =
@@ -602,6 +605,8 @@ TheSkyLive — full per-object sources in
 - Where in repo: `gui/web/vendor/spacekit/data/gaia_20pc.json` (baked cloud),
   `gui/web/where-in-space.html` (hardcoded spacecraft markers, labelled "~N au"
   and framed as approximate), `gui/web/vendor/spacekit/SOURCES.md`.
+- REMOVED 2026-07-21 together with the [Spacekit] tree (see above); kept for
+  the record.
 
 **[OpenSpace]** OpenSpace project — open-source (MIT) astrovisualization
 software, NASA/AMNH/LiU-funded, openspaceproject.com; v0.22.0 (2026-06-12),

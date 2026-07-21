@@ -572,12 +572,12 @@ w_i = (I - d_i d_i^T) / |p_i|^2</div>
     <div class="cards">
       <div class="card">
         <div class="ct">after every Locate</div>
-        <div class="big" style="font-size:22px">Where in space &mdash; 3-D</div>
-        <div class="cs">an interactive view of the recovered fix</div>
+        <div class="big" style="font-size:22px">See it in OpenSpace</div>
+        <div class="cs">the live planetarium view of the recovered fix</div>
         <div class="row"><span class="lab">in</span><span>x_au from /api/locate</span></div>
-        <div class="row"><span class="lab">scene 1</span><span>Sun, planets, belts, 5 probes + amber fix</span></div>
-        <div class="row"><span class="lab">scene 2</span><span>1,941-star 20-pc cloud + sightlines</span></div>
-        <span class="badge ok">vendored spacekit.js &mdash; fully offline</span>
+        <div class="row"><span class="lab">push</span><span>amber fix + cyan JPL truth + white miss line</span></div>
+        <div class="row"><span class="lab">walk</span><span>six pipeline pages, each pushes its stage</span></div>
+        <span class="badge ok">execution-confirmed pushes &mdash; localhost socket</span>
       </div>
       <div class="card head">
         <div class="ct">the chronometer &mdash; gui/age.py :: drift_date</div>
@@ -625,10 +625,10 @@ w_i = (I - d_i d_i^T) / |p_i|^2</div>
           position and the error ellipsoid &mdash; under 0.1 s.</p>
         <p class="say"><em>say</em> "A real spacecraft, found from its own photos of the stars &mdash; to a third of an au with all twelve frames."</p></div></div>
       <div class="step"><div class="sn">5</div><div>
-        <h4>See it in 3-D</h4>
-        <p>A <span class="act">Where in space</span> panel opens: the <span class="dota mono">amber marker</span> is the
-          recovered fix, out past Pluto near the real New Horizons. Toggle the scale for the nearby-stars cloud with
-          sightlines to Proxima and Wolf 359. Fully offline (vendored spacekit.js).</p>
+        <h4>See it in OpenSpace</h4>
+        <p>Push the fix from the <span class="act">See it in OpenSpace</span> panel: the <span class="dota mono">amber sphere</span> is the
+          recovered fix, out past Pluto near the real New Horizons, with the cyan JPL-truth sphere 0.387 au away and
+          the white miss line between. Every push is execution-confirmed by the engine's reply.</p>
         <p class="say"><em>say</em> "There we are, out past Pluto &mdash; and here is that same fix against the nearby stars it was found from."</p></div></div>
       <div class="step"><div class="sn">6</div><div>
         <h4>Estimate catalog age &mdash; and the chronometer</h4>

@@ -227,6 +227,69 @@ def run_lua(
         return False
 
 
+def run_lua_confirmed(
+    script,
+    host=OPENSPACE_HOST,
+    port=OPENSPACE_PORT,
+    timeout=0.3,
+    handshake_grace=0.2,
+    reply_timeout=3.0,
+):
+    """Send one Lua script and wait for the engine's EXECUTION reply.
+
+    Returns one of four honest strings, never raises:
+      "confirmed" -- the engine executed the chunk (its reply carried back the
+                     `return 1` sentinel this function appends);
+      "failed"    -- the engine replied with an EMPTY payload: the chunk did
+                     NOT execute (Lua runtime or syntax error);
+      "sent"      -- bytes delivered but no reply inside reply_timeout (the
+                     old fire-and-forget guarantee, no execution proof);
+      "down"      -- no connection could be made.
+
+    Wire facts, all MEASURED against a live OpenSpace 0.22.0 (this box,
+    2026-07-21), extending run_lua's 2026-07-20 set:
+    4. With payload return:true the server replies AFTER executing the chunk,
+       with ONE newline-framed JSON line
+       {"payload":{"1":<return value>},"topic":<our topic>} -- a 3-line chunk
+       ending `return x+y` replied {"1":42.0}, so a trailing `return 1`
+       sentinel proves the WHOLE pushed chunk ran, not merely arrived.
+    5. A failing chunk still replies, with payload {} -- measured for BOTH a
+       runtime error (error("boom")) and a syntax error -- so execution
+       failure is distinguishable from a dropped message.
+    6. Waiting for the reply holds the socket open past the reader-thread
+       race, so run_lua's blind linger is subsumed by the read itself.
+    """
+    try:
+        with socket.create_connection((host, port), timeout=timeout) as sock:
+            sock.sendall(handshake_message())
+            time.sleep(handshake_grace)
+            sock.sendall(lua_message(script + "\nreturn 1", want_return=True))
+            sock.settimeout(reply_timeout)
+            buf = b""
+            try:
+                while b"\n" not in buf:
+                    got = sock.recv(65536)
+                    if not got:
+                        break
+                    buf += got
+            except socket.timeout:
+                return "sent"
+            if b"\n" not in buf:
+                return "sent"
+            try:
+                obj = json.loads(buf.split(b"\n", 1)[0].decode("utf-8"))
+            except ValueError:
+                return "sent"
+            payload = obj.get("payload")
+            if isinstance(payload, dict) and payload.get("1") == 1:
+                return "confirmed"
+            if isinstance(payload, dict) and not payload:
+                return "failed"
+            return "sent"
+    except OSError:
+        return "down"
+
+
 # ----------------------------------------------------------- Lua node helpers
 def _add(idents):
     """openspace.addSceneGraphNode() for each local table, parents before kids."""

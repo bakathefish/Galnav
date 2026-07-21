@@ -136,49 +136,26 @@ blind plate solve is then required, via either a local astrometry.net install
 field, or set `ASTROMETRY_NET_API_KEY`). FITS files that already carry a WCS
 (like the demo frames) need neither.
 
-## Where in space (3-D view)
+## See it in OpenSpace (the live viewer)
 
-After any successful **Locate**, a "Where in space" panel appears under the
-result card with an interactive 3-D view built on the vendored **spacekit.js**
-(MIT, bundles three.js). Two scenes behind a scale toggle:
+The pipeline's viewer is a running **OpenSpace** (the NASA/AMNH open-source
+planetarium; not vendored — the optional show layer). The main page's panel
+shows a reachability chip, walks the six pipeline pages (each pushes its stage
+live: stars → lines → fix), and after a successful Locate pushes the recovered
+fix (amber) with the JPL truth (cyan) and the white miss line between.
 
-- **Solar system (au):** the Sun, 8 planets + Pluto with orbits, the asteroid
-  and Kuiper belts, a heliopause shell (~120 au), Eris, the five escaping
-  spacecraft (Voyager 1/2, Pioneer 10/11, New Horizons) at their approximate
-  2025-26 positions, and an **amber marker at the recovered fix** (the response's
-  `x_au`). The New-Horizons demo set also shows an "Open in NASA Eyes (online)"
-  deep-link (the one online extra).
-- **Nearby stars (pc):** the project's real 1,941-star Gaia 20-pc catalog as a
-  point cloud, the five nearest famous stars labelled, amber sightlines to
-  Proxima Cen and Wolf 359, and a caption on why interstellar navigation needs
-  stars, not solar-system landmarks. Built lazily on first toggle (one WebGL
-  context until then).
+**Confirmed, not assumed.** Every push goes through
+`gui/openspace_link.run_lua_confirmed`: the chunk ends with a `return 1`
+sentinel and OpenSpace's reply frame carries it back **after the chunk
+executes** (measured on a live 0.22.0, 2026-07-21 — a failing chunk replies
+with an empty payload, so execution failure is distinguishable too). The UI
+reports *confirmed* / *sent (no execution confirmation)* / a failure pointing
+at the OpenSpace log. With OpenSpace not running, everything degrades to an
+honest "start OpenSpace" message.
 
-**How it is wired.** `gui/web/where-in-space.html` is the standalone view (ported
-close to as-is from the scout's proven `poc.html`); `gui/web/app.js` hosts it in
-an `<iframe>` whose `src` is set only on the first successful Locate — so the
-**~2.9 MB over the wire** payload (spacekit.js 733 KB gzipped to ~190 KB; the
-2.36 MB JPEG skybox dominates; gaia_20pc.json ~20 KB gzipped) never loads on the
-initial page. The recovered fix is passed as `?x=<x,y,z>` in **equatorial ICRS
-au** (straight from `/api/locate`); the view rotates it to spacekit's ecliptic
-frame about +X by the mean obliquity 23.43928°. `|x|` is rotation-invariant, so
-the distance label is correct in either frame.
-
-**Fully offline.** Everything loads from `/static/vendor/spacekit/**`, served
-locally by `gui/webapp.py` (the static route serves that subtree verbatim with a
-traversal guard). `basePath` is set to `./vendor/spacekit`, so nothing is fetched
-from any external host — verified in a browser drive (both scenes render; WebGL
-canvas present).
-
-**Honesty note.** The amber marker is the *measured* recovered position. The
-spacecraft and Eris markers are **approximate 2025-26 positions** (distance +
-published sky heading), labelled "~N au" and cited in
-`vendor/spacekit/SOURCES.md`; they are context, not measurements. The pc-scene
-star cloud is baked from the repo's own frozen 20-pc CSV
-(`vendor/spacekit/bake_gaia.py`, runnable from the repo to regenerate
-`vendor/spacekit/data/gaia_20pc.json`). Full provenance and the vendored-file
-table are in `gui/web/vendor/spacekit/SOURCES.md`; citations in
-`journal/citations.md` ([Spacekit], [WhereInSpace-data]).
+An earlier in-page 3-D view (vendored spacekit.js) was **removed outright on
+2026-07-21** — page, vendored tree and tests. The citations for what it once
+shipped remain in `journal/citations.md` ([Spacekit], [WhereInSpace-data]).
 
 ## Truth wall
 

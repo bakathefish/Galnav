@@ -93,34 +93,18 @@ _MUTED = "#6f7f96"  # dim distance labels for identified-but-not-navigable stars
 _LINE = "#26324a"
 
 # Static files the /static/ route is allowed to serve (no path traversal).
-# The pipeline-*.html pages are the step-by-step visualization (do.txt items 5+9);
-# where-in-space.html stays allowlisted so its own tests keep passing even though
-# the main page no longer routes users to it (pivot to OpenSpace).
+# The pipeline-*.html pages are the step-by-step visualization (do.txt items 5+9).
+# The old spacekit 3-D view (where-in-space.html + gui/web/vendor/) was removed
+# outright 2026-07-21 -- OpenSpace is the only viewer.
 _STATIC_ALLOW = {
     "app.js": "application/javascript; charset=utf-8",
     "style.css": "text/css; charset=utf-8",
-    "where-in-space.html": "text/html; charset=utf-8",
     "pipeline-1-raw.html": "text/html; charset=utf-8",
     "pipeline-2-detect.html": "text/html; charset=utf-8",
     "pipeline-3-identify.html": "text/html; charset=utf-8",
     "pipeline-4-angles.html": "text/html; charset=utf-8",
     "pipeline-5-lines.html": "text/html; charset=utf-8",
     "pipeline-6-fix.html": "text/html; charset=utf-8",
-}
-
-# The vendored spacekit 3-D view (gui/web/vendor/) is served verbatim under
-# /static/vendor/... . Content types keyed by extension; unknown -> octet-stream.
-VENDOR_DIR = WEB_DIR / "vendor"
-_VENDOR_CTYPES = {
-    ".js": "application/javascript; charset=utf-8",
-    ".json": "application/json; charset=utf-8",
-    ".css": "text/css; charset=utf-8",
-    ".html": "text/html; charset=utf-8",
-    ".png": "image/png",
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".map": "application/json; charset=utf-8",
-    ".md": "text/plain; charset=utf-8",
 }
 
 # --- frame cache ------------------------------------------------------------
@@ -191,26 +175,15 @@ def _record_by_id(fid):
 def static_file(name):
     """Return (content_type, bytes) for an allowed static file, else None.
 
-    Two kinds are served: the top-level allowlist (app.js, style.css,
-    where-in-space.html) and the vendored spacekit subtree under vendor/. Both
-    reject traversal: no "..", no absolute path, no NUL; and a vendor path must
-    resolve to a real file that stays inside gui/web/vendor/. Used directly by
-    the handler AND by the tests.
+    Only the top-level allowlist is served (app.js, style.css, the six
+    pipeline pages); everything else -- traversal ("..", absolute, NUL) and
+    any non-allowlisted name -- is None. Used directly by the handler AND by
+    the tests.
     """
     if ".." in name or name.startswith(("/", "\\")) or "\x00" in name:
         return None
     if name in _STATIC_ALLOW:
         return _STATIC_ALLOW[name], (WEB_DIR / name).read_bytes()
-    if name.startswith("vendor/"):
-        target = (WEB_DIR / name).resolve()
-        try:
-            target.relative_to(VENDOR_DIR.resolve())
-        except ValueError:
-            return None
-        if not target.is_file():
-            return None
-        ctype = _VENDOR_CTYPES.get(target.suffix.lower(), "application/octet-stream")
-        return ctype, target.read_bytes()
     return None
 
 
@@ -1058,9 +1031,23 @@ def _os_not_running():
 
 
 def _os_push(script, pushed, note):
-    """Run one live push and shape the response; honest on a send failure."""
-    if openspace_link.run_lua(script):
-        return {"ok": True, "pushed": pushed, "note": note}
+    """Run one live push and shape the response; honest at every level. The
+    engine's measured reply frame separates EXECUTED / chunk-FAILED / no-reply
+    (gui.openspace_link.run_lua_confirmed), and the response says which."""
+    status = openspace_link.run_lua_confirmed(script)
+    if status == "failed":
+        return {
+            "ok": False,
+            "message": "OpenSpace replied but the marker Lua did not execute -- "
+            "check the OpenSpace log.",
+        }
+    if status in ("confirmed", "sent"):
+        return {
+            "ok": True,
+            "pushed": pushed,
+            "note": note,
+            "confirmed": status == "confirmed",
+        }
     return {
         "ok": False,
         "message": "OpenSpace is running but the marker push failed -- check the "

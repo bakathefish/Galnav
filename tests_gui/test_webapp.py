@@ -253,39 +253,26 @@ def test_demo_locate_uses_frozen_catalog_even_if_wide_present(monkeypatch, tmp_p
     assert r["ok"] and abs(r["miss_au"] - MISS_12_AU) < 1e-3
 
 
-# --- 3-D view: vendored spacekit static serving + traversal guard -----------
+# --- retired 3-D view: spacekit page + vendored tree fully REMOVED -----------
 
 
-def test_static_serves_where_in_space_html():
-    """The iframe page must be servable as HTML from the static route."""
-    got = webapp.static_file("where-in-space.html")
-    assert got is not None and got[0].startswith("text/html")
-    assert b"Where in Space" in got[1]
+def test_retired_spacekit_view_is_gone():
+    """The old spacekit iframe page and the vendored spacekit tree are removed
+    outright (user decision, 2026-07-21): the static route must 404 both, and
+    the files must be gone from disk so nothing dead ships in the repo."""
+    assert webapp.static_file("where-in-space.html") is None
+    assert webapp.static_file("vendor/spacekit/spacekit.js") is None
+    assert not (webapp.WEB_DIR / "where-in-space.html").exists()
+    assert not (webapp.WEB_DIR / "vendor").exists()
 
 
-def test_static_serves_vendored_spacekit_subtree():
-    """Vendored spacekit files (js/json/png/jpg) serve verbatim with the right
-    Content-Type, so the offline 3-D view has everything locally."""
-    js = webapp.static_file("vendor/spacekit/spacekit.js")
-    assert js is not None and js[0].startswith("application/javascript")
-    assert len(js[1]) > 1000
-    j = webapp.static_file("vendor/spacekit/data/gaia_20pc.json")
-    assert j is not None and j[0].startswith("application/json")
-    png = webapp.static_file("vendor/spacekit/assets/sprites/fuzzyparticle.png")
-    assert png is not None and png[0] == "image/png"
-    assert bytes(png[1][:8]) == b"\x89PNG\r\n\x1a\n"
-    jpg = webapp.static_file("vendor/spacekit/assets/skybox/eso_milkyway.jpg")
-    assert jpg is not None and jpg[0] == "image/jpeg"
-
-
-def test_static_vendor_guard_rejects_escape_and_missing():
-    """The vendor route must reject traversal (.., absolute) and 404 a path that
-    is not a real file -- no arbitrary reads outside gui/web/vendor/."""
-    assert webapp.static_file("vendor/../webapp.py") is None  # ".."
-    assert webapp.static_file("vendor/spacekit/../../README.md") is None
+def test_static_guard_survives_vendor_removal():
+    """The traversal guard on the static route is unchanged by the removal:
+    "..", absolute paths and non-allowlisted names all still 404."""
+    assert webapp.static_file("../gui/webapp.py") is None  # ".."
     assert webapp.static_file("/etc/passwd") is None  # absolute
-    assert webapp.static_file("vendor/spacekit/nope.js") is None  # missing file
-    assert webapp.static_file("vendor/") is None  # a directory, not a file
+    assert webapp.static_file("vendor/../webapp.py") is None  # dead route stays dead
+    assert webapp.static_file("nope.js") is None  # not on the allowlist
 
 
 # --- multi-epoch honesty ----------------------------------------------------
@@ -558,8 +545,18 @@ def _capture_lua(monkeypatch):
         pushed.append(script)
         return True
 
+    def fake_confirmed(script, *a, **k):
+        pushed.append(script)
+        return "confirmed"
+
     monkeypatch.setattr(openspace_link, "run_lua", fake_run)
     monkeypatch.setattr(webapp.openspace_link, "run_lua", fake_run)
+    monkeypatch.setattr(
+        openspace_link, "run_lua_confirmed", fake_confirmed, raising=False
+    )
+    monkeypatch.setattr(
+        webapp.openspace_link, "run_lua_confirmed", fake_confirmed, raising=False
+    )
     # ensure_marker_textures writes PNGs (needs PIL + disk); stub it to the pure
     # path helper so the show flow stays offline and side-effect-free in tests.
     monkeypatch.setattr(
@@ -640,10 +637,49 @@ def test_openspace_show_clear(monkeypatch):
     assert r["pushed"] == []
 
 
+def test_openspace_show_reports_execution_confirmation(monkeypatch):
+    """A successful push carries confirmed:true when the engine's measured
+    reply frame acknowledged EXECUTION (run_lua_confirmed -> 'confirmed') --
+    delivery is no longer taken on faith."""
+    _capture_lua(monkeypatch)
+    r = webapp.openspace_show("stars", _demo_ids(), 4.31, 120, 19.57)
+    assert r["ok"] is True
+    assert r["confirmed"] is True
+
+
+def test_openspace_show_failed_chunk_is_honest(monkeypatch):
+    """'failed' (the engine replied with an empty payload: the chunk did NOT
+    execute) -> ok:false with a message pointing at the OpenSpace log --
+    never fake success."""
+    _capture_lua(monkeypatch)
+    monkeypatch.setattr(
+        webapp.openspace_link, "run_lua_confirmed", lambda *a, **k: "failed"
+    )
+    r = webapp.openspace_show("clear", [], 4.31, 120, 19.57)
+    assert r["ok"] is False
+    assert "log" in r["message"].lower()
+
+
+def test_openspace_show_unconfirmed_send_is_flagged(monkeypatch):
+    """'sent' (bytes delivered, no reply inside the window) stays ok:true --
+    the old fire-and-forget guarantee -- but confirmed:false so the UI can
+    say exactly that."""
+    _capture_lua(monkeypatch)
+    monkeypatch.setattr(
+        webapp.openspace_link, "run_lua_confirmed", lambda *a, **k: "sent"
+    )
+    r = webapp.openspace_show("clear", [], 4.31, 120, 19.57)
+    assert r["ok"] is True
+    assert r["confirmed"] is False
+
+
 def test_openspace_show_run_lua_failure_is_reported(monkeypatch):
-    """If OpenSpace is reachable but the push itself fails, say so honestly."""
+    """If OpenSpace is reachable but the connection drops before the push
+    lands (run_lua_confirmed -> 'down'), say so honestly."""
     monkeypatch.setattr(webapp.openspace_link, "is_running", lambda *a, **k: True)
-    monkeypatch.setattr(webapp.openspace_link, "run_lua", lambda *a, **k: False)
+    monkeypatch.setattr(
+        webapp.openspace_link, "run_lua_confirmed", lambda *a, **k: "down"
+    )
     monkeypatch.setattr(
         webapp.openspace_link,
         "ensure_marker_textures",

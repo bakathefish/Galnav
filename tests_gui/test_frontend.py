@@ -1,10 +1,9 @@
 """Static, offline tests for the main page frontend (gui/web/app.js + index.html).
 
 These are DELIBERATELY static string/structure assertions on the served files --
-no browser, no network, deterministic (the pattern proven in
-tests_gui/test_space_view.py). Each fix from do.txt was exercised live in a real
-browser during development; these tests pin the SOURCE HOOKS that make each fix
-so a later edit cannot silently drop them.
+no browser, no network, deterministic. Each fix from do.txt was exercised live
+in a real browser during development; these tests pin the SOURCE HOOKS that make
+each fix so a later edit cannot silently drop them.
 
 app.js is fetched through the SAME static route the web app serves it from
 (gui.webapp.static_file), so a regression in the route or the file both fail
@@ -202,19 +201,21 @@ def test_solver_status_swaps_install_hints_when_installed():
 
 
 def test_main_page_has_openspace_panel_not_iframe():
-    """The old 3-D spacekit iframe panel is retired from the user flow and
-    replaced by an OpenSpace panel: a status chip, a step-through link, and a
-    'show the fix in OpenSpace' button. where-in-space.html stays on disk (its
-    own tests still pass) but the main page no longer routes users to it."""
+    """The old 3-D spacekit iframe panel is REMOVED (page, vendor tree and its
+    tests deleted 2026-07-21) and replaced by an OpenSpace panel: a status chip,
+    a step-through link, and a 'show the fix in OpenSpace' button."""
     src = _index_html()
     assert 'id="openspace-panel"' in src
     assert 'id="os-chip"' in src  # connected / not-running chip
     assert 'id="walk-link"' in src  # step-through entry point
     assert 'id="os-show-fix"' in src  # show the fix in OpenSpace
     assert "OpenSpace" in src
-    # the retired iframe view is gone from the main page
+    # the retired iframe view is gone from the main page AND from disk
     assert 'id="space-iframe"' not in src
     assert "where-in-space.html" not in src
+    assert "spacekit" not in src.lower()  # no dangling credit for removed code
+    assert not (webapp.WEB_DIR / "where-in-space.html").exists()
+    assert not (webapp.WEB_DIR / "vendor").exists()
 
 
 def test_app_js_wires_openspace_not_iframe():
@@ -225,6 +226,7 @@ def test_app_js_wires_openspace_not_iframe():
     assert '"/api/openspace/show"' in js  # push the fix
     assert "pipeline-1-raw.html" in js  # step-through entry
     assert 'showInOpenSpace("fix")' in js  # the show-fix button pushes the fix stage
+    assert "confirmed" in js  # execution confirmation surfaces in the note
     # the retired iframe wiring must be gone (pivot to OpenSpace)
     assert "space-iframe" not in js
     assert "where-in-space.html" not in js

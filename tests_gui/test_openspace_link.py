@@ -355,3 +355,100 @@ def test_lua_message_is_not_synchronized():
     execute -- the flag never gated anything; this pin is about meaning.)"""
     obj = json.loads(osl.lua_message("openspace.printInfo('x')").decode().rstrip("\n"))
     assert obj["payload"]["shouldBeSynchronized"] is False
+
+
+# ------------------------------------------- confirmed delivery (2026-07-21)
+# The reply frames below are MEASURED against a live OpenSpace 0.22.0 (this
+# box, 2026-07-21), not taken from docs: with payload return:true the server
+# replies AFTER executing the chunk with ONE newline-framed JSON line
+#   {"payload":{"1":<return value>},"topic":<our topic>}
+# (a 3-line chunk ending `return x+y` replied {"1":42.0}); a chunk that FAILS
+# (runtime error("boom") or a syntax error) still replies, with an EMPTY
+# payload {}; with return:false no reply ever comes (0 bytes in 1.5 s).
+
+
+def _confirm_server(reply_payload):
+    """Fake OpenSpace for the confirm path: reads the handshake + script lines,
+    then replies with the measured frame carrying ``reply_payload`` (echoing the
+    request's topic, as the live engine does). reply_payload None = accept the
+    bytes but never reply. Returns (port, received, thread, srv)."""
+    srv = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    srv.bind(("127.0.0.1", 0))
+    srv.listen(1)
+    port = srv.getsockname()[1]
+    received = []
+
+    def serve():
+        conn, _ = srv.accept()
+        buf = b""
+        while buf.count(b"\n") < 2:
+            chunk = conn.recv(4096)
+            if not chunk:
+                break
+            buf += chunk
+        received.append(buf)
+        if reply_payload is not None and buf.count(b"\n") >= 2:
+            req = json.loads(buf.decode("utf-8").split("\n")[1])
+            frame = {"payload": reply_payload, "topic": req["topic"]}
+            conn.sendall((json.dumps(frame) + "\n").encode("utf-8"))
+        time.sleep(0.1)
+        conn.close()
+
+    t = threading.Thread(target=serve, daemon=True)
+    t.start()
+    return port, received, t, srv
+
+
+def test_run_lua_confirmed_appends_sentinel_and_reads_ack():
+    """run_lua_confirmed asks for the return value (payload return:true), ends
+    the chunk with a `return 1` sentinel, and reports 'confirmed' only when the
+    engine's measured reply frame carries it back -- execution proof, not just
+    delivery. The pushed script itself must be unchanged ahead of the sentinel."""
+    port, received, t, srv = _confirm_server({"1": 1.0})
+    script = "openspace.printInfo('galnav confirm')"
+    got = osl.run_lua_confirmed(script, host="127.0.0.1", port=port, timeout=2.0)
+    t.join(3.0)
+    srv.close()
+    assert got == "confirmed"
+    req = json.loads(received[0].decode("utf-8").split("\n")[1])
+    assert req["payload"]["return"] is True
+    assert req["payload"]["script"].startswith(script)
+    assert req["payload"]["script"].endswith("\nreturn 1")
+
+
+def test_run_lua_confirmed_reports_failed_chunk():
+    """An empty reply payload is the engine saying the chunk did NOT execute
+    (measured for both runtime and syntax errors) -- report 'failed', never
+    'confirmed'."""
+    port, _, t, srv = _confirm_server({})
+    got = osl.run_lua_confirmed(
+        "openspace.printInfo('x')", host="127.0.0.1", port=port, timeout=2.0
+    )
+    t.join(3.0)
+    srv.close()
+    assert got == "failed"
+
+
+def test_run_lua_confirmed_no_reply_is_sent():
+    """Bytes delivered but no reply inside reply_timeout -> 'sent': the honest
+    middle state (the old fire-and-forget guarantee, no execution proof)."""
+    port, _, t, srv = _confirm_server(None)
+    got = osl.run_lua_confirmed(
+        "openspace.printInfo('x')",
+        host="127.0.0.1",
+        port=port,
+        timeout=2.0,
+        reply_timeout=0.3,
+    )
+    t.join(3.0)
+    srv.close()
+    assert got == "sent"
+
+
+def test_run_lua_confirmed_down_when_nothing_listening():
+    """No listener -> 'down', never an exception (the web layer turns it into
+    the 'start OpenSpace' message)."""
+    got = osl.run_lua_confirmed(
+        "openspace.printInfo('x')", port=_free_dead_port(), timeout=0.2
+    )
+    assert got == "down"
