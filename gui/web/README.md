@@ -139,10 +139,12 @@ field, or set `ASTROMETRY_NET_API_KEY`). FITS files that already carry a WCS
 ## See it in OpenSpace (the live viewer)
 
 The pipeline's viewer is a running **OpenSpace** (the NASA/AMNH open-source
-planetarium; not vendored — the optional show layer). The main page's panel
-shows a reachability chip, walks the six pipeline pages (each pushes its stage
-live: stars → lines → fix), and after a successful Locate pushes the recovered
-fix (amber) with the JPL truth (cyan) and the white miss line between.
+planetarium; not vendored — the optional show layer), and it is **one phase**:
+the step-by-step walk is seven pages (raw → detect → identify → angles →
+lines → fix → live), and only the final page carries any OpenSpace wiring —
+its chip, the launch line, and the stage pushes (stars, lines, fix + JPL truth
++ miss line, clear). The main page keeps a single shortcut: after a successful
+Locate, the show-fix button pushes the fix without leaving the page.
 
 **Confirmed, not assumed.** Every push goes through
 `gui/openspace_link.run_lua_confirmed`: the chunk ends with a `return 1`

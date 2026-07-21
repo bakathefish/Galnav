@@ -117,10 +117,11 @@ land at 0.387 au, right on his 0.351, with nothing but quick 5-sigma centroids."
 
 ### 5. THE LIVE VIEW — see the fix in OpenSpace
 
-Launch OpenSpace first (`bin\OpenSpace.exe --bypassLauncher`; the localhost
-socket is pre-enabled) and the app's **See it in OpenSpace** panel lights up.
-Walk the six pipeline pages step by step — each pushes its stage live (stars →
-lines → fix) — or push the recovered fix straight from the main page:
+Walk the seven pipeline pages step by step — raw image → detect → identify →
+angles → lines → fix, each showing the exact math — and the **final page is the
+live phase**: launch OpenSpace (`bin\OpenSpace.exe --bypassLauncher`; the
+localhost socket is pre-enabled) and push the stages from there, or push the
+recovered fix straight from the main page after a Locate:
 
 - **Fix stage:** the **amber recovered-fix sphere** lands ~47 au out with the
   **cyan JPL-truth sphere** 0.387 au beside it and the white miss line between

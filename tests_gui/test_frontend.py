@@ -197,20 +197,23 @@ def test_solver_status_swaps_install_hints_when_installed():
     assert "install local" in src
 
 
-# --- pivot: OpenSpace panel replaces the old spacekit iframe on the main page --
+# --- main page: upload-first, demo presets gone, OpenSpace is ONE phase ------
 
 
-def test_main_page_has_openspace_panel_not_iframe():
-    """The old 3-D spacekit iframe panel is REMOVED (page, vendor tree and its
-    tests deleted 2026-07-21) and replaced by an OpenSpace panel: a status chip,
-    a step-through link, and a 'show the fix in OpenSpace' button."""
+def test_main_page_upload_first_no_demo_presets():
+    """The main page is the APP: upload your own images. The demo preset
+    buttons and the pre-populated demo gallery are REMOVED (user decision,
+    2026-07-21) -- the built-in New Horizons demo lives inside the
+    step-by-step walk instead. OpenSpace is ONE phase (the walk's final
+    step), not a page-wide panel: no status chip on the main page."""
     src = _index_html()
-    assert 'id="openspace-panel"' in src
-    assert 'id="os-chip"' in src  # connected / not-running chip
-    assert 'id="walk-link"' in src  # step-through entry point
-    assert 'id="os-show-fix"' in src  # show the fix in OpenSpace
-    assert "OpenSpace" in src
-    # the retired iframe view is gone from the main page AND from disk
+    assert 'id="preset-2"' not in src and 'id="preset-12"' not in src
+    assert "Reproducible demo" not in src
+    assert 'id="gallery"' in src  # uploads still land somewhere selectable
+    assert 'id="walk-link"' in src  # the step-by-step walk is the front door
+    assert 'id="os-show-fix"' in src  # push-the-fix stays one click after Locate
+    assert 'id="os-chip"' not in src  # the chip lives on the live step page only
+    # the retired iframe view stays gone from the page AND from disk
     assert 'id="space-iframe"' not in src
     assert "where-in-space.html" not in src
     assert "spacekit" not in src.lower()  # no dangling credit for removed code
@@ -218,12 +221,16 @@ def test_main_page_has_openspace_panel_not_iframe():
     assert not (webapp.WEB_DIR / "vendor").exists()
 
 
-def test_app_js_wires_openspace_not_iframe():
-    """app.js talks to the live-bridge endpoints and builds the step-through
-    link carrying the current selection; the dead iframe code path is gone."""
+def test_app_js_uploads_only_gallery_no_presets():
+    """app.js renders ONLY uploads in the gallery (demo frames stay out of the
+    main page), the preset machinery is gone, and the step-through link plus
+    the push-the-fix button remain wired."""
     js = _app_js()
-    assert '"/api/openspace/status"' in js  # chip refresh
+    assert "selectPreset" not in js  # preset machinery deleted
+    assert '"preset-2"' not in js and '"preset-12"' not in js
+    assert 'f.id.startsWith("up_")' in js  # uploads-only gallery + remove control
     assert '"/api/openspace/show"' in js  # push the fix
+    assert '"/api/openspace/status"' not in js  # no chip on the main page
     assert "pipeline-1-raw.html" in js  # step-through entry
     assert 'showInOpenSpace("fix")' in js  # the show-fix button pushes the fix stage
     assert "confirmed" in js  # execution confirmation surfaces in the note
@@ -243,6 +250,7 @@ PIPELINE_PAGES = [
     "pipeline-4-angles.html",
     "pipeline-5-lines.html",
     "pipeline-6-fix.html",
+    "pipeline-7-live.html",
 ]
 
 
@@ -256,23 +264,28 @@ def _page(name):
 
 def test_all_pipeline_pages_served_offline_and_chained():
     """Every pipeline page is servable HTML, stays offline (no http/https), reads
-    the ?ids=&age=&radius= contract, shows a step indicator, and shows the
-    OpenSpace status chip."""
+    the ?ids=&age=&radius= contract and shows a step indicator. OpenSpace is
+    ONE phase: only the final live page carries any OpenSpace wiring; the
+    process pages (1-6) are pure pipeline, no chip, no push buttons."""
     for name in PIPELINE_PAGES:
         src = _page(name)
         assert "http://" not in src and "https://" not in src, name
         assert "location.search" in src, name  # carries the URL contract
         assert "params.get('ids')" in src or 'params.get("ids")' in src, name
         assert "Step " in src, name  # step indicator
-        assert "/api/openspace/status" in src, name  # status chip
         assert "/static/style.css" in src, name  # shared design tokens, offline
+        if name == "pipeline-7-live.html":
+            assert "/api/openspace/status" in src, name  # the ONE live phase
+        else:
+            assert "/api/openspace" not in src, name  # process pages stay pure
 
 
 def test_pipeline_pages_prev_next_chain():
     """Pages are chained by Next/Prev redirects (the user wanted page-by-page
-    links, not tabs): page 1 has Next, page 6 has Prev, the middle pages both."""
-    first = _page("pipeline-1-raw.html")
-    last = _page("pipeline-6-fix.html")
+    links, not tabs): page 1 has Next, the last page has Prev, the middle
+    pages both."""
+    first = _page(PIPELINE_PAGES[0])
+    last = _page(PIPELINE_PAGES[-1])
     assert "nextlink" in first
     assert "prevlink" in last
     for name in PIPELINE_PAGES[1:-1]:
@@ -298,15 +311,14 @@ def test_pipeline_2_detect_shows_centroid_math():
     assert "moment" in src.lower()  # the flux-weighted moment centroid
 
 
-def test_pipeline_3_identify_has_match_table_and_openspace_button():
+def test_pipeline_3_identify_has_match_table():
     """Page 3 lists the identification matches (name, source_id, dist_pc,
-    sep_arcsec, position-capable) and offers 'Show these stars in OpenSpace'."""
+    sep_arcsec, position-capable). Pure pipeline: pushing the stars live
+    happens on the final live page, not here."""
     src = _page("pipeline-3-identify.html")
     assert "/api/pipeline" in src
     assert "source_id" in src and "dist_pc" in src
     assert "position-capable" in src.lower()
-    assert "/api/openspace/show" in src
-    assert 'data-stage="stars"' in src
 
 
 def test_pipeline_4_angles_shows_tan_deprojection():
@@ -320,27 +332,39 @@ def test_pipeline_4_angles_shows_tan_deprojection():
     assert "tangent" in src.lower() or "gnomonic" in src.lower() or "TAN" in src
 
 
-def test_pipeline_5_lines_shows_lop_and_openspace_button():
+def test_pipeline_5_lines_shows_lop():
     """Page 5 explains the line of position (observer = star_pos - lambda *
-    direction) with the anchor/direction numbers and a 'Show the line(s) in
-    OpenSpace' button."""
+    direction) with the anchor/direction numbers. Pure pipeline: drawing the
+    lines live happens on the final live page, not here."""
     src = _page("pipeline-5-lines.html")
     assert "line of position" in src.lower()
     assert "anchor" in src.lower() and "direction" in src.lower()
-    assert "/api/openspace/show" in src
-    assert 'data-stage="lines"' in src
 
 
 def test_pipeline_6_fix_intersection_miss_and_one_image_story():
-    """Page 6 shows the least-squares intersection + ellipsoid + miss vs truth,
-    a 'Show the fix in OpenSpace' button, and the one-star degenerate case with a
-    'now add a second image' link that jumps to the SAME walk with ids=f0,f6."""
+    """Page 6 shows the least-squares intersection + ellipsoid + miss vs truth
+    and the one-star degenerate case with a 'now add a second image' link that
+    jumps to the SAME walk with ids=f0,f6. Pushing the fix live happens on the
+    next (final) page."""
     src = _page("pipeline-6-fix.html")
     assert "/api/locate" in src
     assert "least" in src.lower() and "ellipsoid" in src.lower()
     assert "miss" in src.lower()
-    assert "/api/openspace/show" in src
-    assert 'data-stage="fix"' in src
     # the one-image -> two-image story (do.txt item 9)
     assert "a line, not a point" in src
     assert "ids=f0,f6" in src
+
+
+def test_pipeline_7_live_is_the_one_openspace_phase():
+    """Page 7 is where the pipeline meets the viewer: the OpenSpace status
+    chip, the launch instruction, and the four stage pushes (stars, lines,
+    fix, clear) with execution-confirmation surfaced. This is the ONLY page
+    wired to OpenSpace -- the viewer is one phase, not a layer over
+    everything."""
+    src = _page("pipeline-7-live.html")
+    assert "/api/openspace/status" in src
+    assert "/api/openspace/show" in src
+    assert "bypassLauncher" in src  # the exact launch line, no guessing
+    for stage in ("stars", "lines", "fix", "clear"):
+        assert f'data-stage="{stage}"' in src, stage
+    assert "confirmed" in src  # execution confirmation shown honestly

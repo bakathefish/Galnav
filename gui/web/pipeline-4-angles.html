@@ -10,10 +10,9 @@
 
 <div class="topbar"><div class="wrap">
   <span class="brand">Gal<span class="dot">Nav</span></span>
-  <span class="topsub">pipeline &middot; step 4 of 6</span>
+  <span class="topsub">pipeline &middot; step 4 of 7</span>
   <span class="spacer"></span>
   <a class="nav" href="/">&larr; back to app</a>
-  <span id="os-chip" class="os-chip" data-state="unknown">checking OpenSpace&hellip;</span>
 </div></div>
 
 <div class="wrap">
@@ -25,8 +24,9 @@
       <li class="rail-node current" aria-current="step"><span class="rail-num">4</span><span class="rail-tag">Angles</span></li>
       <li class="rail-node"><span class="rail-num">5</span><span class="rail-tag">Lines</span></li>
       <li class="rail-node"><span class="rail-num">6</span><span class="rail-tag">Fix</span></li>
+      <li class="rail-node"><span class="rail-num">7</span><span class="rail-tag">Live</span></li>
     </ol>
-    <p class="rail-cap"><span class="steplbl">Step 4 of 6</span> &mdash; From pixel to direction (the angles)</p>
+    <p class="rail-cap"><span class="steplbl">Step 4 of 7</span> &mdash; From pixel to direction (the angles)</p>
   </nav>
 
   <p class="pipe-lede">Each position-capable star's centroid is turned into a <strong>unit direction</strong>
@@ -56,14 +56,6 @@ const walk = () => { const p = new URLSearchParams(); p.set('ids', ids.join(',')
 for (const a of document.querySelectorAll('.prevlink, .nextlink')) a.href = a.dataset.page + '?' + walk();
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.getElementById('toasts').appendChild(t); setTimeout(() => t.remove(), 6000); }
-(function () {
-  fetch('/api/openspace/status').then(r => r.json()).then(s => {
-    const c = document.getElementById('os-chip');
-    if (!c || !s || s.ok !== true) return;
-    if (s.running) { c.dataset.state = 'up'; c.textContent = 'OpenSpace connected'; }
-    else { c.dataset.state = 'down'; c.textContent = 'OpenSpace not running'; }
-  }).catch(() => { });
-})();
 
 const DEG = 180 / Math.PI;
 const box = document.getElementById('frames');

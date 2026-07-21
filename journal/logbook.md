@@ -3387,3 +3387,38 @@ current: README/INDEX counts, GUI-EXPLAINED, ISEF-DEMO-PLAYBOOK §5 (now
 the OpenSpace live-view step), PIPELINE-FLOWCHART card+step, gui/web
 README, gui-pipeline-live re-measurement note. No spine, science, or
 frozen content touched.
+
+## 2026-07-21 (night) — main page is the app; the walk is 7 pages; OpenSpace is ONE phase
+
+GUI restructure at the students' direction, RED-first throughout:
+
+**Demo presets removed from the main page.** The "Reproducible demo" card
+(Quick demo / Full solve buttons + the 12 pre-populated demo frames) is
+gone; the gallery now lives inside the upload card, renders UPLOADS ONLY
+("Your images", with an honest empty-state hint), and the built-in New
+Horizons demo is reachable only through the walk, which defaults to the
+demo frames when nothing is selected. Clear-selection stays; preset
+machinery deleted from app.js.
+
+**The step-by-step walk is the front door, and OpenSpace is one phase.**
+The walk grew a seventh page, `pipeline-7-live.html` — "See it live
+(OpenSpace)" — the ONLY page with any OpenSpace wiring: the status chip
+(5 s poll), the launch line, and the four stage pushes (stars, lines,
+fix + JPL truth + miss, clear) with execution-confirmation surfaced in
+the note. Pages 1–6 are now pure pipeline: chip, status poll and
+per-page push buttons stripped; rails renumbered to 7 nodes; page 6
+chains "Next: see it live". The main page's OpenSpace panel became "The
+pipeline, step by step" (no chip; the one shortcut kept is the show-fix
+button after a successful Locate). Tests pin the shape: presets absent,
+uploads-only gallery, `/api/openspace` absent from the main page and
+pages 1–6, present with all four stages + launch line + confirmation on
+page 7 only.
+
+Live-verified in a real browser: main page (upload-first, no presets,
+walk card), page 1 (7-node rail, raw unlabeled Proxima frame), page 7
+(chip honestly "not running", a fix push answers "OpenSpace isn't
+running (nothing on 127.0.0.1:4681)…"). Suites: spine 84, tests_gui 154
+(153 − 3 per-page-push pins + 1 seven-page chain + 1 page-7 phase test
++ … net +1). Docs: GUI-EXPLAINED (seven pages, one live phase),
+ISEF-DEMO-PLAYBOOK §5, PIPELINE-FLOWCHART, gui/web README, README/INDEX
+counts 154. No spine, science, or frozen content touched.

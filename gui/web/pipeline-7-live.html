@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GalNav pipeline - Step 7: see it live</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<div class="topbar"><div class="wrap">
+  <span class="brand">Gal<span class="dot">Nav</span></span>
+  <span class="topsub">pipeline &middot; step 7 of 7</span>
+  <span class="spacer"></span>
+  <a class="nav" href="/">&larr; back to app</a>
+  <span id="os-chip" class="os-chip" data-state="unknown">checking OpenSpace&hellip;</span>
+</div></div>
+
+<div class="wrap">
+  <nav class="rail" aria-label="pipeline progress">
+    <ol class="rail-track">
+      <li class="rail-node done"><span class="rail-num">1</span><span class="rail-tag">Raw</span></li>
+      <li class="rail-node done"><span class="rail-num">2</span><span class="rail-tag">Detect</span></li>
+      <li class="rail-node done"><span class="rail-num">3</span><span class="rail-tag">Identify</span></li>
+      <li class="rail-node done"><span class="rail-num">4</span><span class="rail-tag">Angles</span></li>
+      <li class="rail-node done"><span class="rail-num">5</span><span class="rail-tag">Lines</span></li>
+      <li class="rail-node done"><span class="rail-num">6</span><span class="rail-tag">Fix</span></li>
+      <li class="rail-node current" aria-current="step"><span class="rail-num">7</span><span class="rail-tag">Live</span></li>
+    </ol>
+    <p class="rail-cap"><span class="steplbl">Step 7 of 7</span> &mdash; See it live (OpenSpace)</p>
+  </nav>
+
+  <p class="pipe-lede">The pipeline is done &mdash; steps 1&ndash;6 measured everything. This last
+    page only <strong>displays</strong> the result: it pushes the markers into
+    <strong>OpenSpace</strong>, the open-source NASA/AMNH planetarium, running on this machine.
+    Nothing is computed here; OpenSpace is just the viewer.</p>
+
+  <div class="frameblock">
+    <p class="frametitle">Start OpenSpace (once)</p>
+    <p class="pcap">If the chip in the top bar says &ldquo;not running&rdquo;, launch it and wait
+      for the scene to load, then come back:</p>
+    <p class="pcap mono">&lt;your OpenSpace folder&gt;\bin\OpenSpace.exe --bypassLauncher</p>
+  </div>
+
+  <div class="frameblock">
+    <p class="frametitle">Push the pipeline's stages</p>
+    <p class="pcap">Each button pushes one stage from the frames this walk used. Every push is
+      execution-confirmed: OpenSpace's reply says the markers really landed &mdash; the note below
+      reports <em>confirmed</em>, never assumes.</p>
+    <div class="navbtns">
+      <button class="btn answer" data-stage="stars">1 &middot; the nearby stars (amber)</button>
+      <button class="btn answer" data-stage="lines">2 &middot; the lines of position</button>
+      <button class="btn answer" data-stage="fix">3 &middot; the fix + JPL truth + miss</button>
+      <button class="btn" data-stage="clear">clear the markers</button>
+    </div>
+    <p id="os-note" class="os-note"></p>
+  </div>
+
+  <div class="navbtns">
+    <a class="btn prevlink" data-page="/static/pipeline-6-fix.html">&larr; Prev</a>
+    <a class="btn primary" href="/">Done &mdash; back to the app</a>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<script>
+"use strict";
+const params = new URLSearchParams(location.search);
+const ids = (params.get('ids') || 'f0,f6').split(',').map(s => s.trim()).filter(Boolean);
+const age = params.get('age') || '4.31';
+const radius = params.get('radius') || '120';
+const walk = () => { const p = new URLSearchParams(); p.set('ids', ids.join(',')); p.set('age', age); p.set('radius', radius); return p.toString(); };
+for (const a of document.querySelectorAll('.prevlink, .nextlink')) a.href = a.dataset.page + '?' + walk();
+function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.getElementById('toasts').appendChild(t); setTimeout(() => t.remove(), 6000); }
+
+function refreshChip() {
+  fetch('/api/openspace/status').then(r => r.json()).then(s => {
+    const c = document.getElementById('os-chip');
+    if (!c || !s || s.ok !== true) return;
+    if (s.running) { c.dataset.state = 'up'; c.textContent = 'OpenSpace connected'; }
+    else { c.dataset.state = 'down'; c.textContent = 'OpenSpace not running'; }
+  }).catch(() => { });
+}
+refreshChip();
+setInterval(refreshChip, 5000);
+
+async function showStage(stage) {
+  const note = document.getElementById('os-note');
+  try {
+    const r = await fetch('/api/openspace/show', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stage, ids, age: parseFloat(age), radius: parseFloat(radius), rv: 19.57 }) });
+    const j = await r.json();
+    if (j.ok) {
+      const conf = j.confirmed ? ' Execution confirmed by OpenSpace.' : ' Sent (no execution confirmation).';
+      if (note) note.textContent = (j.note || 'Pushed to OpenSpace.') + conf;
+      toast(j.confirmed ? 'Pushed to OpenSpace (confirmed).' : 'Pushed to OpenSpace.');
+    } else {
+      if (note) note.textContent = j.message || 'OpenSpace push failed.';
+      toast(j.message || 'OpenSpace push failed.');
+    }
+    refreshChip();
+  } catch (e) { toast('OpenSpace push failed: ' + e); }
+}
+for (const b of document.querySelectorAll('[data-stage]')) b.addEventListener('click', () => showStage(b.dataset.stage));
+</script>
+</body>
+</html>

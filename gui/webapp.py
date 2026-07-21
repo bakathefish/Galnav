@@ -105,6 +105,7 @@ _STATIC_ALLOW = {
     "pipeline-4-angles.html": "text/html; charset=utf-8",
     "pipeline-5-lines.html": "text/html; charset=utf-8",
     "pipeline-6-fix.html": "text/html; charset=utf-8",
+    "pipeline-7-live.html": "text/html; charset=utf-8",
 }
 
 # --- frame cache ------------------------------------------------------------

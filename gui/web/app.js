@@ -60,7 +60,12 @@ function ageOf(ids) {
 function renderGallery() {
   const g = $("gallery");
   g.innerHTML = "";
+  let shown = 0;
   for (const f of state.frames) {
+    // UPLOADS ONLY: the demo frames stay off the main page -- the built-in
+    // demo lives inside the step-by-step walk (user decision, 2026-07-21).
+    if (!f.id.startsWith("up_")) continue;
+    shown += 1;
     const sel = state.selected.has(f.id);
     const el = document.createElement("button");
     el.className = "frame" + (sel ? " sel" : "") + (state.focus === f.id ? " focus" : "");
@@ -87,6 +92,10 @@ function renderGallery() {
       el.appendChild(rm);
     }
     g.appendChild(el);
+  }
+  if (shown === 0) {
+    g.innerHTML = '<p class="galhint">No images yet &mdash; choose star-field images above, ' +
+      "or walk the built-in demo below.</p>";
   }
 }
 
@@ -173,7 +182,7 @@ const refreshImagesDebounced = debounce(refreshImages, 400);
 
 function setBusy(on) {
   state.busy = on;
-  for (const id of ["locate", "estimate", "preset-2", "preset-12"]) $(id).disabled = on;
+  for (const id of ["locate", "estimate"]) $(id).disabled = on;
 }
 
 async function locate() {
@@ -262,29 +271,12 @@ function renderLineOfPosition(r, warn) {
   updateWalkLink();
 }
 
-// --- OpenSpace panel (the pipeline's live viewer) ---------------------------
-// OpenSpace is THE viewer (the old in-page 3-D view was removed outright).
-// A status chip reflects whether a local OpenSpace is reachable, the
-// walk link steps through the pipeline pages carrying the current selection, and
-// after a successful Locate the fix can be pushed straight into OpenSpace.
-async function openspaceStatus() {
-  const chip = $("os-chip");
-  if (!chip) return;
-  let r;
-  try {
-    r = await api("/api/openspace/status");
-  } catch (e) {
-    return; // old server without the endpoint: leave the chip as-is
-  }
-  if (!r || r.ok !== true) return;
-  if (r.running) {
-    chip.dataset.state = "up";
-    chip.textContent = "OpenSpace connected";
-  } else {
-    chip.dataset.state = "down";
-    chip.textContent = "OpenSpace not running";
-  }
-}
+// --- the step-by-step walk (and its final live phase) -----------------------
+// The walk pages are the way to see the process; OpenSpace appears ONLY on the
+// walk's final page (the viewer is one phase, not a layer over everything), so
+// the main page carries no status chip. The one shortcut kept here: after a
+// successful Locate, the show-fix button pushes the fix without leaving the
+// page -- honest when OpenSpace is absent.
 
 // The step-through link carries the current selection so the pipeline pages
 // open on exactly the frames the user has chosen (or the demo default).
@@ -336,7 +328,6 @@ async function showInOpenSpace(stage) {
       if (note) note.textContent = r.message || "OpenSpace push failed.";
       toast(r.message || "OpenSpace push failed.");
     }
-    openspaceStatus();
   } catch (e) {
     toast("OpenSpace push failed: " + e);
   }
@@ -577,21 +568,7 @@ async function solverStatus() {
   if (how) how.textContent = line + " — a raw photo with no embedded WCS solves offline.";
 }
 
-function selectPreset(ids) {
-  state.selected = new Set(ids);
-  // A preset selects everything "at once" with the FIRST frame focused, so the
-  // history is stored most-recent-last ending on ids[0].
-  state.order = [...ids].reverse();
-  state.focus = ids[0];
-  syncAge(); // auto mode follows the selection; manual is never stomped
-  renderGallery();
-  updatePreview();
-}
-
 function init() {
-  $("preset-2").addEventListener("click", () => selectPreset(["f0", "f6"]));
-  $("preset-12").addEventListener("click", () =>
-    selectPreset(["f0", "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11"]));
   $("clear-sel").addEventListener("click", () => {
     state.selected.clear(); state.order = []; state.focus = null;
     renderGallery(); updatePreview();
@@ -616,7 +593,6 @@ function init() {
   });
   loadFrames();
   solverStatus();
-  openspaceStatus();
   updateWalkLink();
 }
 document.addEventListener("DOMContentLoaded", init);

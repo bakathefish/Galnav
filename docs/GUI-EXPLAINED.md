@@ -22,9 +22,9 @@ is a headless script that prints the numbers. All three are thin shells over the
 **same five small files**, each testable on its own; the physics below is
 identical whichever shell you open. The web app adds three things on top — a
 four-tier star-label overlay (`overlay=none|detected|identified|nav`, so an
-upload can be seen exactly as the camera saw it), a six-page **pipeline walk**
-that shows every stage's real numbers and math, and a live hand-off to
-**OpenSpace**, the NASA/AMNH planetarium, as the show viewer — plus one extra
+upload can be seen exactly as the camera saw it), a seven-page **pipeline walk**
+that shows every stage's real numbers and math and ends with the one live page
+that hands off to **OpenSpace**, the NASA/AMNH planetarium — plus one extra
 reading of the same age math, the **chronometer**; all are described near the
 end of this document.
 
@@ -351,8 +351,8 @@ if present, degrading gracefully to the 20-pc file if it is absent.
 
 ## The pipeline walk + OpenSpace — the live viewer
 
-The pipeline is walkable **webpage by webpage**: six chained pages
-(`/static/pipeline-1-raw.html` … `pipeline-6-fix.html`, linked by Next/Prev
+The pipeline is walkable **webpage by webpage**: seven chained pages
+(`/static/pipeline-1-raw.html` … `pipeline-7-live.html`, linked by Next/Prev
 carrying the selected frames, catalog age and match radius) show, in order:
 the **raw** image with no marks at all ("this is everything a lost spacecraft
 has"), **centroid detection** (the moment formula plus this frame's actual
@@ -364,6 +364,9 @@ of position** (observer = star − λ·direction, with the real anchors), and th
 demo — the miss against JPL truth). One image with one nearby star ends,
 honestly, at "a line, not a point", with an *add a second image* link that
 re-runs the same walk with two frames — the one-image-then-two-images story.
+The seventh page is the **one live phase**: the viewer appears there and only
+there (pages 1–6 are pure pipeline — no chip, no push buttons), with the
+OpenSpace launch line and the stage pushes (stars, lines, fix, clear).
 
 The 3-D viewer is **OpenSpace** (openspaceproject.com), the open-source
 planetarium NASA and AMNH fund. `gui/openspace_link.py` pushes each stage's

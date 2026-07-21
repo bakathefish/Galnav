@@ -185,9 +185,11 @@ button{font-family:inherit}
 .upload-stage[hidden]{display:none}
 
 /* demo card = the reproducible secondary flow */
-.demo-card h2{line-height:1.45}
-.demo-card .presets{margin-top:0}
-.demo-card .gallery{max-height:430px; margin-top:14px}
+/* uploads-only gallery inside the upload card */
+.galhead{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:20px}
+.galtitle{font:600 13px/1.2 var(--sans); color:var(--ink); letter-spacing:.04em; text-transform:uppercase; margin:0}
+.upload-card .gallery{max-height:430px; margin-top:12px}
+.galhint{font:400 13px/1.55 var(--sans); color:var(--dim); margin:6px 0 0}
 
 /* ---- gallery ------------------------------------------------------------ */
 .gallery{max-height:640px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; scrollbar-width:thin}

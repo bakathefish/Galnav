@@ -23,8 +23,8 @@
       no coordinates attached. The tool plate-solves it, finds the nearby <span class="u">Gaia</span>
       stars in the frame, and intersects the lines of sight to recover where the camera is
       &mdash; in au, with an error ellipsoid. Same physics as the science spine; this is just a
-      friendlier shell. No image handy? A reproducible New Horizons demo is below, and runs
-      fully offline.</p>
+      friendlier shell. No image handy? The step-by-step walk below runs on real New Horizons
+      frames, fully offline.</p>
   </header>
 
   <div class="layout">
@@ -47,16 +47,11 @@
           <label for="apikey">nova API key</label>
           <input type="password" id="apikey" placeholder="optional">
         </details>
-      </section>
-
-      <section class="card demo-card">
-        <h2>Reproducible demo &mdash; real New Horizons frames (offline)</h2>
-        <div class="presets">
-          <button class="btn primary" id="preset-2">Quick demo (2 frames)</button>
-          <button class="btn primary" id="preset-12">Full solve (all 12)</button>
-          <button class="btn" id="clear-sel">Clear</button>
+        <div class="galhead">
+          <h3 class="galtitle">Your images</h3>
+          <button class="btn" id="clear-sel">Clear selection</button>
         </div>
-        <div class="gallery" id="gallery" aria-label="frame gallery"></div>
+        <div class="gallery" id="gallery" aria-label="your uploaded images"></div>
       </section>
     </div>
 
@@ -118,22 +113,24 @@
 
   <div class="results" id="results" aria-live="polite"></div>
 
-  <!-- OpenSpace panel: the pipeline's live viewer. A status chip shows whether a
-       local OpenSpace is reachable; the walk link steps through the pipeline
-       pages carrying the current selection; after a successful Locate the fix can
-       be pushed into an open OpenSpace. -->
-  <section id="openspace-panel" class="card os-panel" aria-label="OpenSpace viewer">
+  <!-- The step-by-step walk: THE way to see the process. Seven pages, one per
+       stage, each with the real math; the LAST page is the only place the
+       OpenSpace viewer appears (the viewer is one phase, not a layer over
+       everything). The walk carries the current selection, or runs the
+       built-in New Horizons demo when nothing is selected. -->
+  <section id="walk-panel" class="card os-panel" aria-label="the pipeline, step by step">
     <div class="os-head">
-      <h2>See it in OpenSpace</h2>
-      <span id="os-chip" class="os-chip" data-state="unknown">checking OpenSpace&hellip;</span>
+      <h2>The pipeline, step by step</h2>
     </div>
     <p class="os-lede">
-      OpenSpace (the NASA / American Museum of Natural History planetarium) is the live
-      viewer. Walk the pipeline one page at a time &mdash; each page shows the exact math and
-      real numbers &mdash; or push the recovered fix straight into an open OpenSpace.
-      Nothing is computed in OpenSpace; it only displays what this tool measured.</p>
+      Seven pages, one per stage: the raw unlabeled image &rarr; detected stars &rarr;
+      identified nearby stars &rarr; pixel-to-direction angles &rarr; lines of position &rarr;
+      the fix &mdash; every page shows the exact math with this walk's real numbers. The final
+      page pushes the result into OpenSpace, the live planetarium viewer; that last step is
+      the only place the viewer appears. No image of your own? The walk runs on the built-in,
+      reproducible New Horizons frames, fully offline.</p>
     <div class="os-actions">
-      <a id="walk-link" class="btn primary" href="/static/pipeline-1-raw.html">Walk through the pipeline step by step &rarr;</a>
+      <a id="walk-link" class="btn primary" href="/static/pipeline-1-raw.html">Walk the pipeline step by step &rarr;</a>
       <button id="os-show-fix" class="btn answer" hidden>Show the fix in OpenSpace</button>
     </div>
     <p id="os-note" class="os-note"></p>

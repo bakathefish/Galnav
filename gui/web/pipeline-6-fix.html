@@ -10,10 +10,9 @@
 
 <div class="topbar"><div class="wrap">
   <span class="brand">Gal<span class="dot">Nav</span></span>
-  <span class="topsub">pipeline &middot; step 6 of 6</span>
+  <span class="topsub">pipeline &middot; step 6 of 7</span>
   <span class="spacer"></span>
   <a class="nav" href="/">&larr; back to app</a>
-  <span id="os-chip" class="os-chip" data-state="unknown">checking OpenSpace&hellip;</span>
 </div></div>
 
 <div class="wrap">
@@ -25,8 +24,9 @@
       <li class="rail-node done"><span class="rail-num">4</span><span class="rail-tag">Angles</span></li>
       <li class="rail-node done"><span class="rail-num">5</span><span class="rail-tag">Lines</span></li>
       <li class="rail-node current" aria-current="step"><span class="rail-num">6</span><span class="rail-tag">Fix</span></li>
+      <li class="rail-node"><span class="rail-num">7</span><span class="rail-tag">Live</span></li>
     </ol>
-    <p class="rail-cap"><span class="steplbl">Step 6 of 6</span> &mdash; The fix</p>
+    <p class="rail-cap"><span class="steplbl">Step 6 of 7</span> &mdash; The fix</p>
   </nav>
 
   <p class="pipe-lede">With two or more lines from <strong>different</strong> stars, your position is where they
@@ -41,7 +41,6 @@ least-squares crossing point; its covariance, scaled by the per-measurement angu
 error ellipsoid.</span></div>
 
   <div class="os-actions pipe-actions">
-    <button class="btn answer" data-stage="fix">Show the fix in OpenSpace</button>
   </div>
 
   <div id="result"><p class="pcap"><span class="spin"></span>Solving the intersection&hellip;</p></div>
@@ -56,6 +55,7 @@ error ellipsoid.</span></div>
 
   <div class="navbtns">
     <a class="btn prevlink" data-page="/static/pipeline-5-lines.html">&larr; Prev</a>
+    <a class="btn primary nextlink" data-page="/static/pipeline-7-live.html">Next: see it live &rarr;</a>
     <span></span>
   </div>
 </div>
@@ -71,22 +71,6 @@ const walk = () => { const p = new URLSearchParams(); p.set('ids', ids.join(',')
 for (const a of document.querySelectorAll('.prevlink, .nextlink')) a.href = a.dataset.page + '?' + walk();
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.getElementById('toasts').appendChild(t); setTimeout(() => t.remove(), 6000); }
-(function () {
-  fetch('/api/openspace/status').then(r => r.json()).then(s => {
-    const c = document.getElementById('os-chip');
-    if (!c || !s || s.ok !== true) return;
-    if (s.running) { c.dataset.state = 'up'; c.textContent = 'OpenSpace connected'; }
-    else { c.dataset.state = 'down'; c.textContent = 'OpenSpace not running'; }
-  }).catch(() => { });
-})();
-async function showStage(stage) {
-  try {
-    const r = await fetch('/api/openspace/show', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stage, ids, age: parseFloat(age), radius: parseFloat(radius) }) });
-    const j = await r.json();
-    toast(j.ok ? ('Pushed to OpenSpace' + (j.note ? ': ' + j.note : '')) : (j.message || 'OpenSpace push failed'));
-  } catch (e) { toast('OpenSpace push failed: ' + e); }
-}
-for (const b of document.querySelectorAll('[data-stage]')) b.addEventListener('click', () => showStage(b.dataset.stage));
 
 const res = document.getElementById('result');
 fetch('/api/locate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids, age: parseFloat(age), radius: parseFloat(radius), rv: 19.57 }) })
@@ -105,7 +89,7 @@ fetch('/api/locate', { method: 'POST', headers: { 'Content-Type': 'application/j
         '<tr><th>lines / distinct stars</th><td>' + r.n_lines + ' / ' + r.distinct_stars + '</td></tr>' +
         '</tbody></table></div>' +
         '<p class="pcap">The crossing point of ' + r.n_lines + ' lines of position from ' + r.distinct_stars +
-        ' distinct stars. Press &ldquo;Show the fix in OpenSpace&rdquo; to fly to it (amber = fix, cyan = JPL truth, white = the miss).</p></div>';
+        ' distinct stars. Continue to the last step to fly to it live (amber = fix, cyan = JPL truth, white = the miss).</p></div>';
     } else if (r.mode === 'line') {
       res.innerHTML = '<div class="notecard"><p class="pcap">' + esc(r.message) + '</p></div>';
       document.getElementById('linecard').hidden = false;
