@@ -186,11 +186,26 @@ CATALOG AGE), via the 7-state joint solve. NARROWED claim (scout-verified):
 the capability is pre-owned (plate dating: Barron et al. 2008 "Blind
 Date"; joint 7th parameter: [BJ21] — who never reports sigma_epoch); the
 PRECISION LAW and its catalog-age axis are unpublished. Must-cite:
-Barron08 (live-verified), BJ21. STRUCK by the 2026-07-17 sweep: the
-scout-suggested "He&Zhao 2025" and "SESCC 2026" FAILED live verification
-(no matching papers found — possible hallucinated references); before F12
-is drafted the students must find real ancient-catalog/plate-dating
-adjacent refs or proceed with Barron08 alone.
+Barron08 (live-verified), BJ21. The 2026-07-17 sweep STRUCK the
+scout-suggested "He&Zhao 2025" and "SESCC 2026" as failing live
+verification; SUPERSEDED by the 2026-07-22 re-verification, which found
+BOTH references REAL but MIS-CITED — the 2026-07-17 check had searched
+the scout's bad strings (wrong year/venue). "He&Zhao" is two real
+papers ([HeZhao24]: Astronomical Techniques and Instruments 1(2),
+150-155, arXiv:2504.02182; [HeZhao25]: accepted in Research in
+Astronomy and Astrophysics, arXiv:2504.02186 — epoch-dating star
+catalogs from star positions via a generalized Hough transform, the
+precession-dominated regime). "SESCC" is a real method — Speed-Error
+Signals Cross Correlation — from Baiget Orts 2025 ([BaigetOrts25],
+arXiv:2504.12962), which dates the Almagest by cross-correlating each
+star's proper-motion speed against its positional error (real year
+2025, not 2026). Three supporting signal/precision refs also
+live-verified: [NAROO21] (plate re-reduction to ~15 mas..50 uas),
+[LSPM05] (proper motions FROM POSS-I/II plate differencing, ~8 mas/yr),
+[DASCH10] (century-baseline plate astrometry). Net: the F12 ref-blocker
+is CLEARED — Barron08 + the He&Zhao/SESCC family + the supporting refs
+are all real and citable; the card still awaits student ruling.
+Barron08 remains the anchor prior art.
 
 **F13 [PROPOSED] The navigation capacity of the Galaxy.** The full-catalog
 Fisher/CRLB ceiling on position knowledge, mapped over galactic location —

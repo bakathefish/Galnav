@@ -81,6 +81,13 @@ https://arxiv.org/abs/2506.21666
   the 2026-07-17 sweep via Crossref: AJ 170, 22 (2025) — "170, 1" was the
   issue, not the article; the 0.44 au result is a 0.441 x 0.233 x 0.206 au error ellipsoid
   vs JPL (notebook cell, 2026-07-16).
+- CONCLUDING CLAIM (verbatim, sighted 2026-07-22): "We conclude that the
+  best astrometric approach to navigating spacecraft on their departures to
+  interstellar space is to use a single pair of the closest stars as
+  references, rather than a large sample of more distant stars." It is
+  asserted as a RECOMMENDATION from their analysis, not proven as a theorem
+  — the seed of a PROPOSED pair-vs-ensemble CRLB card (awaiting student
+  ruling).
 
 **[Lauer25-data]** Lauer, T. R., et al. (2025). "Computational Notebook for
 'A Demonstration of Interstellar Navigation Using New Horizons'." Zenodo.
@@ -647,6 +654,64 @@ https://arxiv.org/abs/1305.4842
 - Where in repo: `journal/spec-e5-pulsar-lattice.md`; paper related work.
   Verified: abstract via arXiv, 2026-07-16.
 
+**[SEXTANT18]** Winternitz, L. B., et al. (2018). SEXTANT on NICER/ISS —
+the first real-time, in-space autonomous XNAV demonstration (Nov 2017),
+4 MSPs (J0437-4715, J0030+0451, B1821-24, J0218+4232).
+- Used for: related work bounding E4/E5 — flight XNAV is demonstrated IN
+  EARTH ORBIT with a tight dynamical prior; the error reached and held below
+  10 km RSS within ~7.5 h (goal < 10 km worst-direction). E5's interstellar
+  no-bootstrap claim is untouched by it (an Earth-orbit prior is nothing like
+  a ~1 au starlight fix).
+- Where in repo: journal/findings-compilation.md (F14 / E5 framing); future
+  paper related-work.
+- Verified: 2026-07-22 via the 2018 on-orbit-results papers; the exact NTRS
+  report ID could not be individually pinned — students should locate the
+  canonical citation before drafting.
+
+**[ZhengHXMT19]** Zheng, S.-J., et al. (2019). "In-orbit Demonstration of
+X-Ray Pulsar Navigation with the Insight-HXMT Satellite." *The Astrophysical
+Journal Supplement Series*, 244, 1. doi:10.3847/1538-4365/ab3718.
+arXiv:1908.01922.
+- Used for: related work, the same positioning as [SEXTANT18] — Crab, a
+  5-day observation (2017 Aug 31 - Sep 5), position within 10 km (3-sigma)
+  and velocity within 10 m/s (3-sigma) by the SEPO method; also the SEPO
+  lineage that NinjaSat later reuses.
+- Where in repo: journal/findings-compilation.md (F14 / E5 framing); future
+  paper related-work.
+- Verified: abstract + ADS, 2026-07-22.
+
+**[NinjaSat26]** Ota, N., et al. (2026). "In-orbit Demonstration of X-ray
+Pulsar Navigation with NinjaSat." *Journal of Astronomical Telescopes,
+Instruments, and Systems*, 12, 018002. doi:10.1117/1.JATIS.12.1.018002.
+arXiv:2602.14166.
+- Used for: related work for E5/F14 framing — a 6U CubeSat with two Gas
+  Multiplier Counters (16 cm^2/module at 6 keV, 2-50 keV), Crab ~100 ks;
+  timing stable within 100 us; the Crab line-of-sight constrained to ~40 km
+  and 3-D position 27-370 km depending on epoch. It is the FIRST experimental
+  verification that SEPO accuracy depends on seasonal geometry (the paper's
+  explicit "first" — it does NOT claim "first CubeSat XNAV" primacy; record
+  the nuance). The XNAV instrument class is shrinking toward CubeSat
+  mass/power, which strengthens the relevance of the interstellar
+  acquisition/hold analysis.
+- Where in repo: journal/findings-compilation.md (F14 / E5 framing); future
+  paper related-work.
+- Verified: primary sighted via arXiv, 2026-07-22.
+
+**[PulsarClock26]** Iyer, V., & Bandi, T. N. (2026). "Pulsars as Natural
+Oscillators for Long-Term Deep-Space Missions." *NAVIGATION: Journal of the
+Institute of Navigation*, 73(1), navi.733. doi:10.33012/navi.733.
+- Used for: related work for the TIME leg ("when you are") — NANOGrav 15-yr
+  data, 68 MSPs; several pulsars enable sub-kilometre-equivalent range
+  stability over averaging periods of 100 days to >15 years, an onboard
+  pulsar ensemble reaching ~1e-16 fractional stability over 10+ yr. Treats
+  pulsars as onboard OSCILLATORS built from ground-PTA data; a
+  simulation/timescale analysis only — no autonomous absolute-time recovery
+  from real spacecraft photon data (the gap a proposed E9 card would fill;
+  awaiting student ruling).
+- Where in repo: journal/findings-compilation.md (time leg); future paper
+  related-work.
+- Verified: primary sighted via navi.ion.org, 2026-07-22.
+
 **[AbsAstro50]** Høg, E. (2014). "Absolute astrometry in the next 50
 years." arXiv:1408.2190. https://arxiv.org/abs/1408.2190 (author corrected
 by the 2026-07-17 sweep — the arXiv record's sole author is Erik Høg; the
@@ -661,26 +726,51 @@ earlier "Malbet/Hobbs et al." attribution was wrong)
   paper related-work. Verified: via WebSearch summary, 2026-07-16 (students
   should sight the paper before the paper's methods; WebFetch was denied).
 
-**[DSNcompare21]** "Comparison of Deep Space Navigation Using Optical Imaging,
-Pulsar Time-of-Arrival Tracking, and/or Radiometric Tracking." *The Journal of
-the Astronautical Sciences* (2021). doi:10.1007/s40295-021-00290-z
+**[DSNcompare21]** Ely, T., Bhaskaran, S., Bradley, N., Lazio, T. J. W., &
+Martin-Mur, T. (2022). "Comparison of Deep Space Navigation Using Optical
+Imaging, Pulsar Time-of-Arrival Tracking, and/or Radiometric Tracking."
+*The Journal of the Astronautical Sciences*, 69, 385-472.
+doi:10.1007/s40295-021-00290-z. arXiv:2205.08652. (JPL authors; year
+corrected 2021 -> 2022 from the primary, 2026-07-22 — the [DSNcompare21]
+tag keeps its original name to preserve cross-references.)
 - Used for: THE closest related work to the project's overall framing — it
   compares the same three modalities (optical / pulsar / radiometric) this
-  project spans. MUST be cited and distinguished: it is a SOLAR-SYSTEM
-  deep-space comparison, not an INTERSTELLAR catalog-aging trade study, and it
-  does not map navigation error over (catalog age x sensor precision) or give
-  the crossover. Students: retrieve authors + exact result and distinguish
-  explicitly in related work. Verified: title/venue/doi via WebSearch,
-  2026-07-16 (WebFetch denied; sight the paper before drafting).
+  project spans. EXACT RESULTS (from the primary): pulsar-only navigation
+  21-72 km at Mars (best-4 vs all-8 SEXTANT pulsars) and 34-1310 km at
+  Neptune; instrument model is 4 of the 56 SEXTANT collimators, A = 129 cm^2,
+  3-hr integrations per pulsar per 24 h; method is a semi-analytic GDOP plus
+  a Mars Monte Carlo; simulation only. MUST be cited and distinguished: it is
+  a SOLAR-SYSTEM deep-space comparison, not an INTERSTELLAR catalog-aging
+  trade study, and it does not map navigation error over (catalog age x
+  sensor precision) or give the crossover. HONEST distinction (do not
+  overclaim): Part 2's Monte Carlo DOES test combinations of the three data
+  types, so the paper is not "no fusion" flatly — the precise absence is a
+  UNIFIED SIMULTANEOUS fusion estimator; and it carries NO integer-ambiguity
+  analysis and NO catalog-aging axis.
+- Where in repo: journal/findings-compilation.md (F4 must-distinguish);
+  future paper related-work.
+- Verified: authors, venue (JAS 69, 385-472), year 2022, doi and
+  arXiv:2205.08652 sighted from the primary (arXiv:2205.08652, open-access
+  PMC9098647), 2026-07-22; students should sight the paper before drafting.
 
 **[StarNAV19]** Christian, J. A. (2019). "StarNAV: Autonomous Optical
 Navigation of a Spacecraft by the Relativistic Perturbation of Starlight."
-*Sensors*, 19(19), 4064. https://www.mdpi.com/1424-8220/19/19/4064
+*Sensors*, 19(19), 4064. doi:10.3390/s19194064.
+https://www.mdpi.com/1424-8220/19/19/4064
 - Used for: related work for the STARLIGHT leg — autonomous optical navigation
   by starlight aberration/relativistic perturbation. Adjacent method; does not
-  address catalog aging or the fused-bootstrap pulsar limit. (Author to be
-  confirmed by students; StarNAV is the Christian-group concept.) Verified:
-  title/venue via WebSearch, 2026-07-16.
+  address catalog aging or the fused-bootstrap pulsar limit. From the primary:
+  the most-promising technique is velocity recovery from the CHANGE in the
+  inter-star angle induced by stellar aberration; the relativistic-Doppler
+  spectral approach is judged "ineffective in practice"; the work is a NASA
+  NIAC Phase I/II concept. Author hedge RESOLVED: sole author John A.
+  Christian (RPI).
+- Where in repo: journal/findings-compilation.md (F13 must-cite); future
+  paper related-work.
+- Verified: primary sighted 2026-07-22 (author J. A. Christian; Sensors
+  19(19):4064, doi:10.3390/s19194064; the aberration-vs-Doppler technique
+  split read from the full text). Earlier record: title/venue via WebSearch,
+  2026-07-16.
 
 **[YucalanPeck19]** Yucalan, D., & Peck, M. A. (2019). "A Static Estimation
 Method for Autonomous Navigation of Relativistic Spacecraft." *IEEE Aerospace
@@ -702,6 +792,14 @@ doi:10.2514/6.2021-1868
   catalog uncertainty named the dominant error floor, with future astrometry
   "up to five orders" better. Treats catalog PRECISION at a fixed epoch, not
   catalog AGE; no aging map. MUST cite and distinguish.
+- Journal version (better sight-target, same group): Yucalan, D., & Peck,
+  M. A. (2021). "Autonomous Navigation of Relativistic Spacecraft in
+  Interstellar Space." *Journal of Guidance, Control, and Dynamics* 44(6),
+  1106-1115. doi:10.2514/1.G005340.
+- CONFLATION GUARD (recorded 2026-07-22): the "~3 au / ~2 km/s from 20 stars
+  at 1 arcsec" figures circulating in surveys belong to [BJ21], NOT to
+  Yucalan-Peck (their full text is paywalled, unverified here) — do not
+  conflate the two when drafting related work.
 - Where in repo: journal/logbook.md (2026-07-16 dead-leg re-run); future
   paper related-work. Verified: abstract via OpenAlex, 2026-07-16 (students
   should sight before drafting).
@@ -720,16 +818,24 @@ Navigation." *Universe*, 12(7), 197. doi:10.3390/universe12070197
   (students should sight before drafting).
 
 **[Franzese26]** Franzese, V. (2026). "Star-based Navigation in the Outer
-Solar System." *Journal of Guidance, Control, and Dynamics*.
-doi:10.2514/1.g009764. arXiv:2603.06247
+Solar System." *Journal of Guidance, Control, and Dynamics* (accepted).
+doi:10.2514/1.g009764. arXiv:2603.06247. (Sole author: Vittorio Franzese.)
 - Used for: related work for the starlight leg — parallax-shift navigation
   demonstrated to 250 AU (Voyager/Pioneer/New Horizons regime), sub-au
   accuracy, FIXED catalog. Bounds E6/E1 from the near side: outer solar
   system, not interstellar, and no catalog aging. Cite and distinguish the
   range regime.
+- IMPORTANT correction (2026-07-22, full text): the simulations propagate
+  the HIPPARCOS catalog, NOT Gaia DR3 — Gaia appears only as intro context.
+  This matters to positioning because GalNav's catalog-aging axis is built
+  ON Gaia DR3. Pulsar navigation gets a single passing mention (not
+  investigated); and there is NO catalog-aging / epoch-degradation analysis
+  (proper motion enters the observation model only).
 - Where in repo: journal/logbook.md (2026-07-16 dead-leg re-run); future
-  paper related-work. Verified: abstract via Semantic Scholar, 2026-07-16
-  (students should sight before drafting).
+  paper related-work. Verified: abstract via Semantic Scholar, 2026-07-16;
+  full text sighted via arXiv HTML, 2026-07-22 (Hipparcos-not-Gaia, the
+  single passing pulsar mention, and the no-aging finding all read
+  directly); students should sight before drafting.
 
 **[Shemar16]** Shemar, S., et al. (2016). "Towards practical autonomous
 deep-space navigation using X-ray pulsar timing." *Experimental Astronomy*,
@@ -781,6 +887,62 @@ OpenSpace/openspace-api-python (`socketwrapper.py`: JSON + `"\n"`).
   navigation API behavior (`pathnavigation` nil; `flyTo` distance-
   preserving; `setNavigationState` exact) all measured directly, not taken
   from documentation.
+
+### F12 candidate refs (starlight-chronometer / catalog-epoch dating — 2026-07-22)
+
+These correct and replace the 2026-07-17 STRUCK "He&Zhao 2025" / "SESCC
+2026" strings (the scout mis-cited year/venue; the 2026-07-17 check searched
+the bad strings). F12 is [PROPOSED], awaiting student ruling; these are the
+real, citable references behind it. Titles are recorded verbatim from the
+2026-07-22 live fetches; students should still sight each paper before
+the reference list is finalized.
+
+**[HeZhao24]** He, B., & Zhao, Y. (2024). "Determining the observation
+epochs of star catalogs from ancient China using the generalized Hough
+transform method." *Astronomical Techniques and Instruments*, 1(2), 150-155.
+arXiv:2504.02182.
+- Used for: F12 candidate — epoch-dating a star catalog from star positions
+  via a generalized Hough transform (precession-dominated regime). First
+  half of the corrected "He&Zhao" pair.
+- Verified: fetched live 2026-07-22.
+
+**[HeZhao25]** He, B., & Zhao, Y. (2025). "Determining the observational
+epoch of the Shi's star catalog using the generalized Hough transform
+method." Accepted, *Research in Astronomy and Astrophysics*. arXiv:2504.02186.
+- Used for: F12 candidate — the companion Hough-transform epoch-dating paper
+  (Shi's catalog). Second half of the corrected "He&Zhao" pair.
+- Verified: fetched live 2026-07-22.
+
+**[BaigetOrts25]** Baiget Orts, C. (2025). "Astronomical Refutation of the
+New Chronology by Fomenko and Nosovsky: The 1151-Year Planetary Cycle and
+Dating of the Almagest via Speed/Error Correlation." arXiv:2504.12962.
+- Used for: F12 candidate — defines SESCC = Speed-Error Signals Cross
+  Correlation, dating the Almagest by cross-correlating each star's
+  proper-motion SPEED against its positional ERROR. Corrects the struck
+  "SESCC 2026" string (real year 2025).
+- Verified: fetched live 2026-07-22.
+
+**[NAROO21]** Robert, V., et al. (2021). "The NAROO digitization center —
+Overview and scientific program." *Astronomy & Astrophysics*, 652, A3.
+doi:10.1051/0004-6361/202140472.
+- Used for: F12 supporting ref — plate re-reduction reaching ~15 mas .. 50
+  uas, evidence the plate-era positional signal F12 leans on is measurable.
+- Verified: fetched live 2026-07-22.
+
+**[LSPM05]** Lepine, S., & Shara, M. M. (2005). "A Catalog of Northern
+Stars with Annual Proper Motions Larger than 0.15″ (LSPM-North Catalog)."
+*The Astronomical Journal*, 129, 1483. doi:10.1086/427854.
+- Used for: F12 supporting ref — proper motions derived FROM POSS-I/II plate
+  differencing (~8 mas/yr), the same position-difference signal F12
+  formalizes.
+- Verified: fetched live 2026-07-22.
+
+**[DASCH10]** Laycock, S., et al. (2010). "Digital Access to a Sky Century
+at Harvard. II: Initial Photometry and Astrometry." *The Astronomical
+Journal*, 140, 1062. arXiv:0811.2005.
+- Used for: F12 supporting ref — century-baseline digitized-plate astrometry,
+  the long-baseline end of the plate-dating signal.
+- Verified: fetched live 2026-07-22.
 
 ## Learning resources consulted (log for the ISEF logbook, not paper refs)
 

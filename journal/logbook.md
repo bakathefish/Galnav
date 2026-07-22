@@ -3422,3 +3422,68 @@ running (nothing on 127.0.0.1:4681)…"). Suites: spine 84, tests_gui 154
 + … net +1). Docs: GUI-EXPLAINED (seven pages, one live phase),
 ISEF-DEMO-PLAYBOOK §5, PIPELINE-FLOWCHART, gui/web README, README/INDEX
 counts 154. No spine, science, or frozen content touched.
+
+## 2026-07-22 — citation-verification sitting (expansion planning)
+
+A field survey of the 2019-2026 celestial-navigation literature was run to
+scope post-sprint expansion. The integrated thesis is NOT pre-empted by any
+of it; but rather than let a survey's headline numbers stand on a scout's
+say-so, every load-bearing figure was verified against a primary source
+before it was allowed into the registry. Documentation only.
+
+**The F12 struck-refs finding of 2026-07-17 is SUPERSEDED.** That sweep had
+struck the scout's "He&Zhao 2025" and "SESCC 2026" as unverifiable; the
+2026-07-22 re-check finds both REAL but MIS-CITED — the earlier pass had
+searched the scout's bad strings (wrong year/venue). "He&Zhao" is two real
+Hough-transform catalog-epoch-dating papers ([HeZhao24], *ATI* 1(2):150-155,
+arXiv:2504.02182; [HeZhao25], accepted *RAA*, arXiv:2504.02186); "SESCC" is a
+real method — Speed-Error Signals Cross Correlation — from Baiget Orts 2025
+([BaigetOrts25], arXiv:2504.12962), real year 2025, not 2026. Three
+plate-astrometry supporting refs also verified ([NAROO21], [LSPM05],
+[DASCH10]). The F12 ref-blocker is CLEARED; Barron08 stays the anchor prior
+art; the card still awaits ruling. Corrected cites now sit in the F12 card
+(findings-compilation.md) and the registry.
+
+**Four registry entries completed or corrected from primaries.**
+[DSNcompare21] filled in from the open-access primary — authors Ely,
+Bhaskaran, Bradley, Lazio, Martin-Mur (JPL); *JAS* 69:385-472, year
+corrected 2021 → 2022; exact numbers recorded (pulsar-only 21-72 km at Mars,
+34-1310 km at Neptune; 4-of-56 SEXTANT collimators, A = 129 cm^2; simulation
+only), with the honest note that its Part-2 Monte Carlo DOES test data-type
+combinations — so the precise absence is a UNIFIED SIMULTANEOUS fusion
+estimator, and it carries no integer-ambiguity and no catalog-aging axis.
+[StarNAV19]'s author hedge is resolved (sole author John A. Christian, RPI;
+doi:10.3390/s19194064 added). [Franzese26] corrected — its simulations
+propagate HIPPARCOS, not Gaia DR3 (Gaia is intro context only), which
+matters because GalNav's catalog-aging axis is built ON Gaia DR3; pulsar nav
+is one passing mention, and there is no aging analysis. [YucalanPeck21]
+carries a conflation guard: the "~3 au / ~2 km/s from 20 stars at 1 arcsec"
+figures circulating in surveys are [BJ21]'s, NOT Yucalan-Peck's (their full
+text is paywalled, unverified here).
+
+**Four new related-work registrations.** [SEXTANT18] (the first in-space
+autonomous XNAV demo, NICER/ISS, Nov 2017, < 10 km RSS held within ~7.5 h),
+[ZhengHXMT19] (Insight-HXMT, Crab, 10 km / 10 m/s at 3-sigma, SEPO),
+[NinjaSat26] (6U CubeSat XNAV, Crab, 3-D position 27-370 km, the first
+experimental verification that SEPO accuracy depends on seasonal geometry —
+explicitly NOT a "first CubeSat XNAV" primacy claim), and [PulsarClock26]
+(pulsars as onboard oscillators from NANOGrav 15-yr PTA data, ~1e-16 over
+10+ yr). Each is registered with its one-sentence distinction from this
+project's claims: the flight XNAV demos all carry a tight in-system
+dynamical prior, and the oscillator work recovers no absolute time from real
+spacecraft photons — neither touches E5's interstellar no-bootstrap result
+or the time leg's open question.
+
+**Expansion menu presented; all rulings pending.** A pulsar-ladder card, an
+absolute-time-recovery card (the E9 gap [PulsarClock26] leaves open), a
+pair-vs-ensemble CRLB card (seeded by [Lauer25]'s verbatim conclusion that a
+single pair of the closest stars beats a large sample of more distant ones —
+asserted as a recommendation, not proven as a theorem), and F13 were laid
+before the students. ALL await student ruling; nothing was built.
+
+This was a documentation-only sitting: no frozen value moved, no worksheet
+ruling line added, no STUDENT RULING line touched, and no spine / GUI / armor
+code changed — only journal/findings-compilation.md (F12 card),
+journal/citations.md, and this logbook. Suites re-run after the edits: spine
+`python -m pytest -q` 84 passed; GUI `python -m pytest -q tests_gui` 154
+passed.
